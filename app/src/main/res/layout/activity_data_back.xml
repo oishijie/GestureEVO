@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='utf-8'?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/main" android:layout_width="match_parent" android:layout_height="match_parent" android:fitsSystemWindows="true">
+    <com.google.android.material.appbar.AppBarLayout android:id="@+id/app_bar" android:layout_width="match_parent" android:layout_height="@dimen/app_bar_height"
+    android:background="@android:color/transparent">
+        <com.google.android.material.appbar.CollapsingToolbarLayout android:id="@+id/toolbar_layout" android:layout_width="match_parent" android:layout_height="match_parent" android:fitsSystemWindows="true" app:layout_scrollFlags="scroll|exitUntilCollapsed" app:toolbarId="@+id/toolbar"
+      app:contentScrim="?attr/colorSurface"
+      app:expandedTitleMarginStart="20dp"
+      app:expandedTitleMarginBottom="20dp"
+      app:scrimAnimationDuration="200"
+      app:statusBarScrim="@android:color/transparent">
+            <androidx.appcompat.widget.Toolbar android:id="@+id/toolbar" android:layout_width="match_parent" android:layout_height="?attr/actionBarSize" app:layout_collapseMode="pin"
+        android:background="@android:color/transparent"
+        app:contentInsetStartWithNavigation="16dp"
+        app:navigationIcon="@drawable/bg_nav_back_circle" />
+        </com.google.android.material.appbar.CollapsingToolbarLayout>
+    </com.google.android.material.appbar.AppBarLayout>
+    <androidx.core.widget.NestedScrollView android:id="@+id/dataBackScrollView" android:layout_width="match_parent" android:layout_height="match_parent" android:clipToPadding="false" app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    android:background="?attr/colorSurface" >
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="@dimen/settings_card_spacing" android:paddingVertical="16dp">
+            <!-- 备份与恢复：WebDAV 配置/状态 + 本地与云端备份恢复，默认展开（高频操作）。 -->
+            <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard android:id="@+id/backupRestoreCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="16dp" app:settingsCardTitle="@string/data_backup_restore_title" app:settingsCardSummary="@string/data_backup_restore_summary">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="12dp" android:paddingTop="4dp" android:paddingBottom="12dp">
+                    <TextView android:id="@+id/webdavStatusText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/data_backup_webdav_status_disconnected" android:textColor="?android:textColorSecondary" />
+                    <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow android:id="@+id/configWebdavButton" android:enabled="false" android:layout_width="match_parent" android:layout_height="wrap_content" app:settingsRowTitle="@string/data_backup_webdav_config"
+            app:settingsRowFlat="true" />
+                    <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow android:id="@+id/backupButton" android:enabled="false" android:layout_width="match_parent" android:layout_height="wrap_content" app:settingsRowTitle="@string/data_backup_local"
+            app:settingsRowFlat="true" />
+                    <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow android:id="@+id/backupToWebdavButton" android:enabled="false" android:layout_width="match_parent" android:layout_height="wrap_content" app:settingsRowTitle="@string/data_backup_webdav"
+            app:settingsRowFlat="true" />
+                    <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow android:id="@+id/restoreButton" android:enabled="false" android:layout_width="match_parent" android:layout_height="wrap_content" app:settingsRowTitle="@string/data_restore_local"
+            app:settingsRowFlat="true" />
+                    <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow android:id="@+id/restoreFromWebdavButton" android:enabled="false" android:layout_width="match_parent" android:layout_height="wrap_content" app:settingsRowTitle="@string/data_restore_webdav"
+            app:settingsRowFlat="true" />
+                </LinearLayout>
+            </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>
+            <!-- 数据统计：独立页入口，保持折叠。 -->
+            <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard android:id="@+id/dataStatsCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="16dp" app:settingsCardTitle="@string/data_stats_entry_title" app:settingsCardSummary="@string/data_stats_entry_summary">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="12dp" android:paddingTop="4dp" android:paddingBottom="12dp">
+                    <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow android:id="@+id/statsEntryButton" android:layout_width="match_parent" android:layout_height="wrap_content" app:settingsRowTitle="@string/data_stats_entry_action"
+            app:settingsRowFlat="true" />
+                </LinearLayout>
+            </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

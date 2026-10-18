@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  屏幕内容一级页：顶部引导状态卡 + 入口卡列表。
+  每个条目深链打开原版 InspireSettingsActivity 对应分区卡，
+  详细设置（开关/弹窗/底部弹窗）全部留在原版页面。
+  分组标题已取消；按草图拍板，本页四卡不加徽章。
+-->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- 引导状态卡：始终可见。 -->
+    <io.github.lumiagg.gestureevo.ui.home.HomeStatusCardPreference
+        android:icon="@drawable/baseline_info_24"
+        android:key="card_screen_guide"
+        app:statusCardActionLabel="@string/home_guide_action" />
+
+    <io.github.lumiagg.gestureevo.ui.home.HomeEntryPreference
+        android:icon="@drawable/baseline_qr_code_scanner_24"
+        android:key="menu_screen_recognition"
+        android:summary="@string/home_menu_recognition_summary"
+        app:title="@string/home_menu_recognition_title" />
+
+    <io.github.lumiagg.gestureevo.ui.home.HomeEntryPreference
+        android:icon="@drawable/ic_baseline_share_24"
+        android:key="menu_screen_share"
+        android:summary="@string/home_menu_share_summary"
+        app:title="@string/home_menu_share_title" />
+
+    <io.github.lumiagg.gestureevo.ui.home.HomeEntryPreference
+        android:icon="@drawable/baseline_keyboard_24"
+        android:key="menu_screen_pointer_keyboard"
+        android:summary="@string/home_menu_pointer_keyboard_summary"
+        app:title="@string/home_menu_pointer_keyboard_title" />
+
+    <io.github.lumiagg.gestureevo.ui.home.HomeEntryPreference
+        android:icon="@drawable/baseline_circle_notifications_24"
+        android:key="menu_screen_notification"
+        android:summary="@string/home_menu_notification_summary"
+        app:title="@string/home_menu_notification_title" />
+
+</PreferenceScreen>

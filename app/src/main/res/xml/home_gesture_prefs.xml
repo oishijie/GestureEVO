@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  手势一级页：顶部「功能介绍与引导」横幅（静态，轮播已取消，引导只保留一页），
+  下方为入口卡列表。原轮播第 1 页的无障碍服务状态下沉为入口卡，
+  徽章显示开关状态；其余徽章：轮盘卡显示轮盘个数，小窗卡显示当前小窗模式
+  （徽章数据在 GestureHomeFragment 中绑定，onResume 刷新）。
+-->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!--
+      功能介绍与引导横幅：整卡点击与动作按钮都打开分步引导。
+      沿用原来的 preferenceService key，设置搜索定位手势页时仍命中这一项。
+    -->
+    <io.github.lumiagg.gestureevo.ui.home.HomeStatusCardPreference
+        android:icon="@drawable/baseline_info_24"
+        android:key="preferenceService"
+        app:statusCardActionLabel="@string/home_guide_action" />
+
+    <!-- 无障碍服务：原轮播状态页下沉为入口卡，徽章显示已开启/未开启。 -->
+    <io.github.lumiagg.gestureevo.ui.home.HomeEntryPreference
+        android:icon="@drawable/icon_service"
+        android:key="preferenceAccessibility"
+        android:summary="@string/home_summary_service"
+        app:title="@string/home_status_service_title" />
+
+    <io.github.lumiagg.gestureevo.ui.home.HomeEntryPreference
+        android:icon="@drawable/baseline_gesture_24"
+        android:key="preferenceConfigTrigger"
+        android:summary="@string/home_summary_gesture"
+        app:title="@string/settings_gesture_title" />
+
+    <io.github.lumiagg.gestureevo.ui.home.HomeEntryPreference
+        android:icon="@drawable/baseline_pie_chart_24"
+        android:key="preferenceActionView"
+        android:summary="@string/home_summary_action_view"
+        app:title="@string/action_view_settings_title" />
+
+    <io.github.lumiagg.gestureevo.ui.home.HomeEntryPreference
+        android:icon="@drawable/ic_little_window"
+        android:key="preferenceFreeform"
+        android:summary="@string/home_summary_freeform"
+        app:title="@string/freeform_settings_title" />
+
+</PreferenceScreen>

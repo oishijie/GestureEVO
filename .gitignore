@@ -1,0 +1,56 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+app/release/*
+.kotlin
+# Developer state and generated files
+/.idea/
+/.agents/
+/.codex/
+**/__pycache__/
+*.py[cod]
+**/build/
+**/.cxx/
+*.apk
+*.APK
+*.aab
+*.idsig
+
+# CI 配置：本机永不入库。仓库不承载任何自动化流程。
+/.github/
+
+# Agent 工作数据（记忆、会话缓存等）
+/.workbuddy/
+
+# 参考用的另一个项目源码，不属于本仓库
+/syncclipboard-xposed-main/
+
+# Local credentials and signing materials
+/.env
+/.env.*
+!/.env.example
+/keystore.properties
+signing/*.jks
+signing/keystore.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+/.signing/
+/.aws/
+*.log
+**/.env
+**/.env.*
+!**/.env.example

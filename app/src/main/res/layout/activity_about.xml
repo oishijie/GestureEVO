@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  android:id="@+id/aboutRoot"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:fitsSystemWindows="true">
+
+  <com.google.android.material.appbar.AppBarLayout
+    android:id="@+id/app_bar"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/app_bar_height"
+    android:background="@android:color/transparent">
+
+    <com.google.android.material.appbar.CollapsingToolbarLayout
+      android:id="@+id/toolbarLayout"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:fitsSystemWindows="true"
+      app:layout_scrollFlags="scroll|exitUntilCollapsed"
+      app:toolbarId="@+id/toolbar"
+      app:contentScrim="?attr/colorSurface"
+      app:expandedTitleMarginStart="20dp"
+      app:expandedTitleMarginBottom="20dp"
+      app:scrimAnimationDuration="200"
+      app:statusBarScrim="@android:color/transparent">
+
+      <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@android:color/transparent"
+        app:contentInsetStartWithNavigation="16dp"
+        app:layout_collapseMode="pin"
+        app:navigationIcon="@drawable/bg_nav_back_circle" />
+    </com.google.android.material.appbar.CollapsingToolbarLayout>
+  </com.google.android.material.appbar.AppBarLayout>
+
+  <androidx.core.widget.NestedScrollView
+    android:id="@+id/aboutScrollView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    android:clipToPadding="false"
+    android:overScrollMode="never"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="vertical"
+      android:paddingHorizontal="@dimen/settings_card_spacing"
+      android:paddingVertical="16dp">
+
+      <!-- 版本卡：白卡细描边，居中展示图标 / 名称 / 版本，与设置卡同一套外观 -->
+      <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:cardBackgroundColor="?attr/colorSurface"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeColor="?attr/colorOutlineVariant"
+        app:strokeWidth="1dp">
+
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:gravity="center"
+          android:orientation="vertical"
+          android:paddingHorizontal="20dp"
+          android:paddingVertical="20dp">
+
+          <androidx.constraintlayout.utils.widget.ImageFilterView
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_marginBottom="16dp"
+            android:scaleType="centerCrop"
+            android:src="@mipmap/ic_launcher"
+            app:round="100dp" />
+
+          <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:textAppearance="?attr/textAppearanceHeadline6"
+            android:textStyle="bold" />
+
+          <TextView
+            android:id="@+id/aboutVersion"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/about_version_default"
+            android:textAppearance="?attr/textAppearanceBody2" />
+        </LinearLayout>
+      </com.google.android.material.card.MaterialCardView>
+
+      <!-- 项目信息 -->
+      <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard
+        android:id="@+id/aboutProjectCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:settingsCardTitle="@string/about_group_project">
+
+        <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+          android:id="@+id/aboutMaintainer"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          app:settingsRowFlat="true"
+          app:settingsRowShowChevron="false"
+          app:settingsRowTitle="@string/about_maintainer_title">
+
+          <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/about_maintainer_name" />
+        </io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow>
+
+        <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+          android:id="@+id/aboutRepository"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          app:settingsRowFlat="true"
+          app:settingsRowTitle="@string/about_repository_title">
+
+          <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/about_repository_url" />
+        </io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow>
+
+        <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+          android:id="@+id/aboutUpstream"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          app:settingsRowFlat="true"
+          app:settingsRowTitle="@string/about_upstream_title" />
+
+        <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+          android:id="@+id/aboutContributors"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          app:settingsRowFlat="true"
+          app:settingsRowShowChevron="false"
+          app:settingsRowTitle="@string/about_contributors">
+
+          <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/about_contributors_names" />
+        </io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow>
+      </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>
+
+      <!-- 反馈与法律 -->
+      <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard
+        android:id="@+id/aboutLegalCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:settingsCardTitle="@string/about_group_legal">
+
+        <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+          android:id="@+id/aboutFeedback"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          app:settingsRowFlat="true"
+          app:settingsRowTitle="@string/about_contact">
+
+          <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/about_contact_detail" />
+        </io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow>
+
+        <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+          android:id="@+id/aboutPrivacyPolicy"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          app:settingsRowFlat="true"
+          app:settingsRowTitle="@string/about_privacy_policy" />
+
+        <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+          android:id="@+id/aboutUserAgreement"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          app:settingsRowFlat="true"
+          app:settingsRowTitle="@string/about_user_agreement" />
+
+        <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+          android:id="@+id/aboutOpenSourceLicenses"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          app:settingsRowFlat="true"
+          app:settingsRowTitle="@string/about_open_source_licenses" />
+      </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>
+
+    </LinearLayout>
+  </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

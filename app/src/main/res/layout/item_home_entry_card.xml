@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  一级页入口卡（新版比例）：白卡 + 图标块 + 标题 + 状态徽章 + 两行摘要 + 箭头。
+  复刻参考样式的饱满比例：侧边距 8dp 保持大宽度，最小高 80dp（两行摘要自动增高），
+  内边距 16dp，图标块 46dp 圆角方，标题 16sp 加粗，徽章 12sp 紧贴标题，
+  摘要 13sp 最多两行，整体更接近参考页"组件大、描述长"的和谐观感。
+-->
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="?attr/materialCardViewFilledStyle"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginTop="6dp"
+    android:layout_marginBottom="6dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    app:cardBackgroundColor="?attr/colorSurface"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:strokeColor="?attr/colorOutlineVariant"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="80dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="16dp">
+
+        <ImageView
+            android:id="@android:id/icon"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:background="@drawable/bg_home_row_icon"
+            android:importantForAccessibility="no"
+            android:padding="11dp"
+            android:tint="?attr/colorOnSecondaryContainer" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@android:id/title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textStyle="bold"
+                    android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/entryBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textSize="12sp"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@android:id/summary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:maxLines="2"
+                android:paddingTop="4dp"
+                android:textSize="13sp"
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/entryChevron"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginStart="10dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_chevron_right"
+            android:tint="?attr/colorOutline" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

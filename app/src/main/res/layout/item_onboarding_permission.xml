@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:paddingHorizontal="32dp">
+
+    <ImageView
+        android:id="@+id/permissionIcon"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:importantForAccessibility="no"
+        android:scaleType="fitCenter" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/permissionTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:gravity="center"
+        android:textAppearance="?attr/textAppearanceHeadlineSmall"
+        android:textColor="?attr/colorOnSurface" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/permissionDesc"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:lineSpacingExtra="4dp"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/permissionStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:textAppearance="?attr/textAppearanceLabelLarge" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/permissionAction"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_marginTop="20dp"
+        android:minWidth="160dp"
+        android:text="@string/onboarding_permission_grant" />
+
+</LinearLayout>

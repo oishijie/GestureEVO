@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  普通行的卡片无箭头变体：供一级页面中"直接动作、不导航"的行使用
+  （如预览排序模式）。与 item_home_row_card 同一卡片语言，仅去掉尾部箭头。
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="?attr/materialCardViewFilledStyle"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="4dp"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="60dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp">
+
+        <ImageView
+            android:id="@android:id/icon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_home_row_icon"
+            android:padding="9dp"
+            android:tint="?attr/colorOnSecondaryContainer" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@android:id/title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                android:textColor="?attr/colorOnSurface" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@android:id/summary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="1dp"
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

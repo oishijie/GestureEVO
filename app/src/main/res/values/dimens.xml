@@ -1,0 +1,18 @@
+<resources>
+    <dimen name="app_bar_height">140dp</dimen>
+    <dimen name="slide_offset">64dp</dimen>
+    <dimen name="quick_search_motion_offset_medium">56dp</dimen>
+    <dimen name="quick_search_motion_offset_large">72dp</dimen>
+    <dimen name="settings_card_spacing">8dp</dimen>
+    <dimen name="settings_card_corner_radius">16dp</dimen>
+    <!--
+      悬浮底栏：
+      home_bottom_bar_margin —— 底栏离屏幕底边（含导航栏）的距离
+      home_content_bottom_padding —— 内容区与底栏之间的呼吸间距；实际底部留白由
+        HomeActivity 按「底栏实测高度 + margin + 导航栏高度」动态计算，此值仅作最小间距与首帧兜底
+      home_bottom_bar_estimated_height —— 底栏尚未完成布局时的估算高度
+    -->
+    <dimen name="home_bottom_bar_margin">16dp</dimen>
+    <dimen name="home_content_bottom_padding">16dp</dimen>
+    <dimen name="home_bottom_bar_estimated_height">64dp</dimen>
+</resources>

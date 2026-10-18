@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:fitsSystemWindows="true">
+
+  <com.google.android.material.appbar.AppBarLayout
+    android:id="@+id/app_bar"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/app_bar_height"
+    android:background="@android:color/transparent">
+
+    <com.google.android.material.appbar.CollapsingToolbarLayout
+      android:id="@+id/toolbar_layout"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:fitsSystemWindows="true"
+      app:layout_scrollFlags="scroll|exitUntilCollapsed"
+      app:toolbarId="@+id/toolbar"
+      app:contentScrim="?attr/colorSurface"
+      app:expandedTitleMarginStart="20dp"
+      app:expandedTitleMarginBottom="20dp"
+      app:scrimAnimationDuration="200"
+      app:statusBarScrim="@android:color/transparent">
+
+      <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        app:layout_collapseMode="pin"
+        android:background="@android:color/transparent"
+        app:contentInsetStartWithNavigation="16dp"
+        app:navigationIcon="@drawable/bg_nav_back_circle" />
+    </com.google.android.material.appbar.CollapsingToolbarLayout>
+  </com.google.android.material.appbar.AppBarLayout>
+
+  <androidx.core.widget.NestedScrollView
+    android:id="@+id/appearanceScrollView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    android:background="?attr/colorSurface" >
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="vertical"
+      android:paddingHorizontal="@dimen/settings_card_spacing"
+      android:paddingVertical="16dp">
+
+      <!-- ① 主题与色彩：语言 / 主题模式 / 动态取色 / 全局图标圆角 -->
+      <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard
+        android:id="@+id/themeColorCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:settingsCardTitle="@string/appearance_settings_theme_color_title"
+        app:settingsCardSummary="@string/appearance_settings_theme_color_description">
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical">
+
+          <io.github.lumiagg.gestureevo.settings.ui.SettingsDropdownRow
+            android:id="@+id/languageRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingsRowTitle="@string/appearance_settings_language_title"
+            app:settingsRowFlat="true" />
+
+          <io.github.lumiagg.gestureevo.settings.ui.SettingsDropdownRow
+            android:id="@+id/themeModeDropdownRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingsRowTitle="@string/theme_mode_title"
+            app:settingsRowFlat="true" />
+
+          <io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow
+            android:id="@+id/dynamicColorRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingsRowTitle="@string/dynamic_color_title"
+            app:settingsRowFlat="true">
+            <com.google.android.material.materialswitch.MaterialSwitch
+              android:id="@+id/dynamic_color_switch"
+              android:checked="true"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content" />
+          </io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow>
+
+          <TextView
+            android:id="@+id/dynamicColorHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:text="@string/dynamic_color_unsupported"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone" />
+
+          <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="14dp"
+            android:paddingBottom="8dp">
+            <LinearLayout
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:gravity="center_vertical"
+              android:orientation="horizontal">
+              <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/appearance_settings_global_icon_corner"
+                android:textSize="16sp" />
+              <TextView
+                android:id="@+id/icon_image_round_percent_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/appearance_settings_global_icon_corner_default"
+                android:textAppearance="?attr/textAppearanceLabelLarge"
+                android:textColor="?attr/colorPrimary" />
+            </LinearLayout>
+            <com.google.android.material.slider.Slider
+              android:id="@+id/icon_image_round_percent_slider"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:valueFrom="0"
+              android:valueTo="1"
+              app:labelBehavior="floating" />
+          </LinearLayout>
+        </LinearLayout>
+      </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>
+
+      <!-- ② 模糊渲染：一键总开关 + 9 个独立开关 -->
+      <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard
+        android:id="@+id/blurCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:settingsCardTitle="@string/appearance_settings_blur_title"
+        app:settingsCardSummary="@string/appearance_settings_blur_description">
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical">
+
+          <io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow
+            android:id="@+id/blurMasterRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingsRowTitle="@string/blur_master_title"
+            app:settingsRowFlat="true">
+            <com.google.android.material.materialswitch.MaterialSwitch
+              android:id="@+id/blur_master_switch"
+              android:checked="false"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content" />
+          </io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow>
+
+          <io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow
+            android:id="@+id/blur_wheel_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingsRowTitle="@string/blur_item_wheel"
+            app:settingsRowFlat="true">
+            <com.google.android.material.materialswitch.MaterialSwitch
+              android:id="@+id/blur_wheel_switch"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content" />
+          </io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow>
+
+          <io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow
+            android:id="@+id/blur_search_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingsRowTitle="@string/blur_item_search"
+            app:settingsRowFlat="true">
+            <com.google.android.material.materialswitch.MaterialSwitch
+              android:id="@+id/blur_search_switch"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content" />
+          </io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow>
+
+          <io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow
+            android:id="@+id/blur_search_card_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingsRowTitle="@string/blur_item_search_card"
+            app:settingsRowFlat="true">
+            <com.google.android.material.materialswitch.MaterialSwitch
+              android:id="@+id/blur_search_card_switch"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content" />
+          </io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow>
+
+          <io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow
+            android:id="@+id/blur_keyboard_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingsRowTitle="@string/blur_item_keyboard"
+            app:settingsRowFlat="true">
+            <com.google.android.material.materialswitch.MaterialSwitch
+              android:id="@+id/blur_keyboard_switch"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content" />
+          </io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow>
+
+          <io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow
+            android:id="@+id/blur_keyboard_card_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingsRowTitle="@string/blur_item_keyboard_card"
+            app:settingsRowFlat="true">
+            <com.google.android.material.materialswitch.MaterialSwitch
+              android:id="@+id/blur_keyboard_card_switch"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content" />
+          </io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow>
+
+          <io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow
+            android:id="@+id/blur_pin_pool_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingsRowTitle="@string/blur_item_pin_pool"
+            app:settingsRowFlat="true">
+            <com.google.android.material.materialswitch.MaterialSwitch
+              android:id="@+id/blur_pin_pool_switch"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content" />
+          </io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow>
+
+          <io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow
+            android:id="@+id/blur_pin_pool_card_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingsRowTitle="@string/blur_item_pin_pool_card"
+            app:settingsRowFlat="true">
+            <com.google.android.material.materialswitch.MaterialSwitch
+              android:id="@+id/blur_pin_pool_card_switch"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content" />
+          </io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow>
+
+          <io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow
+            android:id="@+id/blur_screen_content_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingsRowTitle="@string/blur_item_screen_content"
+            app:settingsRowFlat="true">
+            <com.google.android.material.materialswitch.MaterialSwitch
+              android:id="@+id/blur_screen_content_switch"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content" />
+          </io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow>
+
+          <io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow
+            android:id="@+id/blur_screen_content_card_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingsRowTitle="@string/blur_item_screen_content_card"
+            app:settingsRowFlat="true">
+            <com.google.android.material.materialswitch.MaterialSwitch
+              android:id="@+id/blur_screen_content_card_switch"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content" />
+          </io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow>
+        </LinearLayout>
+      </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>
+
+      <!-- ③ 界面外观：各界面背景色 -->
+      <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard
+        android:id="@+id/surfaceAppearanceCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:settingsCardTitle="@string/appearance_settings_surface_title"
+        app:settingsCardSummary="@string/appearance_settings_surface_description">
+        <LinearLayout
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical">
+          <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+            android:id="@+id/pointer_color_btn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingsRowTitle="@string/appearance_settings_pointer_color"
+            app:settingsRowSwatch="true"
+            app:settingsRowFlat="true" />
+          <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+            android:id="@+id/wheel_color_btn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingsRowTitle="@string/appearance_settings_wheel_color"
+            app:settingsRowSwatch="true"
+            app:settingsRowFlat="true" />
+          <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+            android:id="@+id/search_color_btn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:settingsRowTitle="@string/appearance_settings_search_color"
+            app:settingsRowSwatch="true"
+            app:settingsRowFlat="true" />
+        </LinearLayout>
+      </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>
+    </LinearLayout>
+  </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

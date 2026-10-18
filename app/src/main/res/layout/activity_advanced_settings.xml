@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  高级设置：收纳低频但需保留的进阶能力，分三个分组
+  ① 外部功能调用 ② 授权记录（一行带数量，点进子页）③ 维护与日志。
+-->
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:fitsSystemWindows="true">
+
+  <com.google.android.material.appbar.AppBarLayout
+    android:id="@+id/app_bar"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/app_bar_height"
+    android:background="@android:color/transparent">
+
+    <com.google.android.material.appbar.CollapsingToolbarLayout
+      android:id="@+id/toolbar_layout"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:fitsSystemWindows="true"
+      app:layout_scrollFlags="scroll|exitUntilCollapsed"
+      app:toolbarId="@+id/toolbar"
+      app:contentScrim="?attr/colorSurface"
+      app:expandedTitleMarginStart="20dp"
+      app:expandedTitleMarginBottom="20dp"
+      app:scrimAnimationDuration="200"
+      app:statusBarScrim="@android:color/transparent">
+
+      <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@android:color/transparent"
+        app:contentInsetStartWithNavigation="16dp"
+        app:layout_collapseMode="pin"
+        app:navigationIcon="@drawable/bg_nav_back_circle" />
+    </com.google.android.material.appbar.CollapsingToolbarLayout>
+  </com.google.android.material.appbar.AppBarLayout>
+
+  <androidx.core.widget.NestedScrollView
+    android:id="@+id/advancedSettingsScrollView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    android:clipToPadding="false"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="vertical"
+      android:paddingHorizontal="@dimen/settings_card_spacing"
+      android:paddingVertical="16dp">
+
+      <!-- ① 外部功能调用：为第三方应用创建可供手势调用的入口。 -->
+      <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard
+        android:id="@+id/externalCallCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:settingsCardSummary="@string/advanced_external_call_desc"
+        app:settingsCardTitle="@string/external_action_settings_title">
+
+        <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+          android:id="@+id/newRecordButton"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          app:settingsRowFlat="true"
+          app:settingsRowTitle="@string/external_action_editor_title" />
+
+        <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+          android:id="@+id/openExternalWheelButton"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          app:settingsRowFlat="true"
+          app:settingsRowTitle="@string/external_action_open_wheel_button" />
+      </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>
+
+      <!-- ② 授权记录：只留一行带数量，明细进入子页。 -->
+      <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard
+        android:id="@+id/authorizedRecordsCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:settingsCardSummary="@string/advanced_records_desc"
+        app:settingsCardTitle="@string/external_action_history_title">
+
+        <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+          android:id="@+id/recordsEntryButton"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          app:settingsRowFlat="true"
+          app:settingsRowTitle="@string/advanced_records_row">
+
+          <TextView
+            android:id="@+id/recordsCountValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+        </io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow>
+      </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>
+
+      <!-- ③ 维护与日志：应用别名、索引重建与运行日志。 -->
+      <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard
+        android:id="@+id/maintenanceCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:settingsCardSummary="@string/data_maintenance_summary"
+        app:settingsCardTitle="@string/data_maintenance_title">
+
+        <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+          android:id="@+id/appAliasButton"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          app:settingsRowFlat="true"
+          app:settingsRowTitle="@string/data_app_alias_action" />
+
+        <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+          android:id="@+id/rebuildDBButton"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          app:settingsRowFlat="true"
+          app:settingsRowTitle="@string/data_rebuild_index_action" />
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+          android:id="@+id/rebuildDBProgress"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="8dp"
+          android:layout_marginBottom="4dp"
+          android:indeterminate="true"
+          android:visibility="invisible" />
+
+        <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+          android:id="@+id/logsEntryButton"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          app:settingsRowFlat="true"
+          app:settingsRowTitle="@string/log_open_manager" />
+      </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>
+    </LinearLayout>
+  </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 授权记录：外部调用免确认记录列表，可复制 Link 或删除恢复确认。 -->
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:fitsSystemWindows="true">
+
+  <com.google.android.material.appbar.AppBarLayout
+    android:id="@+id/app_bar"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/app_bar_height"
+    android:background="@android:color/transparent">
+
+    <com.google.android.material.appbar.CollapsingToolbarLayout
+      android:id="@+id/toolbar_layout"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:fitsSystemWindows="true"
+      app:layout_scrollFlags="scroll|exitUntilCollapsed"
+      app:toolbarId="@+id/toolbar"
+      app:contentScrim="?attr/colorSurface"
+      app:expandedTitleMarginStart="20dp"
+      app:expandedTitleMarginBottom="20dp"
+      app:scrimAnimationDuration="200"
+      app:statusBarScrim="@android:color/transparent">
+
+      <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@android:color/transparent"
+        app:contentInsetStartWithNavigation="16dp"
+        app:layout_collapseMode="pin"
+        app:navigationIcon="@drawable/bg_nav_back_circle" />
+    </com.google.android.material.appbar.CollapsingToolbarLayout>
+  </com.google.android.material.appbar.AppBarLayout>
+
+  <androidx.core.widget.NestedScrollView
+    android:id="@+id/recordsScrollView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    android:clipToPadding="false"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="vertical"
+      android:paddingHorizontal="@dimen/settings_card_spacing"
+      android:paddingVertical="16dp">
+
+      <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard
+        android:id="@+id/recordsCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:settingsCardSummary="@string/advanced_records_desc"
+        app:settingsCardTitle="@string/external_action_history_title">
+
+        <TextView
+          android:id="@+id/emptyHistoryText"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:paddingTop="12dp"
+          android:paddingBottom="12dp"
+          android:text="@string/external_action_history_empty"
+          android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <LinearLayout
+          android:id="@+id/recordsContainer"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:paddingBottom="8dp" />
+      </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>
+    </LinearLayout>
+  </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

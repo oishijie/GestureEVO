@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  普通行的卡片变体：供手势页/设置页的一级导航入口使用。
+  屏幕页/搜索页的分区子条目用无卡片的裸行（item_home_row），这两页的
+  行是顶层入口，保持卡片样式以维持"一级条目"的视觉份量。
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="?attr/materialCardViewFilledStyle"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="4dp"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="60dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp">
+
+        <ImageView
+            android:id="@android:id/icon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_home_row_icon"
+            android:padding="9dp"
+            android:tint="?attr/colorOnSecondaryContainer" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@android:id/title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+                android:textColor="?attr/colorOnSurface" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@android:id/summary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="1dp"
+                android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/rowChevron"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_marginStart="8dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_chevron_right"
+            android:tint="?attr/colorOnSurfaceVariant" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 二级页页头：展开态大标题 / 折叠态 Toolbar 小标题 -->
+    <style name="TextAppearance.GestureEVO.PageHeader.Expanded" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:textSize">24sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="TextAppearance.GestureEVO.PageHeader.Collapsed" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+</resources>
