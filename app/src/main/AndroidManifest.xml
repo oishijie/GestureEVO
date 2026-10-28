@@ -46,6 +46,10 @@
             android:name=".settings.HiddenSearchResultsActivity"
             android:exported="false" />
         <activity
+            android:name=".settings.IconEditorActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".settings.SettingsSearchActivity"
             android:exported="false"
             android:theme="@style/Theme.GestureEVO" />
