@@ -25,12 +25,12 @@
     <item name="android:layout_margin">3dp</item>
     <item name="android:layout_weight">1</item>
   </style>
-  <style name="Theme.participleItem" parent="Theme.Material3.Light.NoActionBar">
+  <style name="Theme.participleItem" parent="Theme.Material3.DayNight.NoActionBar">
     <item name="android:background">@color/white_grey_deep</item>
     <item name="cardBackgroundColor">?attr/cardBackgroundColor</item>
     <item name="android:textColor">@color/grey8</item>
   </style>
-  <style name="Theme.participleItemBg" parent="Theme.Material3.Light.NoActionBar">
+  <style name="Theme.participleItemBg" parent="Theme.Material3.DayNight.NoActionBar">
     <item name="cardBackgroundColor">@color/cardColorOther_light</item>
     <item name="android:textColor">@color/black</item>
   </style>

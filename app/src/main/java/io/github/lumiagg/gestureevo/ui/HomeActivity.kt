@@ -3,6 +3,8 @@ package io.github.lumiagg.gestureevo.ui
 import android.content.Intent
 import android.os.Bundle
 import android.transition.Fade
+import android.view.View
+import android.view.animation.DecelerateInterpolator
 import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.app.ActivityOptionsCompat
@@ -141,6 +143,15 @@ class HomeActivity : AppCompatActivity() {
         val manager = supportFragmentManager
         if (manager.isStateSaved) return
 
+        // 快速连续切页时，先把即将隐藏页面的入场动画复位，避免留下半透明残影。
+        if (currentIndex >= 0) {
+            manager.findFragmentByTag(tagOf(currentIndex))?.view?.let { outgoing ->
+                outgoing.animate().cancel()
+                outgoing.alpha = 1f
+                outgoing.translationY = 0f
+            }
+        }
+
         val tag = tagOf(index)
         val transaction = manager.beginTransaction()
         if (currentIndex >= 0) {
@@ -151,8 +162,26 @@ class HomeActivity : AppCompatActivity() {
         transaction.show(fragment)
         transaction.commitNow()
 
+        // 首次展示不播放入场动画，避免与 Activity 启动动画叠加；
+        // 页间切换用「淡入 + 8dp 上移」作为轻量过渡。
+        if (currentIndex >= 0) {
+            fragment.view?.let(::animateTabEntrance)
+        }
+
         currentIndex = index
         scrollTo(scrollKey)
+    }
+
+    private fun animateTabEntrance(view: View) {
+        view.animate().cancel()
+        view.alpha = 0f
+        view.translationY = 8f * resources.displayMetrics.density
+        view.animate()
+            .alpha(1f)
+            .translationY(0f)
+            .setDuration(160L)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
     }
 
     private fun scrollTo(scrollKey: String?) {
