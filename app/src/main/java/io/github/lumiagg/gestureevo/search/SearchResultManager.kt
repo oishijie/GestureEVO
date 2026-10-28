@@ -48,7 +48,7 @@ import io.github.lumiagg.gestureevo.settings.SearchEngineSettingsActivity.Compan
 import io.github.lumiagg.gestureevo.settings.SearchEngineSettingsActivity.Companion.KEY_SEARCH_HISTORY
 import io.github.lumiagg.gestureevo.settings.SearchEngineSettingsActivity.Companion.KEY_SEARCH_SETTINGS_SHORTCUTS
 import io.github.lumiagg.gestureevo.settings.SearchEngineSettingsActivity.Companion.KEY_SHOW_CLIPBOARD_CONTENT
-import io.github.lumiagg.gestureevo.settings.SettingsActivity
+import io.github.lumiagg.gestureevo.ui.HomeActivity
 import io.github.lumiagg.gestureevo.ui.ActionTextMenuItem
 import io.github.lumiagg.gestureevo.ui.ActionTextMenuPopup
 import io.github.lumiagg.gestureevo.utils.ActionProxy
@@ -981,7 +981,12 @@ class SearchResultManager(
     }
 
     private fun openGestureEvoSettings() {
-        activity.startActivity(Intent(activity, SettingsActivity::class.java))
+        activity.startActivity(
+            Intent(activity, HomeActivity::class.java).apply {
+                putExtra(HomeActivity.EXTRA_TARGET_TAB, HomeActivity.TAB_SETTINGS)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+        )
         activity.finishWithAnimation()
     }
 
@@ -1184,7 +1189,7 @@ class SearchResultManager(
         return when (actionType) {
             GestureActionType.SCREEN_CONTENT -> R.drawable.outline_center_focus_weak_24
             GestureActionType.SCREEN_CONTENT_FULLSCREEN -> R.drawable.ic_screen_content_fullscreen_text_24
-            GestureActionType.SCREEN_SEARCH -> R.drawable.search_24px
+            GestureActionType.SCREEN_SEARCH -> R.drawable.baseline_search_24
             GestureActionType.PIN_POOL -> R.drawable.pinboard_24px
             GestureActionType.POINTER -> R.drawable.baseline_control_point_24
             GestureActionType.KEYBOARD -> R.drawable.baseline_keyboard_24

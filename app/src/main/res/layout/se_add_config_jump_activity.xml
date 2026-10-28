@@ -5,7 +5,7 @@
   android:layout_height="wrap_content"
   android:layout_marginBottom="10dp"
   app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-  app:cardCornerRadius="16dp"
+  app:cardCornerRadius="@dimen/shape_corner_card"
   app:cardElevation="0dp"
   app:strokeColor="?attr/colorOutlineVariant"
   app:strokeWidth="1dp">
@@ -20,7 +20,7 @@
       android:layout_marginBottom="4dp"
       android:text="@string/se_jump_activity_title"
       android:textColor="?attr/colorOnSurface"
-      android:textSize="18sp"
+      android:textSize="@dimen/evo_text_title"
       android:textStyle="bold" />
     <TextView
       android:layout_width="match_parent"
@@ -28,13 +28,13 @@
       android:layout_marginBottom="10dp"
       android:text="@string/se_jump_activity_description"
       android:textColor="?attr/colorOnSurfaceVariant"
-      android:textSize="13sp" />
+      android:textSize="@dimen/evo_text_body" />
     <TextView
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
       android:text="@string/se_jump_activity_target_question"
       android:textColor="?attr/colorOnSurfaceVariant"
-      android:textSize="13sp" />
+      android:textSize="@dimen/evo_text_body" />
     <com.google.android.material.button.MaterialButton
       android:id="@+id/jumpActivitySelectActivity"
       style="@style/Widget.Material3.Button.OutlinedButton"
@@ -47,7 +47,7 @@
       android:layout_height="wrap_content"
       android:layout_marginTop="8dp"
       app:cardBackgroundColor="?attr/colorSurfaceContainerHighest"
-      app:cardCornerRadius="16dp"
+      app:cardCornerRadius="@dimen/shape_corner_card"
       app:cardElevation="0dp">
       <LinearLayout
         android:layout_width="match_parent"
@@ -59,7 +59,7 @@
           android:layout_height="wrap_content"
           android:text="@string/se_jump_activity_target_package_label"
           android:textColor="?attr/colorOnSurfaceVariant"
-          android:textSize="12sp" />
+          android:textSize="@dimen/evo_text_label" />
         <TextView
           android:id="@+id/jumpActivityTargetPackage"
           android:layout_width="match_parent"
@@ -67,14 +67,14 @@
           android:layout_marginTop="4dp"
           android:text="@string/se_jump_activity_not_set"
           android:textColor="?attr/colorOnSurface"
-          android:textSize="15sp" />
+          android:textSize="@dimen/evo_text_body" />
         <TextView
           android:layout_width="match_parent"
           android:layout_height="wrap_content"
           android:layout_marginTop="10dp"
           android:text="@string/se_jump_activity_target_activity_label"
           android:textColor="?attr/colorOnSurfaceVariant"
-          android:textSize="12sp" />
+          android:textSize="@dimen/evo_text_label" />
         <TextView
           android:id="@+id/jumpActivityTargetActivity"
           android:layout_width="match_parent"
@@ -83,7 +83,7 @@
           android:layout_marginBottom="8dp"
           android:text="@string/se_jump_activity_not_set"
           android:textColor="?attr/colorOnSurface"
-          android:textSize="15sp" />
+          android:textSize="@dimen/evo_text_body" />
         <io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow
           android:layout_width="match_parent"
           android:layout_height="wrap_content"

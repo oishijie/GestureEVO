@@ -17,7 +17,7 @@
     android:clickable="true"
     android:focusable="true"
     app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
-    app:cardCornerRadius="24dp"
+    app:cardCornerRadius="@dimen/shape_corner_sheet"
     app:cardElevation="0dp"
     app:cardPreventCornerOverlap="false"
     app:layout_constrainedHeight="true"
@@ -102,7 +102,7 @@
           android:singleLine="false"
           android:textColor="?attr/colorOnSurface"
           android:textColorHint="?attr/colorOnSurfaceVariant"
-          android:textSize="18sp"
+          android:textSize="@dimen/evo_text_title"
           android:importantForAutofill="no" />
         <ImageView
           android:id="@+id/image_attach_button"
@@ -127,7 +127,7 @@
           android:paddingHorizontal="6dp"
           android:paddingVertical="2dp"
           android:textColor="?attr/colorOnPrimaryContainer"
-          android:textSize="11sp"
+          android:textSize="@dimen/evo_text_label"
           android:visibility="gone"
           tools:text="2"
           tools:visibility="visible" />

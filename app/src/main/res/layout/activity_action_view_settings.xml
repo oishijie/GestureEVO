@@ -143,7 +143,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/action_view_settings_preview_title"
-            android:textSize="16sp"
+            android:textSize="@dimen/evo_text_title"
             android:textStyle="bold" />
           <TextView
             android:layout_width="wrap_content"
@@ -190,7 +190,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/action_view_settings_primary_title"
-            android:textSize="16sp"
+            android:textSize="@dimen/evo_text_title"
             android:textStyle="bold" />
           <TextView
             android:layout_width="wrap_content"
@@ -249,7 +249,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/action_view_settings_misc_title"
-            android:textSize="16sp"
+            android:textSize="@dimen/evo_text_title"
             android:textStyle="bold" />
           <com.google.android.material.slider.Slider
             android:id="@+id/centerWarpOffsetSlider"
@@ -326,7 +326,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/external_call_title"
-            android:textSize="16sp"
+            android:textSize="@dimen/evo_text_title"
             android:textStyle="bold" />
           <TextView
             android:layout_width="wrap_content"

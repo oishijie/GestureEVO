@@ -4,7 +4,7 @@
   android:layout_width="48dp"
   android:layout_height="48dp"
   android:layout_gravity="center"
-  app:cardCornerRadius="24dp"
+  app:cardCornerRadius="@dimen/shape_corner_sheet"
   app:cardElevation="6dp">
   <ProgressBar
     android:id="@+id/indicatorSpinner"

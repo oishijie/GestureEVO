@@ -31,7 +31,7 @@
             android:layout_height="80dp"
             android:layout_marginTop="10dp"
             app:cardBackgroundColor="?attr/colorSurfaceContainerHighest"
-            app:cardCornerRadius="16dp"
+            app:cardCornerRadius="@dimen/shape_corner_card"
             app:strokeColor="?attr/colorOutlineVariant"
             app:strokeWidth="1dp">
 

@@ -64,7 +64,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/freeform_settings_direction_title"
-            android:textSize="16sp"
+            android:textSize="@dimen/evo_text_title"
             android:textStyle="bold" />
           <TextView
             android:layout_width="wrap_content"
@@ -116,7 +116,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/freeform_settings_mode_title"
-            android:textSize="16sp"
+            android:textSize="@dimen/evo_text_title"
             android:textStyle="bold" />
           <TextView
             android:layout_width="wrap_content"
@@ -159,7 +159,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/freeform_settings_size_title"
-            android:textSize="16sp"
+            android:textSize="@dimen/evo_text_title"
             android:textStyle="bold" />
           <TextView
             android:layout_width="wrap_content"

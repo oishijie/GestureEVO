@@ -11,7 +11,7 @@
     android:focusable="true"
     android:foreground="?attr/selectableItemBackground"
     app:cardBackgroundColor="?attr/colorSecondaryContainer"
-    app:cardCornerRadius="20dp"
+    app:cardCornerRadius="@dimen/shape_corner_card"
     app:cardElevation="0dp">
 
     <LinearLayout
@@ -63,7 +63,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:textColor="?attr/colorOnSurface"
-            android:textSize="13sp"
+            android:textSize="@dimen/evo_text_body"
             app:backgroundTint="?attr/colorSurface"
             app:cornerRadius="20dp"
             app:minWidth="0dp"

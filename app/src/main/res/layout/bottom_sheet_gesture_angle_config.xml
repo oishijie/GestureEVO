@@ -34,7 +34,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:text="@string/gesture_angle_config_reset"
-                android:textSize="14sp" />
+                android:textSize="@dimen/evo_text_body" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_save"
@@ -42,7 +42,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/gesture_angle_config_save"
-                android:textSize="14sp" />
+                android:textSize="@dimen/evo_text_body" />
 
         </LinearLayout>
 

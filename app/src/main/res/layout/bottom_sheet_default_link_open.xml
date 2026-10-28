@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/default_link_open_title"
-        android:textSize="18sp"
+        android:textSize="@dimen/evo_text_title"
         android:textStyle="bold"
         android:gravity="center"
         android:layout_marginBottom="16dp" />
@@ -23,7 +23,7 @@
         android:layout_marginBottom="16dp"
         android:text="@string/link_open_description"
         android:textColor="?attr/colorOnSurfaceVariant"
-        android:textSize="14sp" />
+        android:textSize="@dimen/evo_text_body" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"

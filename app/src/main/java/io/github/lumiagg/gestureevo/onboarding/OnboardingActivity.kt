@@ -305,7 +305,7 @@ class OnboardingActivity : AppCompatActivity() {
                 desc = R.string.onboarding_feature_screen_desc,
             ),
             Step.Feature(
-                icon = R.drawable.search_24px,
+                icon = R.drawable.baseline_search_24,
                 title = R.string.onboarding_feature_search_title,
                 desc = R.string.onboarding_feature_search_desc,
             ),

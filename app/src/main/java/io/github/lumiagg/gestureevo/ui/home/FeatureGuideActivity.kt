@@ -93,7 +93,7 @@ class FeatureGuideActivity : AppCompatActivity() {
 
             GUIDE_SEARCH -> listOf(
                 GuideStep(
-                    icon = R.drawable.search_24px,
+                    icon = R.drawable.baseline_search_24,
                     title = R.string.guide_search_engines_title,
                     desc = R.string.guide_search_engines_desc,
                 ),

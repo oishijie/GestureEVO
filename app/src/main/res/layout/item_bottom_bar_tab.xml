@@ -26,6 +26,6 @@
         android:layout_marginTop="2dp"
         android:importantForAccessibility="no"
         android:maxLines="1"
-        android:textSize="11sp" />
+        android:textSize="@dimen/evo_text_label" />
 
 </LinearLayout>

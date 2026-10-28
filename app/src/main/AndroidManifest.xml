@@ -193,10 +193,6 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".settings.SettingsActivity"
-            android:exported="false"
-            android:theme="@style/Theme.GestureEVO" />
-        <activity
             android:name=".settings.GestureAddActionActivity"
             android:exported="false" />
         <activity

@@ -81,7 +81,7 @@
               android:alpha="0.5"
               android:contentDescription="@null"
               android:importantForAccessibility="no"
-              android:src="@drawable/search_24px"
+              android:src="@drawable/baseline_search_24"
               app:tint="?attr/colorOnSurfaceVariant" />
             <TextView
               android:layout_width="wrap_content"
@@ -89,14 +89,14 @@
               android:layout_marginTop="16dp"
               android:text="@string/search_engine_settings_empty_title"
               android:textColor="?attr/colorOnSurfaceVariant"
-              android:textSize="16sp" />
+              android:textSize="@dimen/evo_text_title" />
             <TextView
               android:layout_width="wrap_content"
               android:layout_height="wrap_content"
               android:layout_marginTop="8dp"
               android:text="@string/search_engine_settings_empty_description"
               android:textColor="?attr/colorOnSurfaceVariant"
-              android:textSize="14sp" />
+              android:textSize="@dimen/evo_text_body" />
           </LinearLayout>
           <ProgressBar
             android:id="@+id/progress_bar"

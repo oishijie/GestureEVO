@@ -9,7 +9,7 @@
     android:focusable="false"
     android:visibility="gone"
     app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
-    app:cardCornerRadius="16dp"
+    app:cardCornerRadius="@dimen/shape_corner_card"
     app:cardElevation="8dp"
     app:rippleColor="@android:color/transparent">
 
@@ -23,7 +23,7 @@
         android:paddingHorizontal="16dp"
         android:paddingVertical="12dp"
         android:textColor="?attr/colorOnSurface"
-        android:textSize="14sp"
+        android:textSize="@dimen/evo_text_body"
         tools:text="已复制：示例文本" />
 
 </com.google.android.material.card.MaterialCardView>

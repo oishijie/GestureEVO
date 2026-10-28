@@ -15,7 +15,7 @@
         app:statusCardActionLabel="@string/home_guide_action" />
 
     <io.github.lumiagg.gestureevo.ui.home.HomeEntryPreference
-        android:icon="@drawable/search_24px"
+        android:icon="@drawable/baseline_search_24"
         android:key="menu_search_engines"
         android:summary="@string/home_menu_engines_summary"
         app:title="@string/home_menu_engines_title" />

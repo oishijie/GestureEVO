@@ -10,7 +10,7 @@
   android:clickable="true"
   android:focusable="true"
   app:cardBackgroundColor="@color/transparent"
-  app:cardCornerRadius="16dp"
+  app:cardCornerRadius="@dimen/shape_corner_card"
   app:cardElevation="0dp"
   app:strokeWidth="0dp">
   <ImageView

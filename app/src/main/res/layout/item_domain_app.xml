@@ -23,7 +23,7 @@
       android:id="@+id/domain"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
-      android:textSize="16sp"
+      android:textSize="@dimen/evo_text_title"
       android:textStyle="bold"
       android:maxLines="1"
       android:ellipsize="end" />
@@ -31,7 +31,7 @@
       android:id="@+id/appName"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
-      android:textSize="14sp"
+      android:textSize="@dimen/evo_text_body"
       android:textColor="?attr/colorOnSurfaceVariant"
       android:maxLines="1"
       android:ellipsize="end" />

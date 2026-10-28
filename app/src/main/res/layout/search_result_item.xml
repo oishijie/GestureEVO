@@ -28,7 +28,7 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:textColor="?attr/colorOnSurface"
-        android:textSize="16sp"
+        android:textSize="@dimen/evo_text_title"
         tools:text="gesture 手势" />
 
     <io.github.lumiagg.gestureevo.gesture.ui.RoundImageTextView

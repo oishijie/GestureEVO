@@ -3,6 +3,7 @@ package io.github.lumiagg.gestureevo.settings
 import android.content.Context
 import android.view.View
 import io.github.lumiagg.gestureevo.R
+import io.github.lumiagg.gestureevo.ui.HomeActivity
 import java.util.Locale
 
 object SettingsSearchRegistry {
@@ -11,7 +12,7 @@ object SettingsSearchRegistry {
             id = "root_service",
             titleResId = R.string.settings_accessibility_off,
             pageTitleResId = R.string.settings_title,
-            targetActivity = SettingsActivity::class.java,
+            targetActivity = HomeActivity::class.java,
             targetPreferenceKey = "preferenceService",
             keywords = listOf("无障碍", "accessibility", "服务", "service")
         ),
@@ -40,7 +41,7 @@ object SettingsSearchRegistry {
             id = "root_inspire",
             titleResId = R.string.inspire_settings_title,
             pageTitleResId = R.string.home_title_screen,
-            targetActivity = SettingsActivity::class.java,
+            targetActivity = HomeActivity::class.java,
             targetPreferenceKey = "root_inspire",
             keywords = listOf("功能", "屏幕内容", "inspire")
         ),
@@ -48,7 +49,7 @@ object SettingsSearchRegistry {
             id = "root_search",
             titleResId = R.string.search_engine_settings_title,
             pageTitleResId = R.string.home_title_search,
-            targetActivity = SettingsActivity::class.java,
+            targetActivity = HomeActivity::class.java,
             targetPreferenceKey = "root_search",
             keywords = listOf("搜索", "引擎", "search")
         ),

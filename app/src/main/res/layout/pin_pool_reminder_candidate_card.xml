@@ -10,7 +10,7 @@
   android:focusable="true"
   android:foreground="?attr/selectableItemBackground"
   app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
-  app:cardCornerRadius="18dp"
+  app:cardCornerRadius="@dimen/shape_corner_card"
   app:cardElevation="1dp"
   app:strokeColor="?attr/colorOutlineVariant"
   app:strokeWidth="1dp">

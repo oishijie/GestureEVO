@@ -531,10 +531,10 @@ fun gestureActionIcon(context: Context, view: RoundImageTextView, item: GestureA
 
                 GestureActionType.SCREEN_CONTENT -> view.setImageWithBackplate(R.drawable.outline_center_focus_weak_24)
                 GestureActionType.SCREEN_CONTENT_FULLSCREEN -> view.setImageWithBackplate(R.drawable.ic_screen_content_fullscreen_text_24)
-                GestureActionType.SCREEN_SEARCH -> view.setImageWithBackplate(R.drawable.search_24px)
+                GestureActionType.SCREEN_SEARCH -> view.setImageWithBackplate(R.drawable.baseline_search_24)
                 GestureActionType.FREEFORM_FOREGROUND -> view.setImageWithBackplate(R.drawable.ic_little_window)
                 GestureActionType.KEYBOARD -> view.setImageWithBackplate(R.drawable.baseline_keyboard_24)
-                GestureActionType.SEARCH -> view.setImageWithBackplate(R.drawable.search_24px)
+                GestureActionType.SEARCH -> view.setImageWithBackplate(R.drawable.baseline_search_24)
                 GestureActionType.POINTER -> view.setImageWithBackplate(R.drawable.baseline_control_point_24)
                 GestureActionType.PIN_POOL -> view.setImageWithBackplate(R.drawable.pinboard_24px)
                 GestureActionType.TEMP_DND -> view.setImageWithBackplate(R.drawable.do_not_disturb_on_24px)
@@ -562,7 +562,7 @@ private fun getAccActionIconRes(actionId: Int): Int? {
 private fun getClipboardActionIconRes(actionId: String): Int? {
     return when (actionId) {
         "pin" -> R.drawable.baseline_push_pin_24
-        "search" -> R.drawable.search_24px
+        "search" -> R.drawable.baseline_search_24
         "translate" -> R.drawable.ic_baseline_g_translate_24
         "inspire" -> R.drawable.outline_center_focus_weak_24
         "saveImage" -> R.drawable.baseline_save_24

@@ -15,4 +15,25 @@
     <dimen name="home_bottom_bar_margin">16dp</dimen>
     <dimen name="home_content_bottom_padding">16dp</dimen>
     <dimen name="home_bottom_bar_estimated_height">64dp</dimen>
+
+    <!--
+      类型阶：全应用字号统一收敛为四档，布局一律引用此处，不再散落硬编码。
+      display —— 页面大数字/强调标题；title —— 卡片标题、行标题；
+      body —— 正文与摘要；label —— 徽章、标签、底栏文字。
+    -->
+    <dimen name="evo_text_display">20sp</dimen>
+    <dimen name="evo_text_title">16sp</dimen>
+    <dimen name="evo_text_body">14sp</dimen>
+    <dimen name="evo_text_label">12sp</dimen>
+
+    <!--
+      形状阶：页面级容器统一四档，布局引用此处。
+      chip —— 小标签/键帽；small —— 列表内小卡；card —— 页面卡片；
+      sheet —— 弹层、对话框、大容器。
+      悬浮小窗/浮球的圆角随窗口几何（圆形由宽高决定），不纳入本阶。
+    -->
+    <dimen name="shape_corner_chip">8dp</dimen>
+    <dimen name="shape_corner_small">12dp</dimen>
+    <dimen name="shape_corner_card">16dp</dimen>
+    <dimen name="shape_corner_sheet">24dp</dimen>
 </resources>

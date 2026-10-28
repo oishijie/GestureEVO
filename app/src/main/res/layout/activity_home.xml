@@ -38,15 +38,16 @@
 
       <com.google.android.material.card.MaterialCardView
         android:id="@+id/settingsSearchEntryCard"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_marginStart="12dp"
         android:clickable="true"
         android:focusable="true"
+        android:contentDescription="@string/settings_search_hint"
         android:foreground="?attr/selectableItemBackground"
         android:transitionName="@string/settings_search_box_transition_name"
         app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
-        app:cardCornerRadius="22dp"
+        app:cardCornerRadius="@dimen/shape_corner_sheet"
         app:cardElevation="0dp"
         app:strokeWidth="0dp">
 

@@ -9,7 +9,7 @@
     android:focusable="true"
     android:foreground="?attr/selectableItemBackground"
     app:cardBackgroundColor="?attr/colorSurfaceContainerLow"
-    app:cardCornerRadius="18dp"
+    app:cardCornerRadius="@dimen/shape_corner_card"
     app:strokeWidth="0dp">
 
     <LinearLayout

@@ -3,6 +3,7 @@ package io.github.lumiagg.gestureevo.ui
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.Typeface
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -88,6 +89,8 @@ class FloatingBottomBar @JvmOverloads constructor(
             val label = item.findViewById<TextView>(R.id.tabLabel)
             icon.setImageResource(tab.iconRes)
             label.setText(tab.labelRes)
+            // 图标与文字对无障碍隐藏，由整行统一播报 tab 名称。
+            item.contentDescription = context.getString(tab.labelRes)
             item.setOnClickListener { selectTab(index, notify = true) }
             row.addView(
                 item,
@@ -132,10 +135,13 @@ class FloatingBottomBar @JvmOverloads constructor(
         val tint = if (selected) activeColor else inactiveColor
         icon.imageTintList = ColorStateList.valueOf(tint)
         label.setTextColor(tint)
-        // 新版皮肤不画选中指示器色块，仅用主色区分选中/未选中。
+        // 新版皮肤不画选中指示器色块，仅用主色 + 字重区分选中/未选中。
         icon.background = null
         icon.isSelected = selected
         label.isSelected = selected
+        label.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
+        // 供无障碍服务播报「已选中」状态。
+        row.getChildAt(index)?.isSelected = selected
     }
 
     override fun setEnabled(enabled: Boolean) {

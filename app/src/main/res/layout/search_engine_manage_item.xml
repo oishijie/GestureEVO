@@ -8,7 +8,7 @@
   android:layout_marginHorizontal="8dp"
   android:layout_marginVertical="4dp"
   app:cardBackgroundColor="?attr/colorSurfaceContainer"
-  app:cardCornerRadius="8dp"
+  app:cardCornerRadius="@dimen/shape_corner_chip"
   app:cardElevation="0dp"
   app:strokeColor="?attr/colorOutlineVariant"
   app:strokeWidth="1dp">
@@ -50,7 +50,7 @@
           android:ellipsize="end"
           android:maxLines="1"
           android:textColor="?attr/colorOnSurface"
-          android:textSize="16sp"
+          android:textSize="@dimen/evo_text_title"
           android:textStyle="bold"
           tools:text="Google搜索" />
       </LinearLayout>
@@ -63,7 +63,7 @@
         android:ellipsize="end"
         android:maxLines="1"
         android:textColor="?attr/colorOnSurfaceVariant"
-        android:textSize="14sp"
+        android:textSize="@dimen/evo_text_body"
         tools:text="直接链接" />
     </LinearLayout>
     <!-- 操作按钮区域 -->
@@ -81,7 +81,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/search_engine_badge_default"
-        android:textSize="11sp"
+        android:textSize="@dimen/evo_text_label"
         android:visibility="gone"
         app:chipMinHeight="24dp"
         android:layout_marginEnd="10dp"
@@ -92,7 +92,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/search_engine_badge_hidden"
-        android:textSize="11sp"
+        android:textSize="@dimen/evo_text_label"
         android:visibility="gone"
         app:chipMinHeight="24dp"
         android:layout_marginEnd="10dp"

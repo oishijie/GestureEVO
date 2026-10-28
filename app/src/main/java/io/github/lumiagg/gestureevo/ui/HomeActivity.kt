@@ -162,6 +162,13 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun handleNavigateIntent(intent: Intent?) {
+        // 直达指定一级页面（无锚点），用于「打开设置」这类整页跳转。
+        val targetTab = intent?.getIntExtra(EXTRA_TARGET_TAB, -1) ?: -1
+        if (targetTab >= 0) {
+            intent?.removeExtra(EXTRA_TARGET_TAB)
+            switchTab(targetTab)
+            return
+        }
         val key = intent
             ?.getStringExtra(SettingsSearchNavigator.EXTRA_TARGET_PREFERENCE_KEY)
             ?: return
@@ -179,8 +186,11 @@ class HomeActivity : AppCompatActivity() {
 
     private fun tagOf(index: Int) = "home_tab_$index"
 
-    private companion object {
-        const val KEY_TAB_INDEX = "home_tab_index"
+    companion object {
+        /** 直达一级页面：值为 [TAB_GESTURE] 至 [TAB_SETTINGS]。 */
+        const val EXTRA_TARGET_TAB = "home_target_tab"
+
+        private const val KEY_TAB_INDEX = "home_tab_index"
 
         const val TAB_GESTURE = 0
         const val TAB_SCREEN = 1
@@ -189,11 +199,8 @@ class HomeActivity : AppCompatActivity() {
 
         val TABS = listOf(
             FloatingBottomBar.Tab(R.drawable.baseline_gesture_24, R.string.home_tab_gesture),
-            FloatingBottomBar.Tab(
-                R.drawable.outline_center_focus_weak_24,
-                R.string.home_tab_screen,
-            ),
-            FloatingBottomBar.Tab(R.drawable.search_24px, R.string.home_tab_search),
+            FloatingBottomBar.Tab(R.drawable.baseline_screenshot_24, R.string.home_tab_screen),
+            FloatingBottomBar.Tab(R.drawable.baseline_search_24, R.string.home_tab_search),
             FloatingBottomBar.Tab(R.drawable.baseline_settings_24, R.string.home_tab_settings),
         )
 

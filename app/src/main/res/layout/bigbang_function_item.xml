@@ -86,7 +86,7 @@
             android:layout_margin="5dp"
             android:foreground="?attr/selectableItemBackground"
             android:padding="5dp"
-            android:src="@drawable/search_24px"
+            android:src="@drawable/baseline_search_24"
             android:tint="?attr/colorPrimary"
             app:round="100dp" />
 

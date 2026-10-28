@@ -59,7 +59,7 @@
             </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>
             <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard android:id="@+id/appSelectionCard" android:layout_width="match_parent" android:layout_height="wrap_content" app:settingsCardTitle="@string/inspire_settings_app_selection_title" app:settingsCardSummary="@string/inspire_settings_app_selection_description" android:layout_marginTop="16dp">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="12dp" android:paddingTop="4dp" android:paddingBottom="12dp">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/inspire_settings_app_selection_title" android:textSize="16sp" android:textStyle="bold" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/inspire_settings_app_selection_title" android:textSize="@dimen/evo_text_title" android:textStyle="bold" />
                     <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow android:id="@+id/translation_app_row" android:layout_width="match_parent" android:layout_height="wrap_content" app:settingsRowTitle="@string/inspire_settings_translation_app_title"
             app:settingsRowFlat="true" >
                         <TextView android:id="@+id/selected_translation_app_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/inspire_settings_current_not_selected" />

@@ -15,7 +15,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/about_open_source_licenses"
-        android:textSize="20sp"
+        android:textSize="@dimen/evo_text_display"
         android:textStyle="bold" />
 
     <TextView

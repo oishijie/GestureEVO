@@ -8,7 +8,7 @@
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:cardCornerRadius="24dp"
+        app:cardCornerRadius="@dimen/shape_corner_sheet"
         app:cardElevation="0dp"
         app:strokeWidth="0dp"
         app:cardBackgroundColor="?attr/colorSurfaceContainer">
@@ -44,7 +44,7 @@
                     android:insetBottom="0dp"
                     android:paddingHorizontal="12dp"
                     android:maxLines="1"
-                    android:textSize="12sp"
+                    android:textSize="@dimen/evo_text_label"
                     android:contentDescription="@string/log_settings_title" />
             </LinearLayout>
 
@@ -160,7 +160,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:hint="@string/log_search_short"
-        app:startIconDrawable="@drawable/search_24px"
+        app:startIconDrawable="@drawable/baseline_search_24"
         app:endIconMode="clear_text"
         app:boxCornerRadiusTopStart="16dp"
         app:boxCornerRadiusTopEnd="16dp"
@@ -174,7 +174,7 @@
             android:singleLine="true"
             android:inputType="text"
             android:imeOptions="actionSearch"
-            android:textSize="14sp" />
+            android:textSize="@dimen/evo_text_body" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.chip.ChipGroup

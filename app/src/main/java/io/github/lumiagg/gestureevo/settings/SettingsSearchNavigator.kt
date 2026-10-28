@@ -27,15 +27,10 @@ object SettingsSearchNavigator {
     const val EXTRA_TARGET_PREFERENCE_KEY = "settings_search_target_preference_key"
 
     fun buildIntent(context: Context, entry: SettingsSearchEntry): Intent {
-        // 一级菜单入口深链：屏幕/搜索设置项直达原版设置页（InspireSettingsActivity /
-        // SearchEngineSettingsActivity），由 focusAnchorIfNeeded 展开对应分区卡；
-        // 其余条目仍按各自 targetActivity 跳转，SettingsActivity 重定向到 HomeActivity。
-        val target: Class<out Activity> =
-            if (entry.targetActivity == SettingsActivity::class.java) {
-                HomeActivity::class.java
-            } else {
-                entry.targetActivity
-            }
+        // 一级菜单入口深链：屏幕/搜索设置项直达对应页面（InspireSettingsActivity /
+        // SearchEngineSettingsActivity）并展开目标分区卡；设置类入口直达 HomeActivity
+        // 对应 tab，由 handleNavigateIntent 完成切页与滚动定位。
+        val target: Class<out Activity> = entry.targetActivity
         return Intent(context, target).apply {
             if (entry.targetViewId != View.NO_ID) {
                 putExtra(EXTRA_TARGET_VIEW_ID, entry.targetViewId)
