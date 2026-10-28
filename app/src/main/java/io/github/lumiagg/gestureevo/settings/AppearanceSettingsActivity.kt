@@ -80,6 +80,7 @@ class AppearanceSettingsActivity : AppCompatActivity() {
     }
 
     private suspend fun initializeViews() {
+        refreshThemeStatus()
         setupThemeModeRow()
         setupDynamicColorRow()
         setupLanguageRow()
@@ -345,6 +346,21 @@ class AppearanceSettingsActivity : AppCompatActivity() {
     }
 
     /** 主题偏好变更：刷新夜间模式与发布色，并重建当前页使 XML 主题属性重新解析。 */
+    /** 顶部状态卡：当前主题模式 + 取色方式（规范 4.3）。 */
+    private fun refreshThemeStatus() {
+        val mode = themeModeLabels().getOrElse(ThemeManager.themeMode) { themeModeLabels().first() }
+        val summary = getString(
+            if (ThemeManager.usesWallpaperColors) R.string.theme_summary_wallpaper
+            else R.string.theme_summary_default
+        )
+        binding.themeStatusCard.bind(
+            iconRes = R.drawable.baseline_auto_awesome_24,
+            label = getString(R.string.appearance_status_label),
+            value = mode,
+            summary = summary,
+        )
+    }
+
     private fun applyThemeChangeAndRecreate() {
         ThemeManager.onThemePreferenceChanged()
         DynamicColorUtils.refreshSurfaceColors(applicationContext)

@@ -43,12 +43,12 @@ class SettingsSectionCard @JvmOverloads constructor(
 
         titleView = TextView(context).apply {
             text = title
-            // 分区标签用主色区分层级：字号与行标题持平（16sp），靠颜色而非法号
-            // 拉开层次，避免整页出现两种不相干的字号。
-            textSize = 16f
-            setTextColor(DynamicColorUtils.primaryColor)
-            setTypeface(typeface, android.graphics.Typeface.NORMAL)
-            setPadding(8f.dp2px.toInt(), 0, 8f.dp2px.toInt(), 0)
+            // 组标题按《UI 设计规范》4.1：14sp / 600 / onSurfaceVariant，
+            // 与行标题（16sp）拉开层次，不再用主色抢戏。
+            textSize = 14f
+            setTextColor(DynamicColorUtils.onSurfaceVariantColor)
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setPadding(4f.dp2px.toInt(), 20f.dp2px.toInt(), 4f.dp2px.toInt(), 2f.dp2px.toInt())
         }
 
         summaryView = TextView(context).apply {
@@ -56,29 +56,23 @@ class SettingsSectionCard @JvmOverloads constructor(
             setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
             setTextColor(DynamicColorUtils.onSurfaceVariantColor)
             isGone = summary.isBlank()
-            setPadding(8f.dp2px.toInt(), 2f.dp2px.toInt(), 8f.dp2px.toInt(), 0)
+            setPadding(4f.dp2px.toInt(), 0, 4f.dp2px.toInt(), 8f.dp2px.toInt())
         }
 
-        // 白卡 + 1dp 细描边：卡底与页底同为 colorSurface，靠描边勾出形状，
-        // 不再用 surfaceContainer 染色，避免高饱和配色下整页发彩。
-        val surfaceColor = MaterialColors.getColor(
+        // 卡片按规范 4.1：surfaceContainerLow 静色底、16dp 圆角、无描边无阴影，
+        // 层级靠容器色而非满屏细描边。
+        val cardColor = MaterialColors.getColor(
             this,
-            com.google.android.material.R.attr.colorSurface,
-            0,
-        )
-        val hairlineColor = MaterialColors.getColor(
-            this,
-            com.google.android.material.R.attr.colorOutlineVariant,
+            com.google.android.material.R.attr.colorSurfaceContainerLow,
             0,
         )
         val card = MaterialCardView(context).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                topMargin = 10f.dp2px.toInt()
+                topMargin = 8f.dp2px.toInt()
             }
             // 圆角与原生卡（@dimen/settings_card_corner_radius）保持一致。
             radius = 16f.dp2px.toFloat()
-            strokeWidth = 1f.dp2px.toInt().coerceAtLeast(1)
-            strokeColor = hairlineColor
+            strokeWidth = 0
             cardElevation = 0f
             maxCardElevation = 0f
             elevation = 0f
@@ -86,13 +80,13 @@ class SettingsSectionCard @JvmOverloads constructor(
             stateListAnimator = null
             useCompatPadding = false
             preventCornerOverlap = false
-            setCardBackgroundColor(surfaceColor)
+            setCardBackgroundColor(cardColor)
         }
         contentContainer = LinearLayout(context).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
             orientation = VERTICAL
-            val padH = 20f.dp2px.toInt()
-            val padV = 6f.dp2px.toInt()
+            val padH = 16f.dp2px.toInt()
+            val padV = 4f.dp2px.toInt()
             setPadding(padH, padV, padH, padV)
         }
         // 结构搭建阶段走 super.addView，避免被自身 override 收进 contentContainer。

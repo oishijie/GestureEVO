@@ -65,7 +65,7 @@ class SettingsNavRow @JvmOverloads constructor(
         // 标题加大加粗、圆钮放大为 42dp。
         if (flat) {
             background = null
-            minimumHeight = 52f.dp2px.toInt()
+            minimumHeight = 64f.dp2px.toInt()
             // 水平留白由分组容器统一给（20dp），行内不再叠加，
             // 否则文字会离卡边 40dp，整行显得又窄又飘。
             val flatPadH = 0
@@ -196,7 +196,7 @@ class SettingsNavRow @JvmOverloads constructor(
                     if (isTitle) {
                         com.google.android.material.R.style.TextAppearance_Material3_TitleSmall
                     } else {
-                        com.google.android.material.R.style.TextAppearance_Material3_BodySmall
+                        com.google.android.material.R.style.TextAppearance_Material3_BodyMedium
                     }
                 )
             }
@@ -254,7 +254,7 @@ class SettingsDropdownRow @JvmOverloads constructor(
 
         if (flat) {
             background = null
-            minimumHeight = 52f.dp2px.toInt()
+            minimumHeight = 64f.dp2px.toInt()
             // 水平留白由分组容器统一给（20dp），行内不再叠加，
             // 否则文字会离卡边 40dp，整行显得又窄又飘。
             val flatPadH = 0
@@ -394,7 +394,7 @@ class SettingsSwitchRow @JvmOverloads constructor(
 
         if (flat) {
             background = null
-            minimumHeight = 52f.dp2px.toInt()
+            minimumHeight = 64f.dp2px.toInt()
             // 水平留白由分组容器统一给（20dp），行内不再叠加，
             // 否则文字会离卡边 40dp，整行显得又窄又飘。
             val flatPadH = 0

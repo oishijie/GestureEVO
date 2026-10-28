@@ -1185,4 +1185,6 @@
     <string name="demo_hero_accessibility_on">Accessibility service connected</string>
     <string name="demo_hero_accessibility_off">Accessibility service off</string>
     <string name="demo_row_search_io">Import &amp; export</string>
+
+    <string name="appearance_status_label">Current theme</string>
 </resources>

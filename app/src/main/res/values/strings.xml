@@ -1188,4 +1188,6 @@
     <string name="demo_hero_accessibility_on">无障碍服务已连接</string>
     <string name="demo_hero_accessibility_off">无障碍服务未开启</string>
     <string name="demo_row_search_io">导入与导出</string>
+
+    <string name="appearance_status_label">当前主题</string>
 </resources>

@@ -5,6 +5,8 @@
     <dimen name="quick_search_motion_offset_large">72dp</dimen>
     <dimen name="settings_card_spacing">8dp</dimen>
     <dimen name="settings_card_corner_radius">16dp</dimen>
+    <!-- 新版二级页：页面左右留白 16dp（规范 2 · 间距） -->
+    <dimen name="settings_page_margin">16dp</dimen>
     <!--
       悬浮底栏：
       home_bottom_bar_margin —— 底栏离屏幕底边（含导航栏）的距离

@@ -9,7 +9,7 @@
   <com.google.android.material.appbar.AppBarLayout
     android:id="@+id/app_bar"
     android:layout_width="match_parent"
-    android:layout_height="@dimen/app_bar_height"
+    android:layout_height="wrap_content"
     android:background="@android:color/transparent">
 
     <com.google.android.material.appbar.CollapsingToolbarLayout
@@ -47,15 +47,23 @@
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
       android:orientation="vertical"
-      android:paddingHorizontal="@dimen/settings_card_spacing"
-      android:paddingVertical="16dp">
+      android:paddingHorizontal="@dimen/settings_page_margin"
+      android:paddingTop="8dp"
+      android:paddingBottom="24dp">
+
+      <!-- 状态卡：当前主题模式与取色方式（批次 1 试点） -->
+      <io.github.lumiagg.gestureevo.ui.widget.StatusCardView
+        android:id="@+id/themeStatusCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="0dp" />
 
       <!-- ① 主题与色彩：语言 / 主题模式 / 动态取色 / 全局图标圆角 -->
       <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard
         android:id="@+id/themeColorCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="12dp"
         app:settingsCardTitle="@string/appearance_settings_theme_color_title"
         app:settingsCardSummary="@string/appearance_settings_theme_color_description">
         <LinearLayout
@@ -141,7 +149,7 @@
         android:id="@+id/blurCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         app:settingsCardTitle="@string/appearance_settings_blur_title"
         app:settingsCardSummary="@string/appearance_settings_blur_description">
         <LinearLayout
@@ -277,7 +285,7 @@
         android:id="@+id/surfaceAppearanceCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         app:settingsCardTitle="@string/appearance_settings_surface_title"
         app:settingsCardSummary="@string/appearance_settings_surface_description">
         <LinearLayout
