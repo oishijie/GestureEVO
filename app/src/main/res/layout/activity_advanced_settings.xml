@@ -140,6 +140,32 @@
           app:settingsRowFlat="true"
           app:settingsRowTitle="@string/log_open_manager" />
       </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>
+
+      <!-- ④ 界面重构 Demo：同一信息结构的 View / Compose 两版首页，仅用于方案验证。 -->
+      <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard
+        android:id="@+id/uiDemoCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        app:settingsCardSummary="@string/ui_demo_summary"
+        app:settingsCardTitle="@string/ui_demo_title">
+
+        <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+          android:id="@+id/demoViewButton"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          app:settingsRowFlat="true"
+          app:settingsRowSummary="@string/ui_demo_view_summary"
+          app:settingsRowTitle="@string/ui_demo_view_title" />
+
+        <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+          android:id="@+id/demoComposeButton"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          app:settingsRowFlat="true"
+          app:settingsRowSummary="@string/ui_demo_compose_summary"
+          app:settingsRowTitle="@string/ui_demo_compose_title" />
+      </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>
     </LinearLayout>
   </androidx.core.widget.NestedScrollView>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

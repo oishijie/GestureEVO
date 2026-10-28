@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/tab_gesture"
+        android:icon="@drawable/baseline_gesture_24"
+        android:title="@string/home_tab_gesture" />
+    <item
+        android:id="@+id/tab_tools"
+        android:icon="@drawable/baseline_screenshot_24"
+        android:title="@string/home_tab_screen" />
+    <item
+        android:id="@+id/tab_search"
+        android:icon="@drawable/baseline_search_24"
+        android:title="@string/home_tab_search" />
+    <item
+        android:id="@+id/tab_settings"
+        android:icon="@drawable/baseline_settings_24"
+        android:title="@string/home_tab_settings" />
+</menu>

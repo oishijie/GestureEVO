@@ -3,6 +3,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.ksp)
     alias(libs.plugins.androidx.room)
@@ -72,6 +73,7 @@ android {
         buildConfig = true  // 启用 BuildConfig
         viewBinding = true
         aidl = true
+        compose = true      // UI 重构 Demo（Compose 首页原型）
     }
     externalNativeBuild {
         cmake {
@@ -163,6 +165,15 @@ dependencies {
     implementation(libs.material)
     implementation(libs.brv)
     implementation(libs.appiconloader)
+
+    // UI 重构 Demo：Compose 首页原型（BOM 统一版本）。
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.activity.compose)
+    debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Persistence and JSON; processors share the runtime versions.
     implementation(libs.bundles.room)

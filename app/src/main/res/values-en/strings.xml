@@ -1170,4 +1170,19 @@
     <string name="search_engine_settings_features_summary">Extra content shown while searching</string>
     <string name="search_engine_settings_startup_summary">Default page shown when the app opens</string>
     <string name="search_engine_settings_transfer_summary">Import or export engine config as text</string>
-    </resources>
+    
+    <!-- Home refactor demos (temporary, safe to remove) -->
+    <string name="ui_demo_title">UI refactor demos</string>
+    <string name="ui_demo_summary">Same structure, two implementations to compare</string>
+    <string name="ui_demo_view_title">Demo A · Views</string>
+    <string name="ui_demo_view_summary">Collapsing title, status card, grouped list, M3 bottom bar</string>
+    <string name="ui_demo_compose_title">Demo B · Compose</string>
+    <string name="ui_demo_compose_summary">Same structure with dynamic color and gradient hero</string>
+    <string name="demo_hero_label">Permissions &amp; background</string>
+    <string name="demo_hero_pending">%1$d pending</string>
+    <string name="demo_hero_done">All set</string>
+    <string name="demo_hero_action">Review</string>
+    <string name="demo_hero_accessibility_on">Accessibility service connected</string>
+    <string name="demo_hero_accessibility_off">Accessibility service off</string>
+    <string name="demo_row_search_io">Import &amp; export</string>
+</resources>

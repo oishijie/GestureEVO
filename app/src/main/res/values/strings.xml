@@ -1173,4 +1173,19 @@
     <string name="search_engine_settings_features_summary">控制搜索时要额外引入哪些内容</string>
     <string name="search_engine_settings_startup_summary">控制打开应用时默认显示的页面</string>
     <string name="search_engine_settings_transfer_summary">以文本形式导入或导出搜索引擎配置</string>
-    </resources>
+    
+    <!-- 首页重构 Demo（方案对比，验证后可整体移除） -->
+    <string name="ui_demo_title">界面重构 Demo</string>
+    <string name="ui_demo_summary">同一信息结构的两种实现，可对比观感与手感</string>
+    <string name="ui_demo_view_title">Demo A · View 实现</string>
+    <string name="ui_demo_view_summary">折叠大标题、状态卡、分组列表、M3 底栏</string>
+    <string name="ui_demo_compose_title">Demo B · Compose 实现</string>
+    <string name="ui_demo_compose_summary">同结构，动态取色与渐变状态卡</string>
+    <string name="demo_hero_label">权限与后台</string>
+    <string name="demo_hero_pending">%1$d 项待处理</string>
+    <string name="demo_hero_done">全部就绪</string>
+    <string name="demo_hero_action">去处理</string>
+    <string name="demo_hero_accessibility_on">无障碍服务已连接</string>
+    <string name="demo_hero_accessibility_off">无障碍服务未开启</string>
+    <string name="demo_row_search_io">导入与导出</string>
+</resources>
