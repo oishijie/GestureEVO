@@ -1,5 +1,8 @@
 package io.github.lumiagg.gestureevo.settings
 
+import io.github.lumiagg.gestureevo.diagnostics.AppLogger
+import io.github.lumiagg.gestureevo.diagnostics.LogLevel
+import io.github.lumiagg.gestureevo.diagnostics.LogModule
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -221,7 +224,7 @@ class DataBackActivity : AppCompatActivity() {
      * Creates a general backup.
      * @return Pair containing backup file and timestamp
      */
-    private suspend fun createBackup(progressUpdater: suspend (String) -> Unit): Pair<File, String> {
+    private suspend fun createBackup(progressUpdater: suspend (String) -> Unit): Pair<File, String> = logDataOperation("backup") {
         val tempDir = createTempWorkDir()
         val backupDir = File(tempDir, "backup").apply { mkdirs() }
 
@@ -252,7 +255,7 @@ class DataBackActivity : AppCompatActivity() {
         // Generate timestamp
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
 
-        return Pair(zipFile, timestamp)
+        Pair(zipFile, timestamp)
     }
 
     /**
@@ -262,7 +265,7 @@ class DataBackActivity : AppCompatActivity() {
         source: Any,
         tempDir: File,
         progressUpdater: suspend (String) -> Unit
-    ) {
+    ) = logDataOperation("restore") {
         try {
             // Unzip backup archive
             progressUpdater(getString(R.string.data_restore_progress_unzip))
@@ -301,7 +304,7 @@ class DataBackActivity : AppCompatActivity() {
     private suspend fun restoreFromExtractedBackup(
         extractedDir: File,
         progressUpdater: suspend (String) -> Unit
-    ) {
+    ) = logDataOperation("restore") {
         // Restore settings
         progressUpdater(getString(R.string.data_restore_progress_settings))
         val settingsDir = File(extractedDir, BACKUP_SETTINGS_DIR)
@@ -315,6 +318,28 @@ class DataBackActivity : AppCompatActivity() {
         progressUpdater(getString(R.string.data_restore_progress_app_states))
         restoreDbStates(File(extractedDir, BACKUP_DB_STATES_DIR))
         restorePinPool(File(extractedDir, BACKUP_PIN_POOL_DIR), File(extractedDir, BACKUP_DB_STATES_DIR))
+    }
+
+    private suspend fun <T> logDataOperation(type: String, operation: suspend () -> T): T {
+        val trace = java.util.UUID.randomUUID().toString()
+        val started = android.os.SystemClock.elapsedRealtime()
+        AppLogger.event(
+            LogModule.BACKUP, "operation_started", trace = trace,
+            fields = mapOf("type" to type))
+        try {
+            return operation().also {
+                AppLogger.event(
+                    LogModule.BACKUP, "operation_completed", trace = trace,
+                    fields = mapOf("type" to type, "durationMs" to android.os.SystemClock.elapsedRealtime() - started))
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            AppLogger.event(
+                LogModule.BACKUP, "operation_failed",
+                LogLevel.ERROR, trace = trace, error = e)
+            throw e
+        }
     }
 
     // =============================== WebDAV Backup/Restore ===============================

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="log_open_manager">View logs</string>
+    <string name="log_open_manager_summary">Search records, manage diagnostics and export files</string>
     <string name="log_problem_title">Diagnose a problem</string>
     <string name="log_problem_history_short">History</string>
     <string name="log_search_short">Search logs</string>

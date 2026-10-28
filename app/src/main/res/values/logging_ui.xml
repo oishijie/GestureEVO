@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="log_open_manager">查看日志</string>
+    <string name="log_open_manager_summary">搜索记录、管理诊断与导出文件</string>
     <string name="log_problem_title">问题诊断</string>
     <string name="log_problem_history_short">历史记录</string>
     <string name="log_search_short">搜索日志</string>

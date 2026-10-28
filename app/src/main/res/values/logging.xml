@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="log_manager_title">日志管理器</string>
+    <string name="log_manager_summary">查看运行记录、诊断问题及导出日志</string>
     <string name="log_recording">记录运行日志</string>
+    <string name="log_detailed">详细诊断（30 分钟后自动关闭）</string>
     <string name="log_export">导出</string>
     <string name="log_clear">清空</string>
     <string name="log_system">系统诊断</string>
@@ -12,6 +14,7 @@
     <string name="log_cleared">日志已清空</string>
     <string name="log_clear_confirm">清空所有运行日志、崩溃记录和临时导出文件？正在进行的系统诊断将停止。</string>
     <string name="log_operation_failed">操作失败，请稍后重试并检查可用存储空间</string>
+    <string name="log_search">搜索事件、包名或关联编号</string>
     <string name="log_level">日志级别</string>
     <string name="log_module">日志模块</string>
     <string name="log_time">时间范围</string>
@@ -31,6 +34,7 @@
     <string name="log_capture_running">正在采集，请复现问题 · 已记录 %1$d 条相关事件</string>
     <string name="log_capture_complete">采集完成 · %1$d 条相关事件；未匹配到事件不能证明启动成功</string>
     <string name="log_capture_stopped">采集已停止 · %1$d 条相关事件</string>
+    <string name="log_capture_unavailable">采集不可用或已中断 · %1$d 条事件。请检查 Root/Shizuku 授权及系统日志访问能力。</string>
     <string-array name="log_modules"><item>应用</item><item>动作</item><item>服务</item><item>浮层</item><item>Shizuku / Root</item><item>备份恢复</item><item>OCR</item><item>系统</item></string-array>
     <string-array name="log_time_ranges"><item>全部时间</item><item>最近 1 小时</item><item>最近 24 小时</item></string-array>
 

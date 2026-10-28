@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="log_manager_title">Log manager</string>
+    <string name="log_manager_summary">View activity, diagnose problems and export logs</string>
     <string name="log_recording">Record application logs</string>
+    <string name="log_detailed">Detailed diagnostics (turns off after 30 minutes)</string>
     <string name="log_export">Export</string>
     <string name="log_clear">Clear</string>
     <string name="log_system">System logs</string>
@@ -12,6 +14,7 @@
     <string name="log_cleared">Logs cleared</string>
     <string name="log_clear_confirm">Clear application logs, crash records and temporary exports? Any active system capture will stop.</string>
     <string name="log_operation_failed">Operation failed. Try again and check available storage.</string>
+    <string name="log_search">Search events, packages or trace IDs</string>
     <string name="log_level">Log level</string>
     <string name="log_module">Log module</string>
     <string name="log_time">Time range</string>
@@ -31,6 +34,7 @@
     <string name="log_capture_running">Capturing; reproduce the issue · Related events: %1$d</string>
     <string name="log_capture_complete">Capture complete · Related events: %1$d. No matches does not confirm success.</string>
     <string name="log_capture_stopped">Capture stopped · Related events: %1$d</string>
+    <string name="log_capture_unavailable">Capture unavailable or interrupted · Events: %1$d. Check Root/Shizuku authorization and system log access.</string>
     <string-array name="log_modules"><item>Application</item><item>Actions</item><item>Services</item><item>Overlays</item><item>Shizuku / Root</item><item>Backup / restore</item><item>OCR</item><item>System</item></string-array>
     <string-array name="log_time_ranges"><item>All time</item><item>Last hour</item><item>Last 24 hours</item></string-array>
 
