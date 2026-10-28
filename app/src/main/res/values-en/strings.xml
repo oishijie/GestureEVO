@@ -1003,13 +1003,13 @@
 
     <!-- Bottom bar tabs -->
     <string name="home_tab_gesture">Gestures</string>
-    <string name="home_tab_screen">Screen</string>
+    <string name="home_tab_screen">Tools</string>
     <string name="home_tab_search">Search</string>
     <string name="home_tab_settings">Settings</string>
 
     <!-- Page titles -->
     <string name="home_title_gesture">Gestures &amp; Wheel</string>
-    <string name="home_title_screen">Screen Content</string>
+    <string name="home_title_screen">Tools</string>
     <string name="home_title_search">Search</string>
     <string name="home_title_settings">Settings</string>
     <!-- Gestures page -->
@@ -1066,6 +1066,7 @@
     <string name="setup_check_entry_title">Permissions &amp; Background</string>
     <string name="setup_check_entry_summary_pending">%1$d key setting(s) still pending</string>
     <string name="setup_check_entry_summary_done">All key settings are ready</string>
+    <string name="setup_check_action_review">Review</string>
     <string name="setup_check_progress_pending">%1$d done, %2$d still affect availability</string>
     <string name="setup_check_progress_all_done">All set, every key setting is done</string>
     <string name="setup_check_status_granted">Granted</string>

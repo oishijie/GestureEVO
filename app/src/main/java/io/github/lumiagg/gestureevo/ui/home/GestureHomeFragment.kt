@@ -8,9 +8,11 @@ import androidx.lifecycle.lifecycleScope
 import io.github.lumiagg.gestureevo.R
 import io.github.lumiagg.gestureevo.gesture.config.GestureActionDataManager
 import io.github.lumiagg.gestureevo.settings.ActionViewSettingsActivity
+import io.github.lumiagg.gestureevo.settings.BackgroundStabilityActivity
 import io.github.lumiagg.gestureevo.settings.FreeFormSettingsActivity
 import io.github.lumiagg.gestureevo.settings.FreeFormSettingsActivity.Companion.KEY_USE_MI_WINDOW
 import io.github.lumiagg.gestureevo.settings.FreeTriggerSettingsActivity
+import io.github.lumiagg.gestureevo.settings.SetupChecklist
 import io.github.lumiagg.gestureevo.settings.autoOpenAccessibilityService
 import io.github.lumiagg.gestureevo.settings.evoAccessibilityServiceIsEnable
 import io.github.lumiagg.gestureevo.utils.Rom
@@ -23,9 +25,10 @@ import kotlinx.coroutines.withContext
 /**
  * 一级页面：手势与触发。
  *
- * 顶部为「功能介绍与引导」横幅（静态，原轮播已取消，引导内容只保留一页），
- * 无障碍服务从轮播下沉为下方入口卡，徽章随 onResume 刷新开关状态；
- * 其余入口卡徽章：轮盘卡显示轮盘个数，小窗卡显示当前小窗模式。
+ * 顶部为「权限与后台」状态卡（体检表待处理项数，随 onResume 刷新），
+ * 其下为入口卡：无障碍服务徽章随 onResume 刷新开关状态；
+ * 其余徽章：轮盘卡显示轮盘个数，小窗卡显示当前小窗模式。
+ * 功能引导统一走页头右上角的「?」入口。
  */
 class GestureHomeFragment : BaseHomeFragment() {
 
@@ -33,8 +36,26 @@ class GestureHomeFragment : BaseHomeFragment() {
         super.onCreatePreferences(savedInstanceState, rootKey)
         setPreferencesFromResource(R.xml.home_gesture_prefs, rootKey)
 
-        bindGuideCard("preferenceService", R.string.home_guide_summary_gesture) {
-            FeatureGuideActivity.intent(requireContext(), FeatureGuideActivity.GUIDE_GESTURE)
+        // 权限与后台状态卡：摘要显示体检表待处理项数，整卡与按钮都进入体检表页面。
+        bindStatusCard("preferenceSetupStatus") { card ->
+            val pending = SetupChecklist.pendingCount(requireContext())
+            card.title = getString(R.string.setup_check_entry_title)
+            card.summary = if (pending == 0) {
+                getString(R.string.setup_check_entry_summary_done)
+            } else {
+                getString(R.string.setup_check_entry_summary_pending, pending)
+            }
+            card.setActionLabel(
+                if (pending == 0) null else getString(R.string.setup_check_action_review)
+            )
+            val openChecklist = {
+                startActivity(Intent(requireContext(), BackgroundStabilityActivity::class.java))
+            }
+            card.onActionClick = openChecklist
+            card.setOnPreferenceClickListener {
+                openChecklist()
+                true
+            }
         }
 
         // 无障碍服务：原轮播状态页下沉为入口卡，整卡点击进系统无障碍设置。

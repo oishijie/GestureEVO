@@ -19,6 +19,7 @@ import io.github.lumiagg.gestureevo.databinding.ActivityHomeBinding
 import io.github.lumiagg.gestureevo.settings.SettingsSearchActivity
 import io.github.lumiagg.gestureevo.settings.SettingsSearchNavigator
 import io.github.lumiagg.gestureevo.ui.home.BaseHomeFragment
+import io.github.lumiagg.gestureevo.ui.home.FeatureGuideActivity
 import io.github.lumiagg.gestureevo.ui.home.GestureHomeFragment
 import io.github.lumiagg.gestureevo.ui.home.ScreenHomeFragment
 import io.github.lumiagg.gestureevo.ui.home.SearchHomeFragment
@@ -42,6 +43,7 @@ class HomeActivity : AppCompatActivity() {
         setupSystemBars()
         applyWindowInsets()
         setupSearchEntry()
+        setupGuideEntry()
 
         val initialTab = savedInstanceState?.getInt(KEY_TAB_INDEX) ?: 0
         binding.bottomBar.submitTabs(TABS, selected = initialTab)
@@ -126,6 +128,14 @@ class HomeActivity : AppCompatActivity() {
                 Intent(this, SettingsSearchActivity::class.java),
                 options.toBundle(),
             )
+        }
+    }
+
+    /** 页头「?」入口：打开当前一级页对应的分步功能引导。 */
+    private fun setupGuideEntry() {
+        binding.homeGuideEntryCard.setOnClickListener {
+            val guide = GUIDE_BY_TAB.getOrElse(currentIndex) { FeatureGuideActivity.GUIDE_GESTURE }
+            startActivity(FeatureGuideActivity.intent(this, guide))
         }
     }
 
@@ -233,6 +243,14 @@ class HomeActivity : AppCompatActivity() {
             FloatingBottomBar.Tab(R.drawable.baseline_settings_24, R.string.home_tab_settings),
         )
 
+        /** 各一级页对应的功能引导页签，顺序与 [TABS] 一致。 */
+        private val GUIDE_BY_TAB = arrayOf(
+            FeatureGuideActivity.GUIDE_GESTURE,
+            FeatureGuideActivity.GUIDE_SCREEN,
+            FeatureGuideActivity.GUIDE_SEARCH,
+            FeatureGuideActivity.GUIDE_SETTINGS,
+        )
+
         val TITLE_RES = intArrayOf(
             R.string.home_title_gesture,
             R.string.home_title_screen,
@@ -248,7 +266,8 @@ class HomeActivity : AppCompatActivity() {
          */
         val PREFERENCE_TAB = mapOf(
             // 手势页
-            "preferenceService" to TAB_GESTURE,
+            "preferenceSetupStatus" to TAB_GESTURE,
+            "preferenceAccessibility" to TAB_GESTURE,
             "preferenceConfigTrigger" to TAB_GESTURE,
             "preferenceActionView" to TAB_GESTURE,
             "preferenceFreeform" to TAB_GESTURE,
@@ -265,7 +284,7 @@ class HomeActivity : AppCompatActivity() {
             "menu_search_import" to TAB_SEARCH,
             "menu_search_export" to TAB_SEARCH,
             // 设置页
-            "preferenceAppearance" to TAB_SETTINGS,
+            "preferenceAppearanceEntry" to TAB_SETTINGS,
             "preferenceData" to TAB_SETTINGS,
             "preferenceAdvanced" to TAB_SETTINGS,
             "preferenceBackgroundStability" to TAB_SETTINGS,

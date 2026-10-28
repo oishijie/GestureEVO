@@ -13,7 +13,7 @@ object SettingsSearchRegistry {
             titleResId = R.string.settings_accessibility_off,
             pageTitleResId = R.string.settings_title,
             targetActivity = HomeActivity::class.java,
-            targetPreferenceKey = "preferenceService",
+            targetPreferenceKey = "preferenceAccessibility",
             keywords = listOf("无障碍", "accessibility", "服务", "service")
         ),
         entry(

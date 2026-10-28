@@ -83,22 +83,6 @@ abstract class BaseHomeFragment : PreferenceFragmentCompat() {
         statusRefreshers += refresh
     }
 
-    /**
-     * 绑定功能引导状态卡：标题与摘要固定，整卡点击与动作按钮都打开
-     * [openIntent] 返回的分页引导（屏幕页/搜索页各自的内容）。
-     */
-    protected fun bindGuideCard(key: String, summaryRes: Int, openIntent: () -> Intent) {
-        bindStatusCard(key) { card ->
-            card.title = getString(R.string.home_guide_title)
-            card.summary = getString(summaryRes)
-            card.onActionClick = { startActivity(openIntent()) }
-            card.setOnPreferenceClickListener {
-                startActivity(openIntent())
-                true
-            }
-        }
-    }
-
     protected fun bindNavigation(key: String, target: Class<out Activity>) {
         findPreference<Preference>(key)?.setOnPreferenceClickListener {
             startActivity(Intent(requireActivity(), target))

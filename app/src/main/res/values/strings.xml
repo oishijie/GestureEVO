@@ -1006,13 +1006,13 @@
 
     <!-- 底栏标签 -->
     <string name="home_tab_gesture">手势</string>
-    <string name="home_tab_screen">屏幕</string>
+    <string name="home_tab_screen">工具</string>
     <string name="home_tab_search">搜索</string>
     <string name="home_tab_settings">设置</string>
 
     <!-- 页面标题 -->
     <string name="home_title_gesture">手势与轮盘</string>
-    <string name="home_title_screen">屏幕内容</string>
+    <string name="home_title_screen">工具</string>
     <string name="home_title_search">搜索</string>
     <string name="home_title_settings">设置</string>
     <!-- 手势页 -->
@@ -1069,6 +1069,7 @@
     <string name="setup_check_entry_title">权限与后台管理</string>
     <string name="setup_check_entry_summary_pending">还有 %1$d 项关键配置待完成</string>
     <string name="setup_check_entry_summary_done">关键配置已全部完成</string>
+    <string name="setup_check_action_review">去处理</string>
     <string name="setup_check_progress_pending">已完成 %1$d 项，还有 %2$d 项影响功能可用性</string>
     <string name="setup_check_progress_all_done">全部就绪，所有关键配置已完成</string>
     <string name="setup_check_status_granted">已开启</string>

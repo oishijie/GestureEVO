@@ -1,18 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  搜索一级页：顶部引导状态卡 + 入口卡列表。
+  搜索一级页：入口卡列表。
   「搜索列表」与「自定义设置」深链打开原版 SearchEngineSettingsActivity 对应分区卡
   （引擎列表 / 显示+功能+启动）；「导入」「导出」直接执行。
-  分组标题已取消；徽章显示引擎个数（SearchHomeFragment 绑定，onResume 刷新）。
+  功能引导统一收进页头右上角的「?」入口；
+  徽章显示引擎个数（SearchHomeFragment 绑定，onResume 刷新）。
 -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-
-    <!-- 引导状态卡：始终可见。 -->
-    <io.github.lumiagg.gestureevo.ui.home.HomeStatusCardPreference
-        android:icon="@drawable/baseline_info_24"
-        android:key="card_search_guide"
-        app:statusCardActionLabel="@string/home_guide_action" />
 
     <io.github.lumiagg.gestureevo.ui.home.HomeEntryPreference
         android:icon="@drawable/baseline_search_24"

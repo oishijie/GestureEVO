@@ -19,10 +19,6 @@ class ScreenHomeFragment : BaseHomeFragment() {
         super.onCreatePreferences(savedInstanceState, rootKey)
         setPreferencesFromResource(R.xml.home_screen_prefs, rootKey)
 
-        bindGuideCard("card_screen_guide", R.string.home_guide_summary_screen) {
-            FeatureGuideActivity.intent(requireContext(), FeatureGuideActivity.GUIDE_SCREEN)
-        }
-
         // 菜单入口 → 原版设置页对应分区卡（深链展开并滚动定位）。
         openSection("menu_screen_recognition", R.id.screenContentSwitchCard)
 

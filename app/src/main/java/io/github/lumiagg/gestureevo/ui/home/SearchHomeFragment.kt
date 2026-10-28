@@ -35,10 +35,6 @@ class SearchHomeFragment : BaseHomeFragment() {
         super.onCreatePreferences(savedInstanceState, rootKey)
         setPreferencesFromResource(R.xml.home_search_prefs, rootKey)
 
-        bindGuideCard("card_search_guide", R.string.home_guide_summary_search) {
-            FeatureGuideActivity.intent(requireContext(), FeatureGuideActivity.GUIDE_SEARCH)
-        }
-
         // 引擎个数徽章：导入/删除引擎后返回本页即可看到最新计数。
         refreshEngineBadge()
         registerStatusRefresh { refreshEngineBadge() }

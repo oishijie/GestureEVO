@@ -13,19 +13,14 @@ import io.github.lumiagg.gestureevo.utils.ThemeManager
 /**
  * 一级页面：应用设置。
  *
- * 顶部为「功能介绍与引导」横幅（静态，原轮播已取消），
- * 外观主题从轮播下沉为下方入口卡（置顶），摘要动态显示当前配色；
- * 「权限与后台」卡徽章显示待处理项数。
+ * 外观主题为置顶入口卡，摘要动态显示当前配色；
+ * 「权限与后台」卡徽章显示待处理项数。功能引导统一走页头右上角的「?」入口。
  */
 class SettingsHomeFragment : BaseHomeFragment() {
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         super.onCreatePreferences(savedInstanceState, rootKey)
         setPreferencesFromResource(R.xml.home_settings_prefs, rootKey)
-
-        bindGuideCard("preferenceAppearance", R.string.home_guide_summary_settings) {
-            FeatureGuideActivity.intent(requireContext(), FeatureGuideActivity.GUIDE_SETTINGS)
-        }
 
         // 外观主题：原轮播状态页下沉为入口卡，摘要随 onResume 刷新当前配色。
         bindNavigation("preferenceAppearanceEntry", AppearanceSettingsActivity::class.java)

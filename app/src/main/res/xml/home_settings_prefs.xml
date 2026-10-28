@@ -1,18 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  设置一级页：顶部「功能介绍与引导」横幅（静态，轮播已取消），
-  下方为入口卡列表。原轮播第 1 页的外观主题状态下沉为入口卡（置顶），
+  设置一级页：入口卡列表。功能引导统一收进页头右上角的「?」入口。
+  原轮播第 1 页的外观主题状态下沉为入口卡（置顶），
   摘要动态显示当前配色（SettingsHomeFragment 绑定，onResume 刷新）；
   「权限与后台」卡的徽章显示待处理项数。
 -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-
-    <!-- 功能介绍与引导横幅：整卡点击与动作按钮都打开分步引导。 -->
-    <io.github.lumiagg.gestureevo.ui.home.HomeStatusCardPreference
-        android:icon="@drawable/baseline_info_24"
-        android:key="preferenceAppearance"
-        app:statusCardActionLabel="@string/home_guide_action" />
 
     <!-- 外观主题：原轮播状态页下沉为入口卡，摘要在 Fragment 中动态刷新。 -->
     <io.github.lumiagg.gestureevo.ui.home.HomeEntryPreference
