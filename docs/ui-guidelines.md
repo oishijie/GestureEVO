@@ -122,3 +122,13 @@ CoordinatorLayout
 - [ ] 深色模式、小屏、横屏无溢出/截断
 - [ ] 行点击 ripple、无重复 chevron、开关状态即时反馈
 - [ ] TalkBack 可读、触控目标 ≥48dp
+
+---
+
+## 修订记录
+
+- v2（批次 2）：视觉基准对齐 KernelSU Manager——组标题回 primary 色、卡底
+  surfaceBright、行前导图标（Nav/Dropdown 行 24dp 裸图标；Switch 行不带，
+  避免长开关组图标噪音）。11 个设置页统一页边距 16dp / 卡距 12dp /
+  AppBar wrap_content，49 个行注入语义图标。
+- v1（批次 1）：初始规范 + 外观/数据备份试点。
