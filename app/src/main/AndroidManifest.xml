@@ -143,14 +143,6 @@
             android:name=".settings.AdvancedSettingsActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.demo.HomeDemoViewActivity"
-            android:exported="false"
-            android:theme="@style/Theme.GestureEVO" />
-        <activity
-            android:name=".ui.demo.HomeDemoComposeActivity"
-            android:exported="false"
-            android:theme="@style/Theme.GestureEVO" />
-        <activity
             android:name=".settings.ExternalActionRecordsActivity"
             android:exported="false" />
         <activity

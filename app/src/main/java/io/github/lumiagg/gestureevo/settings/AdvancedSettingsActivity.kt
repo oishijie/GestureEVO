@@ -19,8 +19,6 @@ import io.github.lumiagg.gestureevo.settings.ui.DefaultSelectAPPBottomSheet
 import io.github.lumiagg.gestureevo.settings.ui.SelectAPPCallBack
 import io.github.lumiagg.gestureevo.settings.ui.installPageHeader
 import io.github.lumiagg.gestureevo.settings.ui.showEditTextBottomSheet
-import io.github.lumiagg.gestureevo.ui.demo.HomeDemoComposeActivity
-import io.github.lumiagg.gestureevo.ui.demo.HomeDemoViewActivity
 import io.github.lumiagg.gestureevo.utils.ClipboardUtils
 import io.github.lumiagg.gestureevo.utils.ExternalActionPermissionStore
 import io.github.lumiagg.gestureevo.utils.app.syncAppCatalog
@@ -102,14 +100,6 @@ class AdvancedSettingsActivity : AppCompatActivity() {
 
         binding.logsEntryButton.setOnClickListener {
             startActivity(Intent(this, LogManagerActivity::class.java))
-        }
-
-        binding.demoViewButton.setOnClickListener {
-            startActivity(Intent(this, HomeDemoViewActivity::class.java))
-        }
-
-        binding.demoComposeButton.setOnClickListener {
-            startActivity(Intent(this, HomeDemoComposeActivity::class.java))
         }
     }
 

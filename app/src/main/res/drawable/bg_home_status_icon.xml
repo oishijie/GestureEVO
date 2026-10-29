@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
-  引导横幅/状态卡的图标底座：白色正圆（模板样式）。
-  配合 tint=colorPrimary 的图标，构成"白圆 + 主色图标"的视觉效果。
--->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="oval">
-    <solid android:color="?attr/colorSurface" />
-</shape>
