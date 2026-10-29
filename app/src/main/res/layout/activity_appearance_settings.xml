@@ -73,6 +73,7 @@
 
           <io.github.lumiagg.gestureevo.settings.ui.SettingsDropdownRow
             android:id="@+id/languageRow"
+          app:settingsRowIcon="@drawable/ic_baseline_g_translate_24"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/appearance_settings_language_title"
@@ -80,6 +81,7 @@
 
           <io.github.lumiagg.gestureevo.settings.ui.SettingsDropdownRow
             android:id="@+id/themeModeDropdownRow"
+          app:settingsRowIcon="@drawable/baseline_auto_awesome_24"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/theme_mode_title"

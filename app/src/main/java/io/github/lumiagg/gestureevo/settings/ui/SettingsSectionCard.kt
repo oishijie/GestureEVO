@@ -43,10 +43,10 @@ class SettingsSectionCard @JvmOverloads constructor(
 
         titleView = TextView(context).apply {
             text = title
-            // 组标题按《UI 设计规范》4.1：14sp / 600 / onSurfaceVariant，
-            // 与行标题（16sp）拉开层次，不再用主色抢戏。
+            // 组标题按规范 4.1（对齐 KernelSU 设置页）：14sp / 600 / primary 色，
+            // 卡外标题用主色形成节奏，行标题保持 onSurface。
             textSize = 14f
-            setTextColor(DynamicColorUtils.onSurfaceVariantColor)
+            setTextColor(DynamicColorUtils.primaryColor)
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setPadding(4f.dp2px.toInt(), 20f.dp2px.toInt(), 4f.dp2px.toInt(), 2f.dp2px.toInt())
         }
@@ -59,11 +59,11 @@ class SettingsSectionCard @JvmOverloads constructor(
             setPadding(4f.dp2px.toInt(), 0, 4f.dp2px.toInt(), 8f.dp2px.toInt())
         }
 
-        // 卡片按规范 4.1：surfaceContainerLow 静色底、16dp 圆角、无描边无阴影，
-        // 层级靠容器色而非满屏细描边。
+        // 卡片按规范 4.1（对齐 KernelSU TonalCard）：surfaceBright 底、16dp 圆角、
+        // 无描边无阴影；surfaceBright 在暗色下比 surfaceContainer 更亮，层次更清晰。
         val cardColor = MaterialColors.getColor(
             this,
-            com.google.android.material.R.attr.colorSurfaceContainerLow,
+            com.google.android.material.R.attr.colorSurfaceBright,
             0,
         )
         val card = MaterialCardView(context).apply {

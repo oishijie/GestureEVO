@@ -13,7 +13,7 @@
   <com.google.android.material.appbar.AppBarLayout
     android:id="@+id/app_bar"
     android:layout_width="match_parent"
-    android:layout_height="@dimen/app_bar_height"
+    android:layout_height="wrap_content"
     android:background="@android:color/transparent">
 
     <com.google.android.material.appbar.CollapsingToolbarLayout
@@ -52,20 +52,22 @@
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
       android:orientation="vertical"
-      android:paddingHorizontal="@dimen/settings_card_spacing"
-      android:paddingVertical="16dp">
+      android:paddingHorizontal="@dimen/settings_page_margin"
+      android:paddingTop="8dp"
+      android:paddingBottom="24dp">
 
       <!-- ① 外部功能调用：为第三方应用创建可供手势调用的入口。 -->
       <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard
         android:id="@+id/externalCallCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="12dp"
         app:settingsCardSummary="@string/advanced_external_call_desc"
         app:settingsCardTitle="@string/external_action_settings_title">
 
         <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
           android:id="@+id/newRecordButton"
+          app:settingsRowIcon="@drawable/baseline_add_24"
           android:layout_width="match_parent"
           android:layout_height="wrap_content"
           app:settingsRowFlat="true"
@@ -73,6 +75,7 @@
 
         <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
           android:id="@+id/openExternalWheelButton"
+          app:settingsRowIcon="@drawable/baseline_gesture_24"
           android:layout_width="match_parent"
           android:layout_height="wrap_content"
           app:settingsRowFlat="true"
@@ -84,12 +87,13 @@
         android:id="@+id/authorizedRecordsCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="12dp"
         app:settingsCardSummary="@string/advanced_records_desc"
         app:settingsCardTitle="@string/external_action_history_title">
 
         <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
           android:id="@+id/recordsEntryButton"
+          app:settingsRowIcon="@drawable/baseline_menu_24"
           android:layout_width="match_parent"
           android:layout_height="wrap_content"
           app:settingsRowFlat="true"
@@ -112,6 +116,7 @@
 
         <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
           android:id="@+id/appAliasButton"
+          app:settingsRowIcon="@drawable/baseline_edit_24"
           android:layout_width="match_parent"
           android:layout_height="wrap_content"
           app:settingsRowFlat="true"
@@ -119,6 +124,7 @@
 
         <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
           android:id="@+id/rebuildDBButton"
+          app:settingsRowIcon="@drawable/baseline_refresh_24"
           android:layout_width="match_parent"
           android:layout_height="wrap_content"
           app:settingsRowFlat="true"
@@ -135,6 +141,7 @@
 
         <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
           android:id="@+id/logsEntryButton"
+          app:settingsRowIcon="@drawable/baseline_miscellaneous_services_24"
           android:layout_width="match_parent"
           android:layout_height="wrap_content"
           app:settingsRowFlat="true"
@@ -146,12 +153,13 @@
         android:id="@+id/uiDemoCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="12dp"
         app:settingsCardSummary="@string/ui_demo_summary"
         app:settingsCardTitle="@string/ui_demo_title">
 
         <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
           android:id="@+id/demoViewButton"
+          app:settingsRowIcon="@drawable/baseline_screenshot_24"
           android:layout_width="match_parent"
           android:layout_height="wrap_content"
           app:settingsRowFlat="true"
@@ -160,6 +168,7 @@
 
         <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
           android:id="@+id/demoComposeButton"
+          app:settingsRowIcon="@drawable/baseline_auto_awesome_24"
           android:layout_width="match_parent"
           android:layout_height="wrap_content"
           app:settingsRowFlat="true"

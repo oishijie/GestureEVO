@@ -8,7 +8,7 @@
   <com.google.android.material.appbar.AppBarLayout
     android:id="@+id/app_bar"
     android:layout_width="match_parent"
-    android:layout_height="@dimen/app_bar_height"
+    android:layout_height="wrap_content"
     android:background="@android:color/transparent">
     <com.google.android.material.appbar.CollapsingToolbarLayout
       android:id="@+id/toolbar_layout"
@@ -48,8 +48,8 @@
         android:id="@+id/directionCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginHorizontal="@dimen/settings_page_margin"
+        android:layout_marginTop="12dp"
         app:layout_constraintTop_toTopOf="parent"
         app:settingsCardTitle="@string/freeform_settings_direction_title"
         app:settingsCardSummary="@string/freeform_settings_direction_description">
@@ -100,8 +100,8 @@
         android:id="@+id/dropdownCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginHorizontal="@dimen/settings_page_margin"
+        android:layout_marginTop="12dp"
         app:layout_constraintTop_toBottomOf="@+id/directionCard"
         app:settingsCardTitle="@string/freeform_settings_mode_title"
         app:settingsCardSummary="@string/freeform_settings_mode_description">
@@ -143,8 +143,8 @@
         android:id="@+id/sizeCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginHorizontal="@dimen/settings_page_margin"
+        android:layout_marginTop="12dp"
         app:layout_constraintTop_toBottomOf="@+id/dropdownCard"
         app:settingsCardTitle="@string/freeform_settings_size_title"
         app:settingsCardSummary="@string/freeform_settings_size_description">

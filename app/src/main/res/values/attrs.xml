@@ -27,6 +27,7 @@
 
     <attr name="settingsRowTitle" format="string" />
     <attr name="settingsRowSummary" format="string" />
+    <attr name="settingsRowIcon" format="reference" />
     <attr name="settingsRowTrailingIcon" format="reference" />
     <attr name="settingsRowSwatch" format="boolean" />
     <attr name="settingsRowShowChevron" format="boolean" />
@@ -35,6 +36,7 @@
     <declare-styleable name="SettingsNavRow">
         <attr name="settingsRowTitle" />
         <attr name="settingsRowSummary" />
+        <attr name="settingsRowIcon" />
         <attr name="settingsRowTrailingIcon" />
         <attr name="settingsRowSwatch" />
         <attr name="settingsRowShowChevron" />
@@ -44,12 +46,14 @@
     <declare-styleable name="SettingsSwitchRow">
         <attr name="settingsRowTitle" />
         <attr name="settingsRowSummary" />
+        <attr name="settingsRowIcon" />
         <attr name="settingsRowFlat" />
     </declare-styleable>
 
     <declare-styleable name="SettingsDropdownRow">
         <attr name="settingsRowTitle" />
         <attr name="settingsRowSummary" />
+        <attr name="settingsRowIcon" />
         <attr name="settingsRowSwatch" />
         <attr name="settingsRowFlat" />
     </declare-styleable>

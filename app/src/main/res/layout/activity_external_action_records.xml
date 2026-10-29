@@ -10,7 +10,7 @@
   <com.google.android.material.appbar.AppBarLayout
     android:id="@+id/app_bar"
     android:layout_width="match_parent"
-    android:layout_height="@dimen/app_bar_height"
+    android:layout_height="wrap_content"
     android:background="@android:color/transparent">
 
     <com.google.android.material.appbar.CollapsingToolbarLayout
@@ -49,8 +49,9 @@
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
       android:orientation="vertical"
-      android:paddingHorizontal="@dimen/settings_card_spacing"
-      android:paddingVertical="16dp">
+      android:paddingHorizontal="@dimen/settings_page_margin"
+      android:paddingTop="8dp"
+      android:paddingBottom="24dp">
 
       <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard
         android:id="@+id/recordsCard"

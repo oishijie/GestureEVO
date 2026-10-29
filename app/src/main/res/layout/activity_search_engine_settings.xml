@@ -13,7 +13,7 @@
   <com.google.android.material.appbar.AppBarLayout
     android:id="@+id/app_bar"
     android:layout_width="match_parent"
-    android:layout_height="@dimen/app_bar_height"
+    android:layout_height="wrap_content"
     android:background="@android:color/transparent">
     <com.google.android.material.appbar.CollapsingToolbarLayout
       android:id="@+id/toolbar_layout"
@@ -48,8 +48,9 @@
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
       android:orientation="vertical"
-      android:paddingHorizontal="@dimen/settings_card_spacing"
-      android:paddingVertical="16dp">
+      android:paddingHorizontal="@dimen/settings_page_margin"
+      android:paddingTop="8dp"
+      android:paddingBottom="24dp">
       <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard
         android:id="@+id/engineListCard"
         android:layout_width="match_parent"
@@ -86,7 +87,7 @@
             <TextView
               android:layout_width="wrap_content"
               android:layout_height="wrap_content"
-              android:layout_marginTop="16dp"
+              android:layout_marginTop="12dp"
               android:text="@string/search_engine_settings_empty_title"
               android:textColor="?attr/colorOnSurfaceVariant"
               android:textSize="@dimen/evo_text_title" />
@@ -112,7 +113,7 @@
         android:id="@+id/displayCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         app:settingsCardSummary="@string/search_engine_settings_display_summary"
         app:settingsCardTitle="@string/search_engine_settings_display_title">
         <LinearLayout
@@ -124,6 +125,7 @@
           android:paddingBottom="12dp">
           <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
             android:id="@+id/rowCountRow"
+          app:settingsRowIcon="@drawable/baseline_unfold_more_24"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowShowChevron="false"
@@ -164,6 +166,7 @@
           </io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow>
           <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
             android:id="@+id/columnCountRow"
+          app:settingsRowIcon="@drawable/baseline_select_all_24"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowShowChevron="false"
@@ -260,7 +263,7 @@
         android:id="@+id/functionCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         app:settingsCardSummary="@string/search_engine_settings_features_summary"
         app:settingsCardTitle="@string/search_engine_settings_features_title">
         <LinearLayout
@@ -338,7 +341,7 @@
         android:id="@+id/startupCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         app:settingsCardSummary="@string/search_engine_settings_startup_summary"
         app:settingsCardTitle="@string/search_engine_settings_startup_title">
         <LinearLayout
@@ -366,7 +369,7 @@
         android:id="@+id/transferCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         app:settingsCardSummary="@string/search_engine_settings_transfer_summary"
         app:settingsCardTitle="@string/search_engine_settings_transfer_title">
         <LinearLayout
@@ -378,12 +381,14 @@
           android:paddingBottom="12dp">
           <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
             android:id="@+id/importEnginesRow"
+          app:settingsRowIcon="@drawable/baseline_arrow_downward_24"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/search_engine_settings_import"
             app:settingsRowFlat="true" />
           <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
             android:id="@+id/exportEnginesRow"
+          app:settingsRowIcon="@drawable/baseline_arrow_upward_24"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/search_engine_settings_export"
@@ -396,7 +401,7 @@
         android:id="@+id/hiddenResultsCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         app:settingsCardSummary="@string/hidden_search_results_summary"
         app:settingsCardTitle="@string/hidden_search_results_title">
         <LinearLayout
@@ -408,6 +413,7 @@
           android:paddingBottom="12dp">
           <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
             android:id="@+id/hiddenResultsRow"
+          app:settingsRowIcon="@drawable/ic_baseline_cancel_24"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/hidden_search_results_title"

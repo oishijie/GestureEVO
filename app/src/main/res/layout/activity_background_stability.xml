@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/main" android:layout_width="match_parent" android:layout_height="match_parent" android:fitsSystemWindows="true">
-    <com.google.android.material.appbar.AppBarLayout android:id="@+id/app_bar" android:layout_width="match_parent" android:layout_height="@dimen/app_bar_height"
+    <com.google.android.material.appbar.AppBarLayout android:id="@+id/app_bar" android:layout_width="match_parent" android:layout_height="wrap_content"
     android:background="@android:color/transparent">
         <com.google.android.material.appbar.CollapsingToolbarLayout android:id="@+id/toolbar_layout" android:layout_width="match_parent" android:layout_height="match_parent" android:fitsSystemWindows="true" app:layout_scrollFlags="scroll|exitUntilCollapsed" app:toolbarId="@+id/toolbar"
       app:contentScrim="?attr/colorSurface"
@@ -16,9 +16,10 @@
     </com.google.android.material.appbar.AppBarLayout>
     <androidx.core.widget.NestedScrollView android:id="@+id/backgroundStabilityScrollView" android:layout_width="match_parent" android:layout_height="match_parent" android:clipToPadding="false" app:layout_behavior="@string/appbar_scrolling_view_behavior"
     android:background="?attr/colorSurface" >
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="@dimen/settings_card_spacing" android:paddingVertical="16dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="@dimen/settings_page_margin" android:paddingTop="8dp"
+      android:paddingBottom="24dp">
             <!-- 关键权限：由原「设置检查」并入，行由代码动态填充，返回页面实时刷新。 -->
-            <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard android:id="@+id/permissionCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="16dp" app:settingsCardTitle="@string/background_stability_permission_title" app:settingsCardSummary="@string/background_stability_permission_summary">
+            <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard android:id="@+id/permissionCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp" app:settingsCardTitle="@string/background_stability_permission_title" app:settingsCardSummary="@string/background_stability_permission_summary">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="12dp" android:paddingTop="4dp" android:paddingBottom="12dp">
                     <FrameLayout android:layout_width="match_parent" android:layout_height="6dp" android:layout_marginTop="8dp">
                         <View android:id="@+id/setupProgressTrack" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_setup_progress_track" />
@@ -28,13 +29,14 @@
                     <LinearLayout android:id="@+id/setupCheckList" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:orientation="vertical" />
                 </LinearLayout>
             </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>
-            <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard android:id="@+id/lockTaskCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="16dp" app:settingsCardTitle="@string/background_stability_task_title" app:settingsCardSummary="@string/background_stability_task_description">
+            <io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard android:id="@+id/lockTaskCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp" app:settingsCardTitle="@string/background_stability_task_title" app:settingsCardSummary="@string/background_stability_task_description">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="12dp" android:paddingTop="4dp" android:paddingBottom="12dp">
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/background_stability_task_title" android:textSize="@dimen/evo_text_title" android:textStyle="bold" />
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/background_stability_task_description" android:textColor="?android:textColorSecondary" />
                     <io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow android:layout_width="match_parent" android:layout_height="wrap_content" app:settingsRowTitle="@string/background_stability_task_hide"
             app:settingsRowFlat="true" >
-                        <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/hideTaskButton" android:checked="true" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                        <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/hideTaskButton"
+          app:settingsRowIcon="@drawable/ic_image_text_collapse_24" android:checked="true" android:layout_width="wrap_content" android:layout_height="wrap_content" />
                     </io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow>
                 </LinearLayout>
             </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>
@@ -43,7 +45,8 @@
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/background_stability_adb_title" android:textSize="@dimen/evo_text_title" android:textStyle="bold" />
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/background_stability_adb_description" android:textColor="?android:textColorSecondary" />
                     <TextView android:id="@+id/adbCommandText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/bg_settings_tile_quiet" android:paddingHorizontal="14dp" android:paddingVertical="12dp" android:text="@string/background_stability_adb_command" android:textAppearance="?attr/textAppearanceBodyMedium" android:textColor="?attr/colorOnSurface" android:textIsSelectable="true" />
-                    <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow android:id="@+id/copyAdbButton" android:layout_width="match_parent" android:layout_height="wrap_content" app:settingsRowTitle="@string/background_stability_adb_copy" app:settingsRowTrailingIcon="@drawable/ic_baseline_content_copy_24"
+                    <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow android:id="@+id/copyAdbButton"
+          app:settingsRowIcon="@drawable/ic_baseline_content_copy_24" android:layout_width="match_parent" android:layout_height="wrap_content" app:settingsRowTitle="@string/background_stability_adb_copy" app:settingsRowTrailingIcon="@drawable/ic_baseline_content_copy_24"
             app:settingsRowFlat="true" />
                 </LinearLayout>
             </io.github.lumiagg.gestureevo.settings.ui.SettingsSectionCard>

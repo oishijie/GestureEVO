@@ -46,12 +46,14 @@ class SettingsNavRow @JvmOverloads constructor(
 
         var title = ""
         var summary = ""
+        var leadingIcon = 0
         var trailingIcon = R.drawable.ic_chevron_right
         var showSwatch = false
         var showChevron = true
         context.withStyledAttributes(attrs, R.styleable.SettingsNavRow) {
             title = getText(R.styleable.SettingsNavRow_settingsRowTitle)?.toString().orEmpty()
             summary = getText(R.styleable.SettingsNavRow_settingsRowSummary)?.toString().orEmpty()
+            leadingIcon = getResourceId(R.styleable.SettingsNavRow_settingsRowIcon, 0)
             trailingIcon = getResourceId(
                 R.styleable.SettingsNavRow_settingsRowTrailingIcon,
                 R.drawable.ic_chevron_right,
@@ -78,6 +80,20 @@ class SettingsNavRow @JvmOverloads constructor(
                 it.recycle()
                 drawable
             }
+        }
+
+        if (flat && leadingIcon != 0) {
+            // 前导图标（规范 4.2，对齐 KernelSU 设置页）：24dp 裸图标，onSurface 着色。
+            addView(
+                ImageView(context).apply {
+                    layoutParams = LayoutParams(24.dp2px.toInt(), 24.dp2px.toInt()).apply {
+                        marginEnd = 16.dp2px.toInt()
+                    }
+                    setImageResource(leadingIcon)
+                    imageTintList = ColorStateList.valueOf(DynamicColorUtils.onSurfaceColor)
+                    importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
+                }
+            )
         }
 
         val textColumn = LinearLayout(context).apply {
@@ -244,10 +260,12 @@ class SettingsDropdownRow @JvmOverloads constructor(
 
         var title = ""
         var summary = ""
+        var leadingIcon = 0
         var showSwatch = false
         context.withStyledAttributes(attrs, R.styleable.SettingsDropdownRow) {
             title = getText(R.styleable.SettingsDropdownRow_settingsRowTitle)?.toString().orEmpty()
             summary = getText(R.styleable.SettingsDropdownRow_settingsRowSummary)?.toString().orEmpty()
+            leadingIcon = getResourceId(R.styleable.SettingsDropdownRow_settingsRowIcon, 0)
             showSwatch = getBoolean(R.styleable.SettingsDropdownRow_settingsRowSwatch, false)
             flat = getBoolean(R.styleable.SettingsDropdownRow_settingsRowFlat, false)
         }
@@ -267,6 +285,19 @@ class SettingsDropdownRow @JvmOverloads constructor(
                 it.recycle()
                 drawable
             }
+        }
+
+        if (flat && leadingIcon != 0) {
+            addView(
+                ImageView(context).apply {
+                    layoutParams = LayoutParams(24.dp2px.toInt(), 24.dp2px.toInt()).apply {
+                        marginEnd = 16.dp2px.toInt()
+                    }
+                    setImageResource(leadingIcon)
+                    imageTintList = ColorStateList.valueOf(DynamicColorUtils.onSurfaceColor)
+                    importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
+                }
+            )
         }
 
         val textColumn = LinearLayout(context).apply {
@@ -386,9 +417,11 @@ class SettingsSwitchRow @JvmOverloads constructor(
 
         var title = ""
         var summary = ""
+        var leadingIcon = 0
         context.withStyledAttributes(attrs, R.styleable.SettingsSwitchRow) {
             title = getText(R.styleable.SettingsSwitchRow_settingsRowTitle)?.toString().orEmpty()
             summary = getText(R.styleable.SettingsSwitchRow_settingsRowSummary)?.toString().orEmpty()
+            leadingIcon = getResourceId(R.styleable.SettingsSwitchRow_settingsRowIcon, 0)
             flat = getBoolean(R.styleable.SettingsSwitchRow_settingsRowFlat, false)
         }
 
@@ -407,6 +440,19 @@ class SettingsSwitchRow @JvmOverloads constructor(
                 it.recycle()
                 drawable
             }
+        }
+
+        if (flat && leadingIcon != 0) {
+            addView(
+                ImageView(context).apply {
+                    layoutParams = LayoutParams(24.dp2px.toInt(), 24.dp2px.toInt()).apply {
+                        marginEnd = 16.dp2px.toInt()
+                    }
+                    setImageResource(leadingIcon)
+                    imageTintList = ColorStateList.valueOf(DynamicColorUtils.onSurfaceColor)
+                    importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
+                }
+            )
         }
 
         val textColumn = LinearLayout(context).apply {

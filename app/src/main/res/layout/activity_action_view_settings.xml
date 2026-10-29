@@ -7,7 +7,7 @@
   <com.google.android.material.appbar.AppBarLayout
     android:id="@+id/app_bar"
     android:layout_width="match_parent"
-    android:layout_height="@dimen/app_bar_height"
+    android:layout_height="wrap_content"
     android:background="@android:color/transparent"
     app:liftOnScroll="true">
     <com.google.android.material.appbar.CollapsingToolbarLayout
@@ -47,7 +47,7 @@
         android:id="@+id/debugNotice"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="@dimen/settings_card_spacing"
+        android:layout_marginHorizontal="@dimen/settings_page_margin"
         android:layout_marginTop="@dimen/settings_card_spacing"
         app:cardBackgroundColor="?attr/colorErrorContainer"
         app:cardElevation="0dp"
@@ -85,8 +85,8 @@
         android:id="@+id/actionItemListTagsCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginHorizontal="@dimen/settings_page_margin"
+        android:layout_marginTop="12dp"
         app:layout_constraintTop_toBottomOf="@+id/debugNotice"
         app:settingsCardTitle="@string/action_view_settings_groups_title"
         app:settingsCardSummary="@string/action_view_settings_groups_description">
@@ -99,6 +99,7 @@
           android:paddingBottom="12dp">
           <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
             android:id="@+id/selectPieGroupButton"
+          app:settingsRowIcon="@drawable/baseline_pie_chart_24"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/action_view_settings_current_group_title"
@@ -111,12 +112,14 @@
           </io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow>
           <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
             android:id="@+id/addPieGroupButton"
+          app:settingsRowIcon="@drawable/baseline_add_24"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/action_view_settings_add_group"
             app:settingsRowFlat="true" />
           <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
             android:id="@+id/managePieGroupButton"
+          app:settingsRowIcon="@drawable/baseline_edit_24"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/action_view_settings_manage"
@@ -127,8 +130,8 @@
         android:id="@+id/previewTriggerCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginHorizontal="@dimen/settings_page_margin"
+        android:layout_marginTop="12dp"
         app:layout_constraintTop_toBottomOf="@+id/actionItemListTagsCard"
         app:settingsCardTitle="@string/action_view_settings_preview_title"
         app:settingsCardSummary="@string/action_view_settings_preview_summary">
@@ -153,6 +156,7 @@
             android:textColor="?android:textColorSecondary" />
           <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
             android:id="@+id/previewTriggerButton"
+          app:settingsRowIcon="@drawable/baseline_gesture_24"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/action_view_preview_trigger_title"
@@ -164,6 +168,7 @@
           </io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow>
           <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
             android:id="@+id/previewPieButton"
+          app:settingsRowIcon="@drawable/baseline_circle_24"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/action_view_settings_preview_button"
@@ -174,8 +179,8 @@
         android:id="@+id/primaryPieCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginHorizontal="@dimen/settings_page_margin"
+        android:layout_marginTop="12dp"
         app:layout_constraintTop_toBottomOf="@+id/previewTriggerCard"
         app:settingsCardTitle="@string/action_view_settings_primary_title"
         app:settingsCardSummary="@string/action_view_settings_primary_description">
@@ -204,24 +209,28 @@
             android:orientation="vertical">
             <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
               android:id="@+id/pieContentConfigEntry"
+          app:settingsRowIcon="@drawable/baseline_menu_24"
               android:layout_width="match_parent"
               android:layout_height="wrap_content"
               app:settingsRowTitle="@string/action_view_settings_content_entry_title"
             app:settingsRowFlat="true" />
             <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
               android:id="@+id/pieStyleConfigEntry"
+          app:settingsRowIcon="@drawable/baseline_auto_awesome_24"
               android:layout_width="match_parent"
               android:layout_height="wrap_content"
               app:settingsRowTitle="@string/action_view_settings_main_style_entry_title"
             app:settingsRowFlat="true" />
             <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
               android:id="@+id/pieSubStyleConfigEntry"
+          app:settingsRowIcon="@drawable/baseline_miscellaneous_services_24"
               android:layout_width="match_parent"
               android:layout_height="wrap_content"
               app:settingsRowTitle="@string/action_view_settings_sub_style_entry_title"
             app:settingsRowFlat="true" />
             <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
               android:id="@+id/pieRecentBlackListButton"
+          app:settingsRowIcon="@drawable/ic_baseline_cancel_24"
               android:layout_width="match_parent"
               android:layout_height="wrap_content"
               app:settingsRowTitle="@string/action_view_settings_blacklist_manage"
@@ -233,8 +242,8 @@
         android:id="@+id/miscCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginHorizontal="@dimen/settings_page_margin"
+        android:layout_marginTop="12dp"
         app:layout_constraintTop_toBottomOf="@+id/primaryPieCard"
         app:settingsCardTitle="@string/action_view_settings_misc_title"
         app:settingsCardSummary="@string/action_view_settings_misc_description">
@@ -255,7 +264,7 @@
             android:id="@+id/centerWarpOffsetSlider"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="12dp"
             android:valueFrom="0"
             android:valueTo="200"
             android:visibility="gone"
@@ -310,8 +319,8 @@
         android:id="@+id/externalCallCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginHorizontal="@dimen/settings_page_margin"
+        android:layout_marginTop="12dp"
         app:layout_constraintTop_toBottomOf="@+id/miscCard"
         app:settingsCardTitle="@string/external_call_title"
         app:settingsCardSummary="@string/external_call_description">
