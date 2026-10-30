@@ -38,7 +38,7 @@ tonal 卡（surfaceBright、16dp 圆角、无描边）、primary 色组标题、
 ### 间距
 - 页面左右留白：16dp（`settings_page_margin`）
 - 卡片间距：12dp；组标题上 20dp / 下 8dp
-- 卡内行高：64dp（最小）；行内左右留白 16dp
+- 卡内行高：56dp（最小）；行内左右留白 16dp
 - 4dp 网格，禁止 5/7/9 这类散值
 
 ### 颜色
@@ -75,7 +75,7 @@ CoordinatorLayout
 - 卡内容器左右 16dp、上下 4dp；自动在扁平行之间插入 1dp 分隔线
 
 ### 4.2 SettingsNavRow / SettingsSwitchRow / SettingsDropdownRow（已有，本次升级）
-- 行高 ≥64dp，内边距 16/12dp
+- 行高 ≥56dp（紧凑档），内边距 16/8dp
 - Nav/Dropdown 行带前导图标：24dp 裸图标（无底块）、`colorOnSurface` 着色、右距 16dp；Switch 行不带前导图标
 - 标题 16sp/`colorOnSurface`；摘要 14sp/`colorOnSurfaceVariant`
 - 尾部控件：chevron 20dp 裸图标（不套圆钮）、Switch 用 M3 `MaterialSwitch`

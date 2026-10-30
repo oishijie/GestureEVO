@@ -1190,4 +1190,12 @@
     <string name="demo_row_search_io">导入与导出</string>
 
     <string name="appearance_status_label">当前主题</string>
+
+    <!-- 首页各 tab 大图卡 -->
+    <string name="hero_tools_label">屏幕内容</string>
+    <string name="hero_tools_summary">OCR 识别、图文提取与翻译</string>
+    <string name="hero_search_label">搜索引擎</string>
+    <string name="hero_search_summary">在快速搜索中直接调用</string>
+    <string name="home_menu_pinpool_title">Pin 池</string>
+    <string name="home_menu_pinpool_summary">收藏的图片与快捷发送</string>
 </resources>

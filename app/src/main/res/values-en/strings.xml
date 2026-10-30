@@ -1187,4 +1187,11 @@
     <string name="demo_row_search_io">Import &amp; export</string>
 
     <string name="appearance_status_label">Current theme</string>
+
+    <string name="hero_tools_label">Screen content</string>
+    <string name="hero_tools_summary">OCR, extraction and translation</string>
+    <string name="hero_search_label">Search engines</string>
+    <string name="hero_search_summary">Used by quick search</string>
+    <string name="home_menu_pinpool_title">Pin pool</string>
+    <string name="home_menu_pinpool_summary">Saved images and quick send</string>
 </resources>

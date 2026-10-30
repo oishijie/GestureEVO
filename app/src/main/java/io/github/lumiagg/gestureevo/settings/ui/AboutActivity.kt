@@ -111,7 +111,7 @@ private fun AboutScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            painter = painterResource(R.drawable.bg_nav_back_circle),
+                            painter = painterResource(R.drawable.baseline_arrow_back_24),
                             contentDescription = stringResource(R.string.settings_about_title),
                         )
                     }
@@ -124,7 +124,7 @@ private fun AboutScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             item {

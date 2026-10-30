@@ -36,7 +36,7 @@ class SettingsNavRow @JvmOverloads constructor(
     init {
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        minimumHeight = 64f.dp2px.toInt()
+        minimumHeight = 56f.dp2px.toInt()
         val padH = 14f.dp2px.toInt()
         val padV = 10f.dp2px.toInt()
         setPadding(padH, padV, padH, padV)
@@ -67,11 +67,11 @@ class SettingsNavRow @JvmOverloads constructor(
         // 标题加大加粗、圆钮放大为 42dp。
         if (flat) {
             background = null
-            minimumHeight = 64f.dp2px.toInt()
+            minimumHeight = 56f.dp2px.toInt()
             // 水平留白由分组容器统一给（20dp），行内不再叠加，
             // 否则文字会离卡边 40dp，整行显得又窄又飘。
             val flatPadH = 0
-            val flatPadV = 12f.dp2px.toInt()
+            val flatPadV = 8f.dp2px.toInt()
             setPadding(flatPadH, flatPadV, flatPadH, flatPadV)
             foreground = context.obtainStyledAttributes(
                 intArrayOf(android.R.attr.selectableItemBackground)
@@ -272,11 +272,11 @@ class SettingsDropdownRow @JvmOverloads constructor(
 
         if (flat) {
             background = null
-            minimumHeight = 64f.dp2px.toInt()
+            minimumHeight = 56f.dp2px.toInt()
             // 水平留白由分组容器统一给（20dp），行内不再叠加，
             // 否则文字会离卡边 40dp，整行显得又窄又飘。
             val flatPadH = 0
-            val flatPadV = 12f.dp2px.toInt()
+            val flatPadV = 8f.dp2px.toInt()
             setPadding(flatPadH, flatPadV, flatPadH, flatPadV)
             foreground = context.obtainStyledAttributes(
                 intArrayOf(android.R.attr.selectableItemBackground)
@@ -407,7 +407,7 @@ class SettingsSwitchRow @JvmOverloads constructor(
     init {
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        minimumHeight = 64f.dp2px.toInt()
+        minimumHeight = 56f.dp2px.toInt()
         val padH = 14f.dp2px.toInt()
         val padV = 10f.dp2px.toInt()
         setPadding(padH, padV, padH, padV)
@@ -427,11 +427,11 @@ class SettingsSwitchRow @JvmOverloads constructor(
 
         if (flat) {
             background = null
-            minimumHeight = 64f.dp2px.toInt()
+            minimumHeight = 56f.dp2px.toInt()
             // 水平留白由分组容器统一给（20dp），行内不再叠加，
             // 否则文字会离卡边 40dp，整行显得又窄又飘。
             val flatPadH = 0
-            val flatPadV = 12f.dp2px.toInt()
+            val flatPadV = 8f.dp2px.toInt()
             setPadding(flatPadH, flatPadV, flatPadH, flatPadV)
             foreground = context.obtainStyledAttributes(
                 intArrayOf(android.R.attr.selectableItemBackground)

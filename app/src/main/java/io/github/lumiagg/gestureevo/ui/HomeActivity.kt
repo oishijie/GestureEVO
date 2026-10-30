@@ -60,6 +60,7 @@ import io.github.lumiagg.gestureevo.settings.AdvancedSettingsActivity
 import io.github.lumiagg.gestureevo.settings.AppearanceSettingsActivity
 import io.github.lumiagg.gestureevo.settings.BackgroundStabilityActivity
 import io.github.lumiagg.gestureevo.settings.DataBackActivity
+import io.github.lumiagg.gestureevo.settings.DataStatsActivity
 import io.github.lumiagg.gestureevo.settings.FreeFormSettingsActivity
 import io.github.lumiagg.gestureevo.settings.FreeFormSettingsActivity.Companion.KEY_USE_MI_WINDOW
 import io.github.lumiagg.gestureevo.settings.FreeTriggerSettingsActivity
@@ -173,11 +174,11 @@ class HomeActivity : ComponentActivity() {
             "menu_search_import" to (TAB_SEARCH to 0),
             "menu_search_export" to (TAB_SEARCH to 0),
             "preferenceAppearanceEntry" to (TAB_SETTINGS to 0),
-            "preferenceSetupCheck" to (TAB_SETTINGS to 0),
-            "preferenceBackgroundStability" to (TAB_SETTINGS to 0),
-            "preferenceData" to (TAB_SETTINGS to 0),
-            "preferenceAdvanced" to (TAB_SETTINGS to 0),
-            "preferenceAbout" to (TAB_SETTINGS to 0),
+            "preferenceSetupCheck" to (TAB_GESTURE to 0),
+            "preferenceBackgroundStability" to (TAB_GESTURE to 0),
+            "preferenceData" to (TAB_SETTINGS to 1),
+            "preferenceAdvanced" to (TAB_SETTINGS to 1),
+            "preferenceAbout" to (TAB_SETTINGS to 1),
         )
 
         fun tabForAnchor(key: String): Int? = ANCHORS[key]?.first
@@ -336,7 +337,7 @@ private fun HomeRoot(
                         scope,
                         onImport = { showImportDialog = true },
                     )
-                    else -> SettingsTabItems(status, context)
+                    else -> SettingsTabItems(context)
                 }
             }
         }
@@ -444,13 +445,16 @@ private fun LazyListScope.GestureTabItems(status: HomeStatus, context: Context) 
 
 private fun LazyListScope.ScreenTabItems(context: Context) {
     item {
+        StatusCard(
+            label = stringResource(R.string.hero_tools_label),
+            value = stringResource(R.string.home_menu_recognition_title),
+            summary = stringResource(R.string.hero_tools_summary),
+            onClick = { openInspire(context, intArrayOf(R.id.screenContentSwitchCard)) },
+        )
+    }
+    item {
         SectionCard(
             rows = listOf(
-                RowSpec(
-                    iconRes = R.drawable.baseline_qr_code_scanner_24,
-                    title = stringResource(R.string.home_menu_recognition_title),
-                    subtitle = stringResource(R.string.home_menu_recognition_summary),
-                ) { openInspire(context, intArrayOf(R.id.screenContentSwitchCard)) },
                 RowSpec(
                     iconRes = R.drawable.ic_baseline_share_24,
                     title = stringResource(R.string.home_menu_share_title),
@@ -460,7 +464,12 @@ private fun LazyListScope.ScreenTabItems(context: Context) {
                     iconRes = R.drawable.baseline_keyboard_24,
                     title = stringResource(R.string.home_menu_pointer_keyboard_title),
                     subtitle = stringResource(R.string.home_menu_pointer_keyboard_summary),
-                ) { openInspire(context, intArrayOf(R.id.PointerCard, R.id.pinPoolCard, R.id.keyboardTypeCard)) },
+                ) { openInspire(context, intArrayOf(R.id.PointerCard, R.id.keyboardTypeCard)) },
+                RowSpec(
+                    iconRes = R.drawable.baseline_push_pin_24,
+                    title = stringResource(R.string.home_menu_pinpool_title),
+                    subtitle = stringResource(R.string.home_menu_pinpool_summary),
+                ) { openInspire(context, intArrayOf(R.id.pinPoolCard)) },
                 RowSpec(
                     iconRes = R.drawable.baseline_circle_notifications_24,
                     title = stringResource(R.string.home_menu_notification_title),
@@ -488,21 +497,24 @@ private fun LazyListScope.SearchTabItems(
     onImport: () -> Unit,
 ) {
     item {
+        StatusCard(
+            label = stringResource(R.string.hero_search_label),
+            value = stringResource(R.string.home_badge_engine_count, engineCount),
+            summary = stringResource(R.string.hero_search_summary),
+            onClick = {
+                context.startActivity(
+                    SettingsSearchNavigator.deepLinkIntent(
+                        context,
+                        SearchEngineSettingsActivity::class.java,
+                        R.id.engineListCard,
+                    )
+                )
+            },
+        )
+    }
+    item {
         SectionCard(
             rows = listOf(
-                RowSpec(
-                    iconRes = R.drawable.baseline_search_24,
-                    title = stringResource(R.string.home_menu_engines_title),
-                    subtitle = stringResource(R.string.home_badge_engine_count, engineCount),
-                ) {
-                    context.startActivity(
-                        SettingsSearchNavigator.deepLinkIntent(
-                            context,
-                            SearchEngineSettingsActivity::class.java,
-                            R.id.engineListCard,
-                        )
-                    )
-                },
                 RowSpec(
                     iconRes = R.drawable.baseline_settings_24,
                     title = stringResource(R.string.home_menu_search_settings_title),
@@ -515,6 +527,18 @@ private fun LazyListScope.SearchTabItems(
                             R.id.displayCard,
                             R.id.functionCard,
                             R.id.startupCard,
+                        )
+                    )
+                },
+                RowSpec(
+                    iconRes = R.drawable.ic_baseline_cancel_24,
+                    title = stringResource(R.string.hidden_search_results_title),
+                ) {
+                    context.startActivity(
+                        SettingsSearchNavigator.deepLinkIntent(
+                            context,
+                            SearchEngineSettingsActivity::class.java,
+                            R.id.hiddenResultsCard,
                         )
                     )
                 },
@@ -539,40 +563,42 @@ private fun LazyListScope.SearchTabItems(
     }
 }
 
-private fun LazyListScope.SettingsTabItems(status: HomeStatus, context: Context) {
+private fun LazyListScope.SettingsTabItems(context: Context) {
+    item {
+        StatusCard(
+            label = stringResource(R.string.appearance_status_label),
+            value = stringResource(
+                when (ThemeManager.themeMode) {
+                    ThemeManager.MODE_LIGHT -> R.string.theme_mode_light
+                    ThemeManager.MODE_DARK -> R.string.theme_mode_dark
+                    else -> R.string.theme_mode_system
+                }
+            ),
+            summary = stringResource(
+                if (ThemeManager.usesWallpaperColors) R.string.theme_summary_wallpaper
+                else R.string.theme_summary_default
+            ),
+            onClick = {
+                context.startActivity(Intent(context, AppearanceSettingsActivity::class.java))
+            },
+        )
+    }
     item {
         SectionCard(
             rows = listOf(
-                RowSpec(
-                    iconRes = R.drawable.baseline_auto_awesome_24,
-                    title = stringResource(R.string.home_status_theme_title),
-                    subtitle = stringResource(
-                        R.string.home_summary_theme_entry,
-                        stringResource(
-                            if (ThemeManager.usesWallpaperColors) R.string.theme_summary_wallpaper
-                            else R.string.theme_summary_default
-                        )
-                    ),
-                ) {
-                    context.startActivity(Intent(context, AppearanceSettingsActivity::class.java))
-                },
-                RowSpec(
-                    iconRes = R.drawable.icon_lock,
-                    title = stringResource(R.string.setup_check_entry_title),
-                    subtitle = if (status.pending > 0) {
-                        stringResource(R.string.setup_check_entry_summary_pending, status.pending)
-                    } else {
-                        stringResource(R.string.setup_check_entry_summary_done)
-                    },
-                ) {
-                    context.startActivity(Intent(context, BackgroundStabilityActivity::class.java))
-                },
                 RowSpec(
                     iconRes = R.drawable.baseline_save_24,
                     title = stringResource(R.string.data_backup_title),
                     subtitle = stringResource(R.string.home_summary_data),
                 ) {
                     context.startActivity(Intent(context, DataBackActivity::class.java))
+                },
+                RowSpec(
+                    iconRes = R.drawable.baseline_pie_chart_24,
+                    title = stringResource(R.string.data_stats_entry_title),
+                    subtitle = stringResource(R.string.data_stats_entry_summary),
+                ) {
+                    context.startActivity(Intent(context, DataStatsActivity::class.java))
                 },
                 RowSpec(
                     iconRes = R.drawable.baseline_settings_24,

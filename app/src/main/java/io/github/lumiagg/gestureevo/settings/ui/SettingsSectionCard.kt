@@ -48,7 +48,7 @@ class SettingsSectionCard @JvmOverloads constructor(
             textSize = 14f
             setTextColor(DynamicColorUtils.primaryColor)
             setTypeface(typeface, android.graphics.Typeface.BOLD)
-            setPadding(4f.dp2px.toInt(), 20f.dp2px.toInt(), 4f.dp2px.toInt(), 2f.dp2px.toInt())
+            setPadding(4f.dp2px.toInt(), 16f.dp2px.toInt(), 4f.dp2px.toInt(), 2f.dp2px.toInt())
         }
 
         summaryView = TextView(context).apply {

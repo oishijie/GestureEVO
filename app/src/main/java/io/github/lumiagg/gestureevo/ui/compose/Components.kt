@@ -60,7 +60,7 @@ fun SectionHeader(text: String, modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.titleSmall,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.primary,
-        modifier = modifier.padding(start = 4.dp, top = 12.dp, bottom = 2.dp),
+        modifier = modifier.padding(start = 4.dp, top = 8.dp, bottom = 0.dp),
     )
 }
 
@@ -95,8 +95,8 @@ private fun SectionRow(row: RowSpec) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = row.onClick)
-            .defaultMinSize(minHeight = 64.dp)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .defaultMinSize(minHeight = 56.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
