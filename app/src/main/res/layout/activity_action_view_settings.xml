@@ -273,6 +273,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/action_view_settings_selected_hint"
+            app:settingsRowSummary="@string/action_view_settings_selected_hint_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/selectedHintIconSwitch"
@@ -284,6 +285,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/action_view_settings_show_anim"
+            app:settingsRowSummary="@string/action_view_settings_show_anim_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/mainViewShowAnimSwitch"
@@ -295,6 +297,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/action_view_settings_show_vibrate"
+            app:settingsRowSummary="@string/action_view_settings_show_vibrate_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/mainViewShowVibrateSwitch"
@@ -306,6 +309,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/action_view_settings_disable_all_wheel_vibrate"
+            app:settingsRowSummary="@string/action_view_settings_disable_all_wheel_vibrate_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/disableAllWheelVibrateSwitch"

@@ -181,6 +181,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/freeform_settings_size_enable"
+            app:settingsRowSummary="@string/freeform_settings_size_enable_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/enableSizeChange"
@@ -192,6 +193,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/freeform_settings_follow_trigger_side"
+            app:settingsRowSummary="@string/freeform_settings_follow_trigger_side_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/followTriggerSideSwitch"

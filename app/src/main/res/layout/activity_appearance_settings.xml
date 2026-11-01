@@ -92,6 +92,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/dynamic_color_title"
+            app:settingsRowSummary="@string/dynamic_color_title_desc"
             app:settingsRowFlat="true">
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/dynamic_color_switch"
@@ -164,6 +165,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/blur_master_title"
+            app:settingsRowSummary="@string/blur_master_title_desc"
             app:settingsRowFlat="true">
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/blur_master_switch"
@@ -177,6 +179,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/blur_item_wheel"
+            app:settingsRowSummary="@string/blur_item_wheel_desc"
             app:settingsRowFlat="true">
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/blur_wheel_switch"
@@ -189,6 +192,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/blur_item_search"
+            app:settingsRowSummary="@string/blur_item_search_desc"
             app:settingsRowFlat="true">
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/blur_search_switch"
@@ -201,6 +205,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/blur_item_search_card"
+            app:settingsRowSummary="@string/blur_item_search_card_desc"
             app:settingsRowFlat="true">
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/blur_search_card_switch"
@@ -213,6 +218,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/blur_item_keyboard"
+            app:settingsRowSummary="@string/blur_item_keyboard_desc"
             app:settingsRowFlat="true">
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/blur_keyboard_switch"
@@ -225,6 +231,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/blur_item_keyboard_card"
+            app:settingsRowSummary="@string/blur_item_keyboard_card_desc"
             app:settingsRowFlat="true">
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/blur_keyboard_card_switch"
@@ -237,6 +244,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/blur_item_pin_pool"
+            app:settingsRowSummary="@string/blur_item_pin_pool_desc"
             app:settingsRowFlat="true">
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/blur_pin_pool_switch"
@@ -249,6 +257,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/blur_item_pin_pool_card"
+            app:settingsRowSummary="@string/blur_item_pin_pool_card_desc"
             app:settingsRowFlat="true">
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/blur_pin_pool_card_switch"
@@ -261,6 +270,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/blur_item_screen_content"
+            app:settingsRowSummary="@string/blur_item_screen_content_desc"
             app:settingsRowFlat="true">
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/blur_screen_content_switch"
@@ -273,6 +283,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/blur_item_screen_content_card"
+            app:settingsRowSummary="@string/blur_item_screen_content_card_desc"
             app:settingsRowFlat="true">
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/blur_screen_content_card_switch"

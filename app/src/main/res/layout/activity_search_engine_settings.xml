@@ -209,6 +209,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/search_engine_settings_show_labels"
+            app:settingsRowSummary="@string/search_engine_settings_show_labels_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/showLabelSwitch"
@@ -219,6 +220,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/search_engine_settings_bottom_layout"
+            app:settingsRowSummary="@string/search_engine_settings_bottom_layout_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/bottomLayoutSwitch"
@@ -229,6 +231,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/search_engine_settings_result_double_column"
+            app:settingsRowSummary="@string/search_engine_settings_result_double_column_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/doubleColumnSwitch"
@@ -239,6 +242,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/search_engine_settings_keyboard_follow_animation"
+            app:settingsRowSummary="@string/search_engine_settings_keyboard_follow_animation_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/keyboardAnimationSwitch"
@@ -249,6 +253,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/search_engine_settings_image_badge"
+            app:settingsRowSummary="@string/search_engine_settings_image_badge_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/imageBadgeSwitch"
@@ -277,6 +282,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/search_engine_settings_show_clipboard_content"
+            app:settingsRowSummary="@string/search_engine_settings_show_clipboard_content_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/clipboardContentSwitch"
@@ -287,6 +293,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/search_engine_settings_search_history"
+            app:settingsRowSummary="@string/search_engine_settings_search_history_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/historySwitch"
@@ -297,6 +304,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/search_engine_settings_search_contacts"
+            app:settingsRowSummary="@string/search_engine_settings_search_contacts_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/contactSwitch"
@@ -307,6 +315,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/search_engine_settings_search_settings"
+            app:settingsRowSummary="@string/search_engine_settings_search_settings_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/settingsShortcutsSwitch"
@@ -317,6 +326,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/search_engine_settings_enter_first_result"
+            app:settingsRowSummary="@string/search_engine_settings_enter_first_result_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/enterFirstSwitch"
@@ -327,6 +337,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/search_engine_settings_keep_last_result"
+            app:settingsRowSummary="@string/search_engine_settings_keep_last_result_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/keepLastSwitch"
@@ -355,6 +366,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:settingsRowTitle="@string/search_engine_settings_default_search_page"
+            app:settingsRowSummary="@string/search_engine_settings_default_search_page_desc"
             app:settingsRowFlat="true" >
             <com.google.android.material.materialswitch.MaterialSwitch
               android:id="@+id/defaultSearchPageSwitch"
