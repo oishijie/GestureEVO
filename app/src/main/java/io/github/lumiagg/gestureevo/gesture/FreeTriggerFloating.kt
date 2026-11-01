@@ -6,7 +6,6 @@ import android.content.res.Configuration
 import android.os.SystemClock
 import android.util.Log
 import android.view.View
-import android.view.ViewTreeObserver
 import android.view.WindowManager
 import io.github.lumiagg.gestureevo.R
 import io.github.lumiagg.gestureevo.floating.BaseFloatingWindow
@@ -20,11 +19,9 @@ import io.github.lumiagg.gestureevo.utils.DynamicColorUtils
 import io.github.lumiagg.gestureevo.utils.ScreenUtil
 import io.github.lumiagg.gestureevo.utils.dp2px
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.lang.ref.WeakReference
 import kotlin.math.max
@@ -151,6 +148,7 @@ class FreeTriggerFloating(
         }
 
         triggers = newConfigs
+        refreshTriggerVisibility()
     }
 
     private fun createTriggerViewGroup(config: FreeTriggerConfig) {
@@ -203,6 +201,8 @@ class FreeTriggerFloating(
             this.isMirror = isMirror
             val color = context.getColor(R.color.transparent)
             setBackgroundColor(color)
+            // Apply package/orientation rules after the whole group has been created.
+            visibility = View.GONE
         }
 
         addViewSafely(view, layoutParams)
@@ -253,7 +253,6 @@ class FreeTriggerFloating(
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     suspend fun pauseTriggerTemporarily(
         tag: String,
         durationMs: Long,
@@ -332,7 +331,6 @@ class FreeTriggerFloating(
     private fun isCoolingDown(tag: String): Boolean =
         (cooldownDeadlines[tag] ?: 0L) > SystemClock.elapsedRealtime()
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     suspend fun setVisibility(tag: String, isVisible: Boolean): Boolean =
         withContext(Dispatchers.Main) {
             if (isVisible && isCoolingDown(tag)) {
@@ -343,21 +341,13 @@ class FreeTriggerFloating(
             val targetVisible = if (isVisible) View.VISIBLE else View.GONE
             var result = true
 
-            // Set visibility for all views in the group
+            // Update both windows in the same main-thread turn. Waiting for a draw
+            // here can stall package updates, especially when a window is hidden
+            // or not attached yet.
             viewGroup.getAllViews().forEach { view ->
                 if (view.visibility != targetVisible) {
                     try {
-                        result = result && suspendCancellableCoroutine { continuation ->
-                            view.visibility = targetVisible
-                            val listener = object : ViewTreeObserver.OnPreDrawListener {
-                                override fun onPreDraw(): Boolean {
-                                    view.viewTreeObserver.removeOnPreDrawListener(this)
-                                    continuation.resume(true) {}
-                                    return true
-                                }
-                            }
-                            view.viewTreeObserver.addOnPreDrawListener(listener)
-                        }
+                        view.visibility = targetVisible
                     } catch (e: Exception) {
                         e.printStackTrace()
                         result = false
@@ -380,12 +370,12 @@ class FreeTriggerFloating(
         }
     }
 
-    suspend fun checkTriggerPackage(targetPkg: String) {
+    suspend fun checkTriggerPackage(targetPkg: String) = withContext(Dispatchers.Main) {
         lastPackageName = targetPkg
         refreshTriggerVisibility()
     }
 
-    suspend fun checkTriggerOrientation(newOrientation: Int = Configuration.ORIENTATION_UNDEFINED) {
+    suspend fun checkTriggerOrientation(newOrientation: Int = Configuration.ORIENTATION_UNDEFINED) = withContext(Dispatchers.Main) {
         lastOrientation = resolveOrientation(newOrientation)
         refreshTriggerVisibility()
     }
@@ -483,10 +473,12 @@ class FreeTriggerFloating(
             val visibleByOrientation = isOrientationAllowed(trigger, currentOrientation)
             val visibleByPackage = currentPackage?.let { isPackageAllowed(trigger, it) } ?: true
 
-            triggerViews[trigger.tag]?.originalView?.let {
-                it.enabledOrientation = visibleByOrientation
-                it.enabledPackage = visibleByPackage
-                checkTriggerVisibility(it)
+            triggerViews[trigger.tag]?.let { group ->
+                group.getAllViews().forEach { view ->
+                    view.enabledOrientation = visibleByOrientation
+                    view.enabledPackage = visibleByPackage
+                }
+                checkTriggerVisibility(group.originalView)
             }
         }
         adjustPositionsForScreenSize()
@@ -516,23 +508,7 @@ class FreeTriggerFloating(
     }
 
     private fun isPackageAllowed(trigger: FreeTriggerConfig, targetPkg: String): Boolean {
-        if (targetPkg == context.packageName) return true
-
-        val useBlacklist = trigger.getState(FreeTriggerConfig.FLAG_BLACKLIST)
-        val useWhitelist = trigger.getState(FreeTriggerConfig.FLAG_WHITELIST)
-
-        return when {
-            useBlacklist && useWhitelist -> {
-                val inWhitelist =
-                    trigger.whiteList.isEmpty() || trigger.whiteList.contains(targetPkg)
-                val notBlacklisted = !trigger.blackList.contains(targetPkg)
-                inWhitelist && notBlacklisted
-            }
-
-            useBlacklist -> !trigger.blackList.contains(targetPkg)
-            useWhitelist -> trigger.whiteList.isEmpty() || trigger.whiteList.contains(targetPkg)
-            else -> true
-        }
+        return trigger.isPackageAllowed(targetPkg, context.packageName)
     }
 
     fun destroy() {
