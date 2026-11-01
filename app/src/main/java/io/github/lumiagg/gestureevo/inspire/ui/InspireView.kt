@@ -61,6 +61,7 @@ class InspireView : ConstraintLayout {
     private var overlayToast: InspireOverlayToast? = null
     private var isDraggingFabTouchArea = false
     private var interactionEnabled = true
+    var edgeBackEnabled = true
 
     val dragSelectRect: Rect = Rect()
     private val dragSelectPaint: Paint = Paint()
@@ -806,6 +807,7 @@ class InspireView : ConstraintLayout {
         }
 
         private fun tryStartEdgeBack(event: MotionEvent): Boolean {
+            if (!edgeBackEnabled) return false
             val side = detectBackEdge(event.rawX) ?: return false
             isEdgeBacking = true
             edgeBackSide = side
