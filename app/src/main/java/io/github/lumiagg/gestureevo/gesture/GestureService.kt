@@ -32,6 +32,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -64,11 +66,16 @@ class GestureService : AccessibilityService(), CoroutineScope {
     /**
      * 主题偏好变更监听：刷新代码侧发布色并重刷所有悬浮窗主题，
      * 使悬浮球 / 轮盘 / 通知等窗口与页面同步换色（无需重启服务）。
+     * 同时递增 [themeRevision]，让按设置重建的窗口（如外部拖放浮层）跟着换色。
      */
     private val themeChangeListener: () -> Unit = {
         DynamicColorUtils.refreshSurfaceColors(this@GestureService)
         gestureManager?.refreshOverlayThemes()
+        themeRevision.value += 1
     }
+
+    /** 主题纪元：每次发布色变更 +1，供设置流合并后重建窗口。 */
+    private val themeRevision = MutableStateFlow(0L)
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         CurrentPackageProvider.onAccessibilityEvent(event)
@@ -108,7 +115,9 @@ class GestureService : AccessibilityService(), CoroutineScope {
             settingsStore.data.map { preferences ->
                 preferences.readKey(KEY_EXTERNAL_DROP_ENABLED, true) to
                     preferences.readKey(KEY_EXTERNAL_DROP_SHOW_ENGINES, true)
-            }.distinctUntilChanged().collect { (enabled, _) ->
+            }.distinctUntilChanged().combine(themeRevision) { settings, _ ->
+                settings
+            }.collect { (enabled, _) ->
                 externalDropFloating?.destroy()
                 externalDropFloating = if (enabled) {
                     ExternalDropFloating(this@GestureService).also { it.start() }

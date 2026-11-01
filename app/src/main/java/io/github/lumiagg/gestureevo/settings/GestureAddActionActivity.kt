@@ -16,7 +16,6 @@ import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.ListPopupWindow
 import androidx.core.graphics.createBitmap
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -39,6 +38,7 @@ import io.github.lumiagg.gestureevo.gesture.ui.ActionView
 import io.github.lumiagg.gestureevo.gesture.ui.RoundImageTextView
 import io.github.lumiagg.gestureevo.gesture.ui.gestureActionIcon
 import io.github.lumiagg.gestureevo.settings.ui.ActivityModel
+import io.github.lumiagg.gestureevo.settings.ui.showActionSelectBottomSheet
 import io.github.lumiagg.gestureevo.settings.ui.DefaultSelectAPPBottomSheet
 import io.github.lumiagg.gestureevo.settings.ui.LocalUserShortcutSheet
 import io.github.lumiagg.gestureevo.settings.ui.SelectAPPCallBack
@@ -146,7 +146,7 @@ class GestureAddActionActivity : AppCompatActivity() {
 
     private fun setConfigButtons(configBinding: ActivityGestureAddActionConfigBinding) {
         configBinding.actionSelect.setOnClickListener {
-            initActionPopupMenu(configBinding).show()
+            showActionPicker(configBinding)
         }
 
         configBinding.actionExternButtons.setOnCheckedStateChangeListener { group, checkedIds ->
@@ -216,42 +216,40 @@ class GestureAddActionActivity : AppCompatActivity() {
         applyLink(configBinding, needSyncToLongAction = false)
     }
 
-    private fun initActionPopupMenu(configBinding: ActivityGestureAddActionConfigBinding): ListPopupWindow {
-        val listPopupWindow = ListPopupWindow(
-            this, null, android.R.attr.listPopupWindowStyle
-        )
-        val adapter: ArrayAdapter<CharSequence?> = ArrayAdapter(
-            this,
-            R.layout.tirgger_config_relate_content_popup_item,
-        )
-
-        val typeList = ArrayList<GestureActionType>().apply {
-            GestureActionType.entries.forEach { type ->
-                if (
-                    externalActionMode &&
-                    (type == GestureActionType.NONE ||
-                        type == GestureActionType.CLICK_THROUGH ||
-                        type == GestureActionType.SHOW_ACTION_VIEW)
-                ) {
-                    return@forEach
-                }
-                add(type)
-            }
-        }
-
-        typeList.forEach {
-            adapter.add(it.showName(this))
-        }
-        listPopupWindow.setAdapter(adapter)
-        listPopupWindow.anchorView = configBinding.actionSelect
-        listPopupWindow.setOnItemClickListener { _: AdapterView<*>?, _: View?, position: Int, _: Long ->
-            listPopupWindow.dismiss()
-            val type = typeList[position]
+    /**
+     * 统一动作目录：手势、轮盘与外部动作入口共用同一个可搜索的分类面板。
+     * 外部动作模式下隐藏「无动作 / 点击穿透 / 显示动作视图」，与旧弹窗过滤规则一致。
+     */
+    private fun showActionPicker(configBinding: ActivityGestureAddActionConfigBinding) {
+        showActionSelectBottomSheet(
+            activity = this,
+            current = configBinding.getActionLink(),
+            allowWheel = !externalActionMode,
+            allowNone = !externalActionMode,
+            allowClickThrough = !externalActionMode,
+        ) { choice ->
+            val type = choice.type
             configBinding.actionSelect.text = type.showName(this)
             selectAction(configBinding, type)
+            choice.parameters?.let { params ->
+                if (params.isNotEmpty()) {
+                    applyActionParameters(configBinding, params)
+                }
+            }
         }
+    }
 
-        return listPopupWindow
+    /** 把目录里带预设参数的动作（如系统导航 accAction）写回链接。 */
+    private fun applyActionParameters(
+        configBinding: ActivityGestureAddActionConfigBinding,
+        parameters: Map<String, String>
+    ) {
+        val link = configBinding.getActionLink()
+        parameters.forEach { (key, value) ->
+            link.queryList.removeAll { it.first == key }
+            link.queryList.add(key to value)
+        }
+        applyLink(configBinding, needSyncToLongAction = false)
     }
 
     private val selectImageLauncher = registerForActivityResult(IconEditorContract()) { path ->

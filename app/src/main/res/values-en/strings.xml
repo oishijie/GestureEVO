@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="quick_setup_choose_action">Choose an action</string>
+    <string name="quick_setup_category_system">System Navigation</string>
+    <string name="quick_setup_category_tools">Frequent Features</string>
+    <string name="quick_setup_category_apps">Applications</string>
+    <string name="quick_setup_category_other">Other</string>
+    <string name="action_search">Search actions or categories</string>
+    <string name="action_search_empty">No matching actions</string>
+    <string name="action_requires_config">Choose an app or configure parameters next</string>
+    <string name="action_ready">Select this action</string>
+    <string name="action_selected">Selected</string>
+    <string name="action_category_gestures">Wheels and gestures</string>
     <string name="external_drop_pool">Add to Pin Pool</string>
     <string name="external_drop_pin">Pin</string>
     <string name="external_drop_tokenize">Tokenize</string>

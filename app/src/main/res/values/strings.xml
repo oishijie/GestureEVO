@@ -1,4 +1,15 @@
 <resources>
+    <string name="quick_setup_choose_action">选择动作</string>
+    <string name="quick_setup_category_system">系统导航</string>
+    <string name="quick_setup_category_tools">常用功能</string>
+    <string name="quick_setup_category_apps">应用程序</string>
+    <string name="quick_setup_category_other">其他</string>
+    <string name="action_search">搜索动作或分类</string>
+    <string name="action_search_empty">没有匹配的动作</string>
+    <string name="action_requires_config">选择后设置应用或参数</string>
+    <string name="action_ready">选择此动作</string>
+    <string name="action_selected">已选中</string>
+    <string name="action_category_gestures">轮盘与手势</string>
     <string name="external_drop_pool">加入 Pin 池</string>
     <string name="external_drop_pin">Pin 图</string>
     <string name="external_drop_tokenize">分词</string>
