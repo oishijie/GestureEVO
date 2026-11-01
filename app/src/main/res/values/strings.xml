@@ -148,6 +148,17 @@
     <string name="appearance_settings_language_english">English</string>
     <string name="appearance_settings_wheel_color">轮盘背景颜色</string>
     <string name="appearance_settings_pointer_color">指针颜色</string>
+    <string name="appearance_settings_pointer_shape">指针形状</string>
+    <string name="appearance_settings_pointer_shape_dot">圆点</string>
+    <string name="appearance_settings_pointer_shape_small_dot">小圆点</string>
+    <string name="appearance_settings_pointer_shape_ring">圆环</string>
+    <string name="appearance_settings_pointer_shape_cross">十字准星</string>
+    <string name="appearance_settings_pointer_shape_arrow">箭头</string>
+    <string name="appearance_settings_pointer_size">指针大小</string>
+    <string name="appearance_settings_pointer_size_default">30dp</string>
+    <string name="appearance_settings_pointer_size_summary">调整指针图标的显示尺寸</string>
+    <string name="appearance_settings_pointer_click_feedback">点击反馈</string>
+    <string name="appearance_settings_pointer_click_feedback_summary">指针点击时缩放一下作为反馈</string>
     <string name="appearance_settings_search_color">搜索背景颜色</string>
     <string name="background_stability_title">权限与后台管理</string>
     <string name="background_stability_permission_title">关键权限</string>
@@ -1052,6 +1063,7 @@
     <string name="stats_placeholder_decimal" translatable="false">0.0</string>
     <string name="stats_placeholder_empty" translatable="false">--</string>
     <string name="display_percent">%1$d%%</string>
+    <string name="display_dp">%1$ddp</string>
     <string name="app_activity_label">%1$s · %2$s</string>
     <string name="package_activity_label">%1$s\n%2$s</string>
     <string name="contact_result_label">%1$s – %2$s</string>

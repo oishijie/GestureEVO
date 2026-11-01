@@ -148,6 +148,17 @@
     <string name="appearance_settings_language_english">English</string>
     <string name="appearance_settings_wheel_color">Wheel background color</string>
     <string name="appearance_settings_pointer_color">Pointer color</string>
+    <string name="appearance_settings_pointer_shape">Pointer shape</string>
+    <string name="appearance_settings_pointer_shape_dot">Dot</string>
+    <string name="appearance_settings_pointer_shape_small_dot">Small dot</string>
+    <string name="appearance_settings_pointer_shape_ring">Ring</string>
+    <string name="appearance_settings_pointer_shape_cross">Crosshair</string>
+    <string name="appearance_settings_pointer_shape_arrow">Arrow</string>
+    <string name="appearance_settings_pointer_size">Pointer size</string>
+    <string name="appearance_settings_pointer_size_default">30dp</string>
+    <string name="appearance_settings_pointer_size_summary">Adjust the display size of the pointer icon</string>
+    <string name="appearance_settings_pointer_click_feedback">Click feedback</string>
+    <string name="appearance_settings_pointer_click_feedback_summary">Scale the pointer briefly on tap</string>
     <string name="appearance_settings_search_color">Search background color</string>
     <string name="background_stability_title">Permissions &amp; Background</string>
     <string name="background_stability_permission_title">Key Permissions</string>
@@ -1049,6 +1060,7 @@
     <string name="inspire_mode_accessibility">Accessibility</string>
     <string name="quick_search_clear_input">Clear search</string>
     <string name="display_percent">%1$d%%</string>
+    <string name="display_dp">%1$ddp</string>
     <string name="app_activity_label">%1$s · %2$s</string>
     <string name="package_activity_label">%1$s\n%2$s</string>
     <string name="contact_result_label">%1$s – %2$s</string>

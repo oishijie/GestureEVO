@@ -312,6 +312,65 @@
             app:settingsRowTitle="@string/appearance_settings_pointer_color"
             app:settingsRowSwatch="true"
             app:settingsRowFlat="true" />
+           <io.github.lumiagg.gestureevo.settings.ui.SettingsDropdownRow
+             android:id="@+id/pointerShapeRow"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             app:settingsRowTitle="@string/appearance_settings_pointer_shape"
+             app:settingsRowFlat="true" />
+           <LinearLayout
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:orientation="vertical"
+             android:paddingTop="14dp"
+             android:paddingBottom="8dp">
+             <LinearLayout
+               android:layout_width="match_parent"
+               android:layout_height="wrap_content"
+               android:gravity="center_vertical"
+               android:orientation="horizontal">
+               <TextView
+                 android:layout_width="0dp"
+                 android:layout_height="wrap_content"
+                 android:layout_weight="1"
+                 android:text="@string/appearance_settings_pointer_size"
+                 android:textSize="@dimen/evo_text_title" />
+               <TextView
+                 android:id="@+id/pointer_size_value"
+                 android:layout_width="wrap_content"
+                 android:layout_height="wrap_content"
+                 android:text="@string/appearance_settings_pointer_size_default"
+                 android:textAppearance="?attr/textAppearanceLabelLarge"
+                 android:textColor="?attr/colorPrimary" />
+             </LinearLayout>
+             <TextView
+               android:layout_width="match_parent"
+               android:layout_height="wrap_content"
+               android:layout_marginBottom="4dp"
+               android:text="@string/appearance_settings_pointer_size_summary"
+               android:textAppearance="?attr/textAppearanceBodySmall"
+               android:textColor="?attr/colorOnSurfaceVariant" />
+             <com.google.android.material.slider.Slider
+               android:id="@+id/pointer_size_slider"
+               android:layout_width="match_parent"
+               android:layout_height="wrap_content"
+               android:stepSize="1"
+               android:valueFrom="16"
+               android:valueTo="48"
+               app:labelBehavior="floating" />
+           </LinearLayout>
+           <io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow
+             android:id="@+id/pointerClickFeedbackRow"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             app:settingsRowTitle="@string/appearance_settings_pointer_click_feedback"
+             app:settingsRowSummary="@string/appearance_settings_pointer_click_feedback_summary"
+             app:settingsRowFlat="true">
+             <com.google.android.material.materialswitch.MaterialSwitch
+               android:id="@+id/pointer_click_feedback_switch"
+               android:layout_width="wrap_content"
+               android:layout_height="wrap_content" />
+           </io.github.lumiagg.gestureevo.settings.ui.SettingsSwitchRow>
           <io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
             android:id="@+id/wheel_color_btn"
             android:layout_width="match_parent"

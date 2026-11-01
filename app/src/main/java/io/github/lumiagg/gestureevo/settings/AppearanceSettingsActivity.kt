@@ -52,6 +52,26 @@ class AppearanceSettingsActivity : AppCompatActivity() {
         const val KEY_SCREEN_CONTENT_BACKGROUND_BLUR = "key_screen_content_background_blur"
         const val KEY_SCREEN_CONTENT_CARD_BACKGROUND_BLUR = "key_screen_content_card_background_blur"
         const val KEY_POINTER_COLOR = "key_pointer_color"
+        const val KEY_POINTER_SHAPE = "key_pointer_shape"
+        const val KEY_POINTER_SIZE = "key_pointer_size"
+        const val KEY_POINTER_CLICK_FEEDBACK = "key_pointer_click_feedback"
+
+        /** 指针形状与尺寸的单一取值来源。 */
+        const val POINTER_SHAPE_DOT = "dot"
+        const val POINTER_SHAPE_SMALL_DOT = "small_dot"
+        const val POINTER_SHAPE_RING = "ring"
+        const val POINTER_SHAPE_CROSS = "cross"
+        const val POINTER_SHAPE_ARROW = "arrow"
+        val POINTER_SHAPE_KEYS = listOf(
+            POINTER_SHAPE_DOT,
+            POINTER_SHAPE_SMALL_DOT,
+            POINTER_SHAPE_RING,
+            POINTER_SHAPE_CROSS,
+            POINTER_SHAPE_ARROW,
+        )
+        const val POINTER_SIZE_DEFAULT = 30
+        const val POINTER_SIZE_MIN = 16
+        const val POINTER_SIZE_MAX = 48
 
         /** 模糊总开关：关闭时 9 个分区开关整体失效（默认开启，兼容无此键的旧数据）。 */
         const val KEY_BLUR_ENABLED = "key_blur_enabled"
@@ -86,6 +106,7 @@ class AppearanceSettingsActivity : AppCompatActivity() {
         setupLanguageRow()
         setupBlurRows()
         setupIconCornerSlider()
+        setupPointerAppearanceViews()
         refreshColorSwatches()
     }
 
@@ -145,6 +166,57 @@ class AppearanceSettingsActivity : AppCompatActivity() {
         binding.iconImageRoundPercentSlider.value = savedPercent
         binding.iconImageRoundPercentValue.text =
             getString(R.string.display_percent, (savedPercent * 100).toInt())
+    }
+
+    // ---------------------------------------------------------------- 指针外观
+
+    private suspend fun setupPointerAppearanceViews() {
+        val labels = listOf(
+            getString(R.string.appearance_settings_pointer_shape_dot),
+            getString(R.string.appearance_settings_pointer_shape_small_dot),
+            getString(R.string.appearance_settings_pointer_shape_ring),
+            getString(R.string.appearance_settings_pointer_shape_cross),
+            getString(R.string.appearance_settings_pointer_shape_arrow),
+        )
+        val savedKey = settingsStore.readKey(KEY_POINTER_SHAPE, POINTER_SHAPE_DOT)
+        var selected = POINTER_SHAPE_KEYS.indexOf(savedKey).takeIf { it >= 0 } ?: 0
+        binding.pointerShapeRow.setValue(labels[selected])
+        binding.pointerShapeRow.onRowClick = {
+            showAnchoredSelectMenu(binding.pointerShapeRow, labels, selected) { index ->
+                selected = index
+                binding.pointerShapeRow.setValue(labels[index])
+                lifecycleScope.launch {
+                    settingsStore.saveKey(KEY_POINTER_SHAPE, POINTER_SHAPE_KEYS[index])
+                }
+            }
+        }
+
+        val savedSize = settingsStore.readKey(KEY_POINTER_SIZE, POINTER_SIZE_DEFAULT)
+            .coerceIn(POINTER_SIZE_MIN, POINTER_SIZE_MAX)
+        binding.pointerSizeSlider.value = savedSize.toFloat()
+        binding.pointerSizeValue.text = getString(R.string.display_dp, savedSize)
+
+        binding.pointerClickFeedbackSwitch.isChecked =
+            settingsStore.readKey(KEY_POINTER_CLICK_FEEDBACK, true)
+    }
+
+    private fun setupPointerListeners() {
+        binding.pointerSizeSlider.addOnChangeListener { _, value, _ ->
+            binding.pointerSizeValue.text = getString(R.string.display_dp, value.toInt())
+        }
+        binding.pointerSizeSlider.addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
+            override fun onStartTrackingTouch(slider: Slider) {}
+            override fun onStopTrackingTouch(slider: Slider) {
+                lifecycleScope.launch {
+                    settingsStore.saveKey(KEY_POINTER_SIZE, slider.value.toInt())
+                }
+            }
+        })
+        binding.pointerClickFeedbackSwitch.setOnCheckedChangeListener { _, isChecked ->
+            lifecycleScope.launch {
+                settingsStore.saveKey(KEY_POINTER_CLICK_FEEDBACK, isChecked)
+            }
+        }
     }
 
     // ---------------------------------------------------------------- 模糊渲染
@@ -222,6 +294,7 @@ class AppearanceSettingsActivity : AppCompatActivity() {
     // ---------------------------------------------------------------- 监听器
 
     private fun setupListeners() {
+        setupPointerListeners()
         binding.iconImageRoundPercentSlider.addOnChangeListener { _, value, _ ->
             binding.iconImageRoundPercentValue.text =
                 getString(R.string.display_percent, (value * 100).toInt())
