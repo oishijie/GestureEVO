@@ -4,19 +4,27 @@ project(ppocrv5)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Fetch Abseil for LiteRT C++ API
-include(FetchContent)
+# Abseil for LiteRT C++ API.
+# Vendored under third_party/abseil-cpp (same commit as the pinned tag below)
+# so the native build works offline; the FetchContent clone is only a fallback
+# for checkouts that drop the vendored copy.
 set(ABSL_PROPAGATE_CXX_STD ON)
 set(ABSL_BUILD_TESTING OFF)
 set(ABSL_ENABLE_INSTALL OFF)
 
-FetchContent_Declare(
-        abseil-cpp
-        GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-        # 20250814.1: pin the release commit so a moved tag cannot change builds.
-        GIT_TAG d38452e1ee03523a208362186fd42248ff2609f6
-)
-FetchContent_MakeAvailable(abseil-cpp)
+set(ABSEIL_LOCAL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../../third_party/abseil-cpp")
+if(EXISTS "${ABSEIL_LOCAL_DIR}/CMakeLists.txt")
+    add_subdirectory("${ABSEIL_LOCAL_DIR}" "${CMAKE_BINARY_DIR}/abseil-cpp-build")
+else()
+    include(FetchContent)
+    FetchContent_Declare(
+            abseil-cpp
+            GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
+            # 20250814.1: pin the release commit so a moved tag cannot change builds.
+            GIT_TAG d38452e1ee03523a208362186fd42248ff2609f6
+    )
+    FetchContent_MakeAvailable(abseil-cpp)
+endif()
 
 # Release build optimizations
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
