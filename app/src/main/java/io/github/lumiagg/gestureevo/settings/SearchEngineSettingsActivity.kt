@@ -1,81 +1,66 @@
 package io.github.lumiagg.gestureevo.settings
 
-import io.github.lumiagg.gestureevo.settings.ui.installPageHeader
-
 import android.Manifest
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
-import android.widget.EditText
 import android.widget.Toast
+import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.isVisible
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text as M3Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
-import com.drake.brv.utils.bindingAdapter
-import com.drake.brv.utils.linear
-import com.drake.brv.utils.models
-import com.drake.brv.utils.setup
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.github.lumiagg.gestureevo.R
-import io.github.lumiagg.gestureevo.databinding.ActivitySearchEngineSettingsBinding
-import io.github.lumiagg.gestureevo.databinding.SearchEngineManageItemBinding
 import io.github.lumiagg.gestureevo.search.ContactSearchHelper
 import io.github.lumiagg.gestureevo.search.QuickSearchActivity
 import io.github.lumiagg.gestureevo.search.config.EngineType
 import io.github.lumiagg.gestureevo.search.config.SearchEngine
 import io.github.lumiagg.gestureevo.search.config.SearchEngineDataManager
-import io.github.lumiagg.gestureevo.search.setEngineIcon
+import io.github.lumiagg.gestureevo.ui.compose.MiuixEvoTheme
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixCard
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixScreen
+import io.github.lumiagg.gestureevo.utils.dp2px
 import io.github.lumiagg.gestureevo.utils.readKey
 import io.github.lumiagg.gestureevo.utils.saveKey
 import io.github.lumiagg.gestureevo.utils.settingsStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.preference.SwitchPreference
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/**
- * 原版「搜索」设置页：引擎列表 + 显示 / 功能 / 启动 / 导入导出 / 隐藏结果分区卡。
- *
- * 一级菜单的「设置」「导入导出」入口通过 [SettingsSearchNavigator.EXTRA_TARGET_VIEW_IDS]
- * 深链进入本页并自动展开对应分区卡；直接进入时仅引擎列表默认展开。
- */
 class SearchEngineSettingsActivity : AppCompatActivity() {
-    private lateinit var binding: ActivitySearchEngineSettingsBinding
-    private val searchEngines = mutableListOf<SearchEngine>()
-    private var defaultEngineTag: String? = null
-    private var showImageBadge = true
-
-    private var rowCount = 1
-    private var columnCount = 5
-
-    /**
-     * 引擎列表是否需要呈现。非深链进入，或深链目标含引擎列表卡时为 true；
-     * 深链只指向其它分区时为 false，此时不加载引擎、不显示添加按钮。
-     */
-    private var showEngineList = true
-
-    /** 通讯录权限结果：授予则落库并同步，拒绝则回退开关。 */
-    private val contactPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            lifecycleScope.launch {
-                settingsStore.saveKey(KEY_SEARCH_CONTACT, true)
-                ContactSearchHelper.syncContactsToDatabase(applicationContext, force = true)
-            }
-        } else {
-            binding.contactSwitch.isChecked = false
-            Toast.makeText(
-                this,
-                R.string.search_engine_settings_search_contacts,
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-    }
 
     companion object {
         const val KEY_ENGINE_SHOW_LABEL = "engine_show_label"
@@ -98,190 +83,479 @@ class SearchEngineSettingsActivity : AppCompatActivity() {
         const val MAX_COLUMN_COUNT = 8
     }
 
+    /** 通讯录权限结果：授予则落库并同步，拒绝则回退开关。 */
+    private var onContactPermissionResult: ((Boolean) -> Unit)? = null
+
+    private val contactPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        onContactPermissionResult?.invoke(granted)
+        onContactPermissionResult = null
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivitySearchEngineSettingsBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        setupToolbar()
-
-        // 深链收敛必须最先执行：此刻视图树已可查，不需等任何读库。若排在协程里，
-        // 首帧会先按布局默认状态渲染出全部卡片与引擎列表转圈，等IO 跑完才收敛，
-        // 用户会看到「全部展示 + 转圈 → 突然消失成目标分区」。
-        val deepLinkTargets =
-            SettingsSearchNavigator.focusAnchorIfNeeded(binding.root, intent)
-        showEngineList = deepLinkTargets.isEmpty() || R.id.engineListCard in deepLinkTargets
-        if (!showEngineList) {
-            // 引擎列表不呈现时，加载与添加按钮都无意义。
-            binding.fabAdd.isVisible = false
-            binding.fabPreviewSort.isVisible = false
-        }
-
-        setupButtons()
-        setupRecyclerView()
-        setupTransferSection()
-        if (showEngineList) {
-            loadSearchEngines()
-        }
-
-        // 开关初值需要读库，放协程里；此时视图已收敛完成，不再影响首帧。
-        lifecycleScope.launch {
-            setupDisplaySection()
-            setupFunctionSection()
-            setupStartupSection()
+        setContent {
+            MiuixEvoTheme {
+                SettingsScreen(
+                    onBack = { onBackPressedDispatcher.onBackPressed() },
+                    onRequestContacts = { callback ->
+                        onContactPermissionResult = callback
+                        contactPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+                    },
+                    onEditEngine = { engine -> editSearchEngine(engine) },
+                    onAddEngine = {
+                        startActivity(Intent(this, SearchEngineAddActivity::class.java))
+                    },
+                )
+            }
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        // Refresh list when returning from add/edit page
-        if (showEngineList) {
-            loadSearchEngines()
+    private fun editSearchEngine(engine: SearchEngine) {
+        startActivity(
+            Intent(this, SearchEngineAddActivity::class.java).apply {
+                putExtra("editMode", true)
+                putExtra("engine", engine.toJson())
+            }
+        )
+    }
+
+    @Composable
+    private fun SettingsScreen(
+        onBack: () -> Unit,
+        onRequestContacts: ((Boolean) -> Unit) -> Unit,
+        onEditEngine: (SearchEngine) -> Unit,
+        onAddEngine: () -> Unit,
+    ) {
+        val context = LocalContext.current
+        val scope = rememberCoroutineScope()
+
+        var rowCount by remember { mutableIntStateOf(1) }
+        var columnCount by remember { mutableIntStateOf(5) }
+        var showLabel by remember { mutableStateOf(true) }
+        var bottomLayout by remember { mutableStateOf(false) }
+        var doubleColumn by remember { mutableStateOf(false) }
+        var keyboardFollow by remember { mutableStateOf(false) }
+        var imageBadge by remember { mutableStateOf(true) }
+        var clipboardContent by remember { mutableStateOf(true) }
+        var searchHistory by remember { mutableStateOf(true) }
+        var settingsShortcuts by remember { mutableStateOf(false) }
+        var enterFirst by remember { mutableStateOf(false) }
+        var keepLast by remember { mutableStateOf(true) }
+        var searchContact by remember { mutableStateOf(false) }
+        var defaultSearchPage by remember { mutableStateOf(false) }
+        var showDefaultPageDialog by remember { mutableStateOf(false) }
+        var showImportDialog by remember { mutableStateOf(false) }
+        var importJson by remember { mutableStateOf("") }
+        var pendingContactEnable by remember { mutableStateOf(false) }
+
+        val engines = remember { mutableStateListOf<SearchEngine>() }
+
+        LaunchedEffect(Unit) {
+            rowCount = context.settingsStore.readKey(KEY_ROW_COUNT, 1)
+            columnCount = context.settingsStore.readKey(KEY_COLUMN_COUNT, 5)
+            showLabel = context.settingsStore.readKey(KEY_ENGINE_SHOW_LABEL, true)
+            bottomLayout = context.settingsStore.readKey(KEY_BOTTOM_INPUT_LAYOUT, false)
+            doubleColumn = context.settingsStore.readKey(KEY_RESULT_DOUBLE_COLUMN, false)
+            keyboardFollow = context.settingsStore.readKey(KEY_KEYBOARD_FOLLOW_ANIMATION, false)
+            imageBadge = context.settingsStore.readKey(KEY_SHOW_IMAGE_BADGE, true)
+            clipboardContent = context.settingsStore.readKey(KEY_SHOW_CLIPBOARD_CONTENT, true)
+            searchHistory = context.settingsStore.readKey(KEY_SEARCH_HISTORY, true)
+            settingsShortcuts = context.settingsStore.readKey(KEY_SEARCH_SETTINGS_SHORTCUTS, false)
+            enterFirst = context.settingsStore.readKey(KEY_ENTER_FIRST_RESULT, false)
+            keepLast = context.settingsStore.readKey(KEY_KEEP_LAST_SEARCH_RESULT, true)
+            searchContact = context.settingsStore.readKey(KEY_SEARCH_CONTACT, false)
+            defaultSearchPage = context.settingsStore.readKey(KEY_DEFAULT_SEARCH_PAGE, false)
+
+            engines.clear()
+            engines.addAll(
+                withContext(Dispatchers.IO) {
+                    SearchEngineDataManager.readSearchEngineList(context.applicationContext)
+                }
+            )
         }
-    }
 
-    private fun setupToolbar() {
-        installPageHeader(this, binding.toolbar, binding.toolbarLayout, R.string.search_engine_settings_title)
-        binding.toolbar.setNavigationOnClickListener {
-            onBackPressedDispatcher.onBackPressed()
-        }
-    }
-
-    private fun setupButtons() {
-        binding.fabAdd.setOnClickListener {
-            val intent = Intent(this, SearchEngineAddActivity::class.java)
-            startActivity(intent)
-        }
-        binding.fabPreviewSort.setOnClickListener {
-            QuickSearchActivity.start(this, previewSortMode = true)
-        }
-    }
-
-    // ---------------------------------------------------------------
-    // 显示设置：行/列数步进 + 5 个开关
-    // ---------------------------------------------------------------
-
-    private suspend fun setupDisplaySection() {
-        rowCount = settingsStore.readKey(KEY_ROW_COUNT, 1)
-        columnCount = settingsStore.readKey(KEY_COLUMN_COUNT, 5)
-        renderCounts()
-
-        binding.rowCountMinus.setOnClickListener { stepCount(isRow = true, delta = -1) }
-        binding.rowCountPlus.setOnClickListener { stepCount(isRow = true, delta = 1) }
-        binding.columnCountMinus.setOnClickListener { stepCount(isRow = false, delta = -1) }
-        binding.columnCountPlus.setOnClickListener { stepCount(isRow = false, delta = 1) }
-
-        bindSwitch(binding.showLabelSwitch, KEY_ENGINE_SHOW_LABEL, true)
-        bindSwitch(binding.bottomLayoutSwitch, KEY_BOTTOM_INPUT_LAYOUT, false)
-        bindSwitch(binding.doubleColumnSwitch, KEY_RESULT_DOUBLE_COLUMN, false)
-        bindSwitch(binding.keyboardAnimationSwitch, KEY_KEYBOARD_FOLLOW_ANIMATION, false)
-        bindSwitch(binding.imageBadgeSwitch, KEY_SHOW_IMAGE_BADGE, true)
-    }
-
-    private fun stepCount(isRow: Boolean, delta: Int) {
-        if (isRow) {
-            val next = (rowCount + delta).coerceIn(MIN_ROW_COUNT, MAX_ROW_COUNT)
-            if (next == rowCount) return
-            rowCount = next
-            lifecycleScope.launch { settingsStore.saveKey(KEY_ROW_COUNT, next) }
-        } else {
-            val next = (columnCount + delta).coerceIn(MIN_COLUMN_COUNT, MAX_COLUMN_COUNT)
-            if (next == columnCount) return
-            columnCount = next
-            lifecycleScope.launch { settingsStore.saveKey(KEY_COLUMN_COUNT, next) }
-        }
-        renderCounts()
-    }
-
-    private fun renderCounts() {
-        binding.rowCountValue.text = rowCount.toString()
-        binding.columnCountValue.text = columnCount.toString()
-        binding.rowCountMinus.isEnabled = rowCount > MIN_ROW_COUNT
-        binding.rowCountPlus.isEnabled = rowCount < MAX_ROW_COUNT
-        binding.columnCountMinus.isEnabled = columnCount > MIN_COLUMN_COUNT
-        binding.columnCountPlus.isEnabled = columnCount < MAX_COLUMN_COUNT
-    }
-
-    // ---------------------------------------------------------------
-    // 功能设置：6 个开关（通讯录开关带权限校验）
-    // ---------------------------------------------------------------
-
-    private suspend fun setupFunctionSection() {
-        bindSwitch(binding.clipboardContentSwitch, KEY_SHOW_CLIPBOARD_CONTENT, true)
-        bindSwitch(binding.historySwitch, KEY_SEARCH_HISTORY, true)
-        bindSwitch(binding.settingsShortcutsSwitch, KEY_SEARCH_SETTINGS_SHORTCUTS, false)
-        bindSwitch(binding.enterFirstSwitch, KEY_ENTER_FIRST_RESULT, false)
-        bindSwitch(binding.keepLastSwitch, KEY_KEEP_LAST_SEARCH_RESULT, true)
-
-        binding.contactSwitch.isChecked = settingsStore.readKey(KEY_SEARCH_CONTACT, false)
-        binding.contactSwitch.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked && !ContactSearchHelper.hasContactPermission(this)) {
-                contactPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
-            } else {
-                lifecycleScope.launch {
-                    settingsStore.saveKey(KEY_SEARCH_CONTACT, isChecked)
-                    if (isChecked) {
-                        ContactSearchHelper.syncContactsToDatabase(
-                            applicationContext,
-                            force = true,
+        MiuixScreen(
+            title = stringResource(R.string.search_engine_settings_title),
+            onBack = onBack,
+        ) {
+            // ---- 引擎列表
+            item {
+                MiuixCard {
+                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                        Text(
+                            text = stringResource(R.string.search_engine_settings_engine_list_title),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.search_engine_settings_engine_list_description),
+                            fontSize = 12.sp,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                     }
-                }
-            }
-        }
-    }
-
-    // ---------------------------------------------------------------
-    // 启动设置：默认搜索页开关（开启前确认）
-    // ---------------------------------------------------------------
-
-    private suspend fun setupStartupSection() {
-        binding.defaultSearchPageSwitch.isChecked =
-            settingsStore.readKey(KEY_DEFAULT_SEARCH_PAGE, false)
-        binding.defaultSearchPageSwitch.setOnCheckedChangeListener { _, isChecked ->
-            if (!isChecked) {
-                lifecycleScope.launch { settingsStore.saveKey(KEY_DEFAULT_SEARCH_PAGE, false) }
-                return@setOnCheckedChangeListener
-            }
-            MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.search_engine_settings_default_search_page_dialog_title)
-                .setMessage(R.string.search_engine_settings_default_search_page_dialog_message)
-                .setPositiveButton(android.R.string.ok) { _, _ ->
-                    lifecycleScope.launch {
-                        settingsStore.saveKey(KEY_DEFAULT_SEARCH_PAGE, true)
+                    if (engines.isEmpty()) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                            Text(
+                                text = stringResource(R.string.search_engine_settings_empty_title),
+                                fontSize = 14.sp,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            )
+                        }
+                    } else {
+                        engines.forEach { engine ->
+                            ArrowPreference(
+                                title = engine.name.orEmpty(),
+                                summary = engineTypeLabel(engine.engineType),
+                                onClick = { onEditEngine(engine) },
+                            )
+                        }
                     }
+                    ArrowPreference(
+                        title = stringResource(R.string.search_engine_settings_add_engine),
+                        onClick = onAddEngine,
+                    )
                 }
-                .setNegativeButton(android.R.string.cancel, null)
-                .setOnCancelListener { binding.defaultSearchPageSwitch.isChecked = false }
-                .show()
-        }
-    }
-
-    // ---------------------------------------------------------------
-    // 导入导出 + 隐藏结果
-    // ---------------------------------------------------------------
-
-    private fun setupTransferSection() {
-        binding.importEnginesRow.setOnClickListener { showImportDialog() }
-        binding.exportEnginesRow.setOnClickListener { exportSearchEngines() }
-        binding.hiddenResultsRow.setOnClickListener {
-            startActivity(Intent(this, HiddenSearchResultsActivity::class.java))
-        }
-    }
-
-    private fun showImportDialog() {
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.search_engine_import_title)
-            .setMessage(R.string.search_engine_import_message)
-            .setView(R.layout.search_engine_dialog_edit_text)
-            .setPositiveButton(R.string.search_engine_import_action) { dialog, _ ->
-                val editText = (dialog as AlertDialog)
-                    .findViewById<EditText>(R.id.edit_text)
-                val json = editText?.text?.toString() ?: ""
-                importSearchEngines(json)
             }
-            .setNegativeButton(R.string.search_engine_cancel, null)
-            .show()
+
+            // ---- 显示设置
+            item {
+                MiuixCard {
+                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                        Text(
+                            text = stringResource(R.string.search_engine_settings_display_title),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        StepperRow(
+                            label = stringResource(R.string.home_title_row_count),
+                            value = rowCount,
+                            onMinus = {
+                                val next = (rowCount - 1).coerceIn(MIN_ROW_COUNT, MAX_ROW_COUNT)
+                                if (next != rowCount) {
+                                    rowCount = next
+                                    scope.launch { context.settingsStore.saveKey(KEY_ROW_COUNT, next) }
+                                }
+                            },
+                            onPlus = {
+                                val next = (rowCount + 1).coerceIn(MIN_ROW_COUNT, MAX_ROW_COUNT)
+                                if (next != rowCount) {
+                                    rowCount = next
+                                    scope.launch { context.settingsStore.saveKey(KEY_ROW_COUNT, next) }
+                                }
+                            },
+                        )
+                        StepperRow(
+                            label = stringResource(R.string.home_title_column_count),
+                            value = columnCount,
+                            onMinus = {
+                                val next = (columnCount - 1).coerceIn(MIN_COLUMN_COUNT, MAX_COLUMN_COUNT)
+                                if (next != columnCount) {
+                                    columnCount = next
+                                    scope.launch { context.settingsStore.saveKey(KEY_COLUMN_COUNT, next) }
+                                }
+                            },
+                            onPlus = {
+                                val next = (columnCount + 1).coerceIn(MIN_COLUMN_COUNT, MAX_COLUMN_COUNT)
+                                if (next != columnCount) {
+                                    columnCount = next
+                                    scope.launch { context.settingsStore.saveKey(KEY_COLUMN_COUNT, next) }
+                                }
+                            },
+                        )
+                    }
+                    SwitchPreference(
+                        title = stringResource(R.string.search_engine_settings_show_labels),
+                        summary = stringResource(R.string.search_engine_settings_show_labels_desc),
+                        checked = showLabel,
+                        onCheckedChange = {
+                            showLabel = it
+                            scope.launch { context.settingsStore.saveKey(KEY_ENGINE_SHOW_LABEL, it) }
+                        },
+                    )
+                    SwitchPreference(
+                        title = stringResource(R.string.search_engine_settings_bottom_layout),
+                        summary = stringResource(R.string.search_engine_settings_bottom_layout_desc),
+                        checked = bottomLayout,
+                        onCheckedChange = {
+                            bottomLayout = it
+                            scope.launch { context.settingsStore.saveKey(KEY_BOTTOM_INPUT_LAYOUT, it) }
+                        },
+                    )
+                    SwitchPreference(
+                        title = stringResource(R.string.search_engine_settings_result_double_column),
+                        summary = stringResource(R.string.search_engine_settings_result_double_column_desc),
+                        checked = doubleColumn,
+                        onCheckedChange = {
+                            doubleColumn = it
+                            scope.launch { context.settingsStore.saveKey(KEY_RESULT_DOUBLE_COLUMN, it) }
+                        },
+                    )
+                    SwitchPreference(
+                        title = stringResource(R.string.search_engine_settings_keyboard_follow_animation),
+                        summary = stringResource(R.string.search_engine_settings_keyboard_follow_animation_desc),
+                        checked = keyboardFollow,
+                        onCheckedChange = {
+                            keyboardFollow = it
+                            scope.launch { context.settingsStore.saveKey(KEY_KEYBOARD_FOLLOW_ANIMATION, it) }
+                        },
+                    )
+                    SwitchPreference(
+                        title = stringResource(R.string.search_engine_settings_image_badge),
+                        summary = stringResource(R.string.search_engine_settings_image_badge_desc),
+                        checked = imageBadge,
+                        onCheckedChange = {
+                            imageBadge = it
+                            scope.launch { context.settingsStore.saveKey(KEY_SHOW_IMAGE_BADGE, it) }
+                        },
+                    )
+                }
+            }
+
+            // ---- 功能设置
+            item {
+                MiuixCard {
+                    SwitchPreference(
+                        title = stringResource(R.string.search_engine_settings_show_clipboard_content),
+                        summary = stringResource(R.string.search_engine_settings_show_clipboard_content_desc),
+                        checked = clipboardContent,
+                        onCheckedChange = {
+                            clipboardContent = it
+                            scope.launch { context.settingsStore.saveKey(KEY_SHOW_CLIPBOARD_CONTENT, it) }
+                        },
+                    )
+                    SwitchPreference(
+                        title = stringResource(R.string.search_engine_settings_search_history),
+                        summary = stringResource(R.string.search_engine_settings_search_history_desc),
+                        checked = searchHistory,
+                        onCheckedChange = {
+                            searchHistory = it
+                            scope.launch { context.settingsStore.saveKey(KEY_SEARCH_HISTORY, it) }
+                        },
+                    )
+                    SwitchPreference(
+                        title = stringResource(R.string.search_engine_settings_search_settings),
+                        summary = stringResource(R.string.search_engine_settings_search_settings_desc),
+                        checked = settingsShortcuts,
+                        onCheckedChange = {
+                            settingsShortcuts = it
+                            scope.launch { context.settingsStore.saveKey(KEY_SEARCH_SETTINGS_SHORTCUTS, it) }
+                        },
+                    )
+                    SwitchPreference(
+                        title = stringResource(R.string.search_engine_settings_enter_first_result),
+                        summary = stringResource(R.string.search_engine_settings_enter_first_result_desc),
+                        checked = enterFirst,
+                        onCheckedChange = {
+                            enterFirst = it
+                            scope.launch { context.settingsStore.saveKey(KEY_ENTER_FIRST_RESULT, it) }
+                        },
+                    )
+                    SwitchPreference(
+                        title = stringResource(R.string.search_engine_settings_keep_last_result),
+                        summary = stringResource(R.string.search_engine_settings_keep_last_result_desc),
+                        checked = keepLast,
+                        onCheckedChange = {
+                            keepLast = it
+                            scope.launch { context.settingsStore.saveKey(KEY_KEEP_LAST_SEARCH_RESULT, it) }
+                        },
+                    )
+                    SwitchPreference(
+                        title = stringResource(R.string.search_engine_settings_search_contacts),
+                        summary = stringResource(R.string.search_engine_settings_search_contacts_desc),
+                        checked = searchContact,
+                        onCheckedChange = { checked ->
+                            if (checked && !ContactSearchHelper.hasContactPermission(context)) {
+                                pendingContactEnable = true
+                                onRequestContacts { granted ->
+                                    if (granted) {
+                                        searchContact = true
+                                        scope.launch {
+                                            context.settingsStore.saveKey(KEY_SEARCH_CONTACT, true)
+                                            ContactSearchHelper.syncContactsToDatabase(
+                                                context.applicationContext,
+                                                force = true,
+                                            )
+                                        }
+                                    } else {
+                                        searchContact = false
+                                        Toast.makeText(
+                                            context,
+                                            R.string.search_engine_settings_search_contacts,
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                    }
+                                }
+                            } else {
+                                searchContact = checked
+                                scope.launch {
+                                    context.settingsStore.saveKey(KEY_SEARCH_CONTACT, checked)
+                                    if (checked) {
+                                        ContactSearchHelper.syncContactsToDatabase(
+                                            context.applicationContext,
+                                            force = true,
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                    )
+                }
+            }
+
+            // ---- 启动设置
+            item {
+                MiuixCard {
+                    SwitchPreference(
+                        title = stringResource(R.string.search_engine_settings_default_search_page),
+                        summary = stringResource(R.string.search_engine_settings_default_search_page_desc),
+                        checked = defaultSearchPage,
+                        onCheckedChange = { checked ->
+                            if (!checked) {
+                                defaultSearchPage = false
+                                scope.launch {
+                                    context.settingsStore.saveKey(KEY_DEFAULT_SEARCH_PAGE, false)
+                                }
+                            } else {
+                                showDefaultPageDialog = true
+                            }
+                        },
+                    )
+                }
+            }
+
+            // ---- 导入导出与隐藏结果
+            item {
+                MiuixCard {
+                    ArrowPreference(
+                        title = stringResource(R.string.search_engine_settings_import),
+                        onClick = { showImportDialog = true },
+                    )
+                    ArrowPreference(
+                        title = stringResource(R.string.search_engine_settings_export),
+                        onClick = { exportSearchEngines() },
+                    )
+                    ArrowPreference(
+                        title = stringResource(R.string.hidden_search_results_title),
+                        summary = stringResource(R.string.hidden_search_results_summary),
+                        onClick = {
+                            startActivity(Intent(this@SearchEngineSettingsActivity, HiddenSearchResultsActivity::class.java))
+                        },
+                    )
+                    ArrowPreference(
+                        title = stringResource(R.string.search_engine_settings_preview_mode),
+                        onClick = { QuickSearchActivity.start(this@SearchEngineSettingsActivity, previewSortMode = true) },
+                    )
+                }
+            }
+        }
+
+        if (showDefaultPageDialog) {
+            AlertDialog(
+                onDismissRequest = { showDefaultPageDialog = false; defaultSearchPage = false },
+                title = {
+                    M3Text(stringResource(R.string.search_engine_settings_default_search_page_dialog_title))
+                },
+                text = {
+                    M3Text(stringResource(R.string.search_engine_settings_default_search_page_dialog_message))
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDefaultPageDialog = false
+                        defaultSearchPage = true
+                        scope.launch {
+                            context.settingsStore.saveKey(KEY_DEFAULT_SEARCH_PAGE, true)
+                        }
+                    }) { M3Text(stringResource(android.R.string.ok)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showDefaultPageDialog = false
+                        defaultSearchPage = false
+                    }) { M3Text(stringResource(android.R.string.cancel)) }
+                },
+            )
+        }
+
+        if (showImportDialog) {
+            AlertDialog(
+                onDismissRequest = { showImportDialog = false },
+                title = { M3Text(stringResource(R.string.search_engine_import_title)) },
+                text = {
+                    Column {
+                        M3Text(stringResource(R.string.search_engine_import_message))
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = importJson,
+                            onValueChange = { importJson = it },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showImportDialog = false
+                        importSearchEngines(importJson)
+                        importJson = ""
+                    }) { M3Text(stringResource(R.string.search_engine_import_action)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showImportDialog = false }) {
+                        M3Text(stringResource(R.string.search_engine_cancel))
+                    }
+                },
+            )
+        }
+    }
+
+    @Composable
+    private fun StepperRow(
+        label: String,
+        value: Int,
+        onMinus: () -> Unit,
+        onPlus: () -> Unit,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(text = label, fontSize = 16.sp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StepButton(text = "−", onClick = onMinus)
+                Text(
+                    text = value.toString(),
+                    fontSize = 16.sp,
+                    modifier = Modifier.width(40.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                )
+                StepButton(text = "+", onClick = onPlus)
+            }
+        }
+    }
+
+    @Composable
+    private fun StepButton(text: String, onClick: () -> Unit) {
+        Column(
+            modifier = Modifier
+                .size(32.dp)
+                .clickable(onClick = onClick),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(text = text, fontSize = 18.sp, color = MiuixTheme.colorScheme.primary)
+        }
+    }
+
+    private fun engineTypeLabel(type: EngineType): String = when (type) {
+        EngineType.DIRECT_LINK -> getString(R.string.search_engine_type_direct_link)
+        EngineType.SHARE_TO_APP -> getString(R.string.search_engine_type_share)
+        EngineType.SHARE_IMAGE_TO_APP -> getString(R.string.search_engine_type_share_image)
+        EngineType.JUMP_TO_ACTIVITY -> getString(R.string.search_engine_type_jump_activity)
+        EngineType.EXTERN_JUMP_LINK -> getString(R.string.search_engine_type_extern_jump)
     }
 
     private fun importSearchEngines(json: String) {
@@ -298,33 +572,19 @@ class SearchEngineSettingsActivity : AppCompatActivity() {
                         Toast.makeText(
                             appContext,
                             R.string.search_engine_import_json_error,
-                            Toast.LENGTH_SHORT
+                            Toast.LENGTH_SHORT,
                         ).show()
                     }
                     return@launch
                 }
-                SearchEngineDataManager.importSearchEngines(
-                    appContext,
-                    engines,
-                    replaceExisting = false,
-                )
+                SearchEngineDataManager.importSearchEngines(appContext, engines)
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        appContext,
-                        R.string.search_engine_import_success,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(appContext, R.string.search_engine_import_success, Toast.LENGTH_SHORT).show()
+                    recreate()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        appContext,
-                        appContext.getString(
-                            R.string.search_engine_import_failed,
-                            e.localizedMessage ?: "",
-                        ),
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    Toast.makeText(appContext, R.string.search_engine_import_json_error, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -332,199 +592,20 @@ class SearchEngineSettingsActivity : AppCompatActivity() {
 
     private fun exportSearchEngines() {
         lifecycleScope.launch(Dispatchers.IO) {
-            val appContext = applicationContext
-            val json = SearchEngineDataManager.exportSearchEnginesJson(appContext)
-            withContext(Dispatchers.Main) {
-                val clipboard = appContext.getSystemService(Context.CLIPBOARD_SERVICE)
-                    as ClipboardManager
-                val clip = ClipData.newPlainText(
-                    appContext.getString(R.string.search_engine_clipboard_label),
-                    json,
-                )
-                clipboard.setPrimaryClip(clip)
-                Toast.makeText(
-                    appContext,
-                    R.string.search_engine_clipboard_copied,
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-    }
-
-    /** 统一绑定开关：初始读库，切换即写库。 */
-    private suspend fun bindSwitch(
-        switch: com.google.android.material.materialswitch.MaterialSwitch,
-        key: String,
-        default: Boolean,
-    ) {
-        switch.isChecked = settingsStore.readKey(key, default)
-        switch.setOnCheckedChangeListener { _, isChecked ->
-            lifecycleScope.launch { settingsStore.saveKey(key, isChecked) }
-        }
-    }
-
-    // ---------------------------------------------------------------
-    // 引擎列表管理
-    // ---------------------------------------------------------------
-
-    private fun setupRecyclerView() {
-        binding.engineRecycler.linear().setup {
-            addType<SearchEngine>(R.layout.search_engine_manage_item)
-
-            onBind {
-                val itemBinding = SearchEngineManageItemBinding.bind(itemView)
-                val model = getModel<SearchEngine>()
-
-                // Set engine name
-                itemBinding.engineName.text = model.name
-
-                // Set engine type tag
-                itemBinding.engineType.text = when (model.engineType) {
-                    EngineType.DIRECT_LINK -> getString(R.string.search_engine_type_direct_link)
-                    EngineType.SHARE_TO_APP -> getString(R.string.search_engine_type_share)
-                    EngineType.SHARE_IMAGE_TO_APP -> getString(R.string.search_engine_type_share_image)
-                    EngineType.JUMP_TO_ACTIVITY -> getString(R.string.search_engine_type_jump_activity)
-                    EngineType.EXTERN_JUMP_LINK -> getString(R.string.search_engine_type_extern_jump)
+            try {
+                val json = SearchEngineDataManager.exportSearchEnginesJson(applicationContext)
+                withContext(Dispatchers.Main) {
+                    val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    clipboard.setPrimaryClip(
+                        android.content.ClipData.newPlainText("search_engines", json)
+                    )
+                    Toast.makeText(this@SearchEngineSettingsActivity, R.string.search_engine_settings_export, Toast.LENGTH_SHORT).show()
                 }
-
-                // Set default flag
-                val isDefault = model.tag == defaultEngineTag
-                itemBinding.defaultBadge.visibility = if (isDefault) View.VISIBLE else View.GONE
-                // Set hidden flag
-                itemBinding.hideBadge.visibility =
-                    if (model.showInSearchEngineList) View.GONE else View.VISIBLE
-
-                setEngineIcon(applicationContext, itemBinding.engineIcon, model, showImageBadge)
-            }
-
-            onClick(R.id.engine_container) {
-                val engine = getModel<SearchEngine>()
-                editSearchEngine(engine)
-            }
-
-            onLongClick(R.id.engine_container) {
-                val engine = getModel<SearchEngine>()
-                showEngineOptionsDialog(engine)
-            }
-
-            R.id.drag_handle.onFastClick {
-                val engine = getModel<SearchEngine>()
-                showEngineOptionsDialog(engine)
-            }
-        }
-    }
-
-    private fun loadSearchEngines() {
-        binding.progressBar.visibility = View.VISIBLE
-        lifecycleScope.launch(Dispatchers.IO) {
-            val engines = SearchEngineDataManager.readSearchEngineList(applicationContext)
-            defaultEngineTag = SearchEngineDataManager.getDefaultEngineTag(applicationContext)
-            showImageBadge = settingsStore.readKey(KEY_SHOW_IMAGE_BADGE, true)
-
-            withContext(Dispatchers.Main) {
-                searchEngines.clear()
-                searchEngines.addAll(engines)
-                binding.engineRecycler.models = searchEngines
-
-                binding.progressBar.visibility = View.GONE
-                binding.emptyView.visibility = if (engines.isEmpty()) View.VISIBLE else View.GONE
-            }
-        }
-    }
-
-    private fun editSearchEngine(engine: SearchEngine) {
-        val intent = Intent(this, SearchEngineAddActivity::class.java).apply {
-            putExtra("editMode", true)
-            putExtra("engine", engine.toJson())
-        }
-        startActivity(intent)
-    }
-
-    private fun showEngineOptionsDialog(engine: SearchEngine) {
-        val isDefault = engine.tag == defaultEngineTag
-        val hideOption = if (engine.showInSearchEngineList) {
-            getString(R.string.search_engine_option_hide)
-        } else {
-            getString(R.string.search_engine_option_show)
-        }
-        val optionEdit = getString(R.string.search_engine_option_edit)
-        val optionDelete = getString(R.string.search_engine_option_delete)
-        val optionSetDefault = getString(R.string.search_engine_option_set_default)
-        val options = mutableListOf(
-            optionEdit,
-            hideOption,
-            optionDelete,
-        )
-
-        if (!isDefault) {
-            options.add(0, optionSetDefault)
-        }
-
-        MaterialAlertDialogBuilder(this)
-            .setTitle(engine.name)
-            .setItems(options.toTypedArray()) { _, which ->
-                when (options[which]) {
-                    optionSetDefault -> setAsDefault(engine)
-                    optionEdit -> editSearchEngine(engine)
-                    optionDelete -> showDeleteConfirmDialog(engine)
-                    getString(R.string.search_engine_option_hide) ->
-                        switchSearchEngineShowInList(engine, false)
-                    getString(R.string.search_engine_option_show) ->
-                        switchSearchEngineShowInList(engine, true)
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@SearchEngineSettingsActivity, R.string.search_engine_import_json_error, Toast.LENGTH_SHORT).show()
+                    android.util.Log.e("SearchEngineSettings", "export failed", e)
                 }
-            }
-            .show()
-    }
-
-    private fun setAsDefault(engine: SearchEngine) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            SearchEngineDataManager.setDefaultEngineTag(applicationContext, engine.tag)
-            defaultEngineTag = engine.tag
-            withContext(Dispatchers.Main) {
-                binding.engineRecycler.bindingAdapter.let { it.notifyItemRangeChanged(0, it.itemCount) }
-            }
-        }
-    }
-
-    private fun showDeleteConfirmDialog(engine: SearchEngine) {
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.search_engine_delete_title)
-            .setMessage(getString(R.string.search_engine_delete_message, engine.name))
-            .setPositiveButton(R.string.search_engine_option_delete) { _, _ ->
-                deleteSearchEngine(engine)
-            }
-            .setNegativeButton(R.string.search_engine_cancel, null)
-            .show()
-    }
-
-    private fun switchSearchEngineShowInList(engine: SearchEngine, isShow: Boolean) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            engine.showInSearchEngineList = isShow
-            // Save and reorder
-            SearchEngineDataManager.saveSearchEngineList(applicationContext, searchEngines)
-            searchEngines.clear()
-            searchEngines.addAll(SearchEngineDataManager.readSearchEngineList(applicationContext))
-            withContext(Dispatchers.Main) {
-                binding.engineRecycler.models = searchEngines
-            }
-        }
-    }
-
-    private fun deleteSearchEngine(engine: SearchEngine) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            SearchEngineDataManager.removeSearchEngine(applicationContext, engine.tag)
-
-            withContext(Dispatchers.Main) {
-                searchEngines.remove(engine)
-                binding.engineRecycler.models = searchEngines
-                binding.emptyView.visibility =
-                    if (searchEngines.isEmpty()) View.VISIBLE else View.GONE
-
-                Toast.makeText(
-                    this@SearchEngineSettingsActivity,
-                    R.string.search_engine_deleted,
-                    Toast.LENGTH_SHORT
-                ).show()
             }
         }
     }

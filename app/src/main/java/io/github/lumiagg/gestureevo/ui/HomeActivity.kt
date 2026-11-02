@@ -12,6 +12,19 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,15 +37,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeTopAppBar
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,7 +50,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -51,6 +61,21 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import top.yukonga.miuix.kmp.basic.Icon as MiuixIcon
+import top.yukonga.miuix.kmp.basic.CardDefaults
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.NavigationBar
+import top.yukonga.miuix.kmp.basic.NavigationBarItem
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.PressFeedbackType
+import top.yukonga.miuix.kmp.utils.overScrollVertical
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 import io.github.lumiagg.gestureevo.R
 import io.github.lumiagg.gestureevo.gesture.config.GestureActionDataManager
 import io.github.lumiagg.gestureevo.search.config.SearchEngine
@@ -71,10 +96,8 @@ import io.github.lumiagg.gestureevo.settings.SettingsSearchNavigator
 import io.github.lumiagg.gestureevo.settings.SetupChecklist
 import io.github.lumiagg.gestureevo.settings.evoAccessibilityServiceIsEnable
 import io.github.lumiagg.gestureevo.settings.ui.AboutActivity
-import io.github.lumiagg.gestureevo.ui.compose.EvoTheme
+import io.github.lumiagg.gestureevo.ui.compose.MiuixEvoTheme
 import io.github.lumiagg.gestureevo.ui.compose.RowSpec
-import io.github.lumiagg.gestureevo.ui.compose.SectionCard
-import io.github.lumiagg.gestureevo.ui.compose.StatusCard
 import io.github.lumiagg.gestureevo.ui.home.FeatureGuideActivity
 import io.github.lumiagg.gestureevo.ui.home.FeatureGuideActivity.Companion.GUIDE_GESTURE
 import io.github.lumiagg.gestureevo.ui.home.FeatureGuideActivity.Companion.GUIDE_SCREEN
@@ -110,7 +133,7 @@ class HomeActivity : ComponentActivity() {
         enableEdgeToEdge()
         handleNavigateIntent(intent)
         setContent {
-            EvoTheme {
+            MiuixEvoTheme {
                 HomeRoot(
                     pendingTab = pendingTab.value,
                     pendingAnchor = pendingAnchor.value,
@@ -219,7 +242,7 @@ private fun HomeRoot(
     var anchor by remember { mutableStateOf<String?>(null) }
     var showImportDialog by remember { mutableStateOf(false) }
     val listStates = remember { List(4) { LazyListState() } }
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = MiuixScrollBehavior()
 
     LaunchedEffect(pendingTab, pendingAnchor) {
         pendingTab?.let {
@@ -258,19 +281,12 @@ private fun HomeRoot(
     }
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = Modifier.fillMaxSize(),
+        popupHost = { },
+        contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal),
         topBar = {
-            LargeTopAppBar(
-                title = {
-                    Text(
-                        stringResource(TAB_TITLES[currentTab]),
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
+            TopAppBar(
+                title = stringResource(TAB_TITLES[currentTab]),
                 actions = {
                     IconButton(onClick = {
                         context.startActivity(
@@ -301,13 +317,14 @@ private fun HomeRoot(
                 Triple(R.string.home_tab_search, R.drawable.baseline_search_24, HomeActivity.TAB_SEARCH),
                 Triple(R.string.home_tab_settings, R.drawable.baseline_settings_24, HomeActivity.TAB_SETTINGS),
             )
-            NavigationBar {
+            NavigationBar(color = MiuixTheme.colorScheme.surface) {
                 tabs.forEach { (labelRes, iconRes, index) ->
                     NavigationBarItem(
+                        modifier = Modifier.weight(1f),
                         selected = currentTab == index,
                         onClick = { currentTab = index },
-                        icon = { Icon(painterResource(iconRes), contentDescription = null) },
-                        label = { Text(stringResource(labelRes)) },
+                        icon = ImageVector.vectorResource(iconRes),
+                        label = stringResource(labelRes),
                     )
                 }
             }
@@ -322,11 +339,16 @@ private fun HomeRoot(
                 state = listStates[tab],
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(innerPadding),
+                    .scrollEndHaptic()
+                    .overScrollVertical()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+                    .padding(horizontal = 12.dp),
                 contentPadding = PaddingValues(
-                    start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp,
+                    top = innerPadding.calculateTopPadding() + 12.dp,
+                    bottom = innerPadding.calculateBottomPadding() + 12.dp,
                 ),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                overscrollEffect = null,
             ) {
                 when (tab) {
                     HomeActivity.TAB_GESTURE -> GestureTabItems(status, context)
@@ -370,6 +392,51 @@ private fun HomeRoot(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun SectionCard(rows: List<RowSpec>) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        rows.forEach { row ->
+            ArrowPreference(
+                title = row.title,
+                summary = row.subtitle,
+                startAction = {
+                    MiuixIcon(
+                        imageVector = ImageVector.vectorResource(row.iconRes),
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 6.dp),
+                        tint = MiuixTheme.colorScheme.onBackground,
+                    )
+                },
+                onClick = row.onClick,
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatusCard(
+    label: String,
+    value: String,
+    summary: String? = null,
+    actionLabel: String? = null,
+    onClick: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.defaultColors(color = MiuixTheme.colorScheme.secondaryContainer),
+        onClick = onClick,
+        pressFeedbackType = PressFeedbackType.Tilt,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp)) {
+            MiuixText(text = value, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(1.dp))
+            MiuixText(text = label, fontSize = 15.sp)
+            if (summary != null) MiuixText(text = summary, fontSize = 15.sp)
+            if (actionLabel != null) MiuixText(text = actionLabel, fontSize = 15.sp)
+        }
     }
 }
 

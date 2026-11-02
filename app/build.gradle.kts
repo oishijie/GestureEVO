@@ -2,7 +2,6 @@
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.ksp)
@@ -11,28 +10,28 @@ plugins {
 
 android {
     namespace = "io.github.lumiagg.gestureevo"
-    compileSdk = 36
-    ndkVersion = "27.0.12077973"
+    compileSdk = 37
+    compileSdkMinor = 0
+    // TEMP-VERIFY: ndkVersion = "27.0.12077973"
 
     defaultConfig {
         applicationId = "io.github.lumiagg.gestureevo"
-        minSdk = 24
+        minSdk = 33
         targetSdk = 36
         versionCode = 261011007
         versionName = "2.2-1011007"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        ndk {
-            //noinspection ChromeOsAbiSupport
-            abiFilters += listOf("arm64-v8a")
-        }
+        // TEMP-VERIFY: ndk {
+        // TEMP-VERIFY:     abiFilters += listOf("arm64-v8a")
+        // TEMP-VERIFY: }
 
-        externalNativeBuild {
-            cmake {
-                cppFlags += "-std=c++17"
-            }
-        }
+        // TEMP-VERIFY: externalNativeBuild {
+        // TEMP-VERIFY:     cmake {
+        // TEMP-VERIFY:         cppFlags += "-std=c++17"
+        // TEMP-VERIFY:     }
+        // TEMP-VERIFY: }
     }
 
     val signingEnvironment = listOf(
@@ -66,26 +65,23 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
     buildFeatures {
         buildConfig = true  // 启用 BuildConfig
         viewBinding = true
         aidl = true
         compose = true      // UI 重构 Demo（Compose 首页原型）
     }
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
-        }
-    }
+    // TEMP-VERIFY: externalNativeBuild {
+    // TEMP-VERIFY:     cmake {
+    // TEMP-VERIFY:         path = file("src/main/cpp/CMakeLists.txt")
+    // TEMP-VERIFY:         version = "3.22.1"
+    // TEMP-VERIFY:     }
+    // TEMP-VERIFY: }
     sourceSets {
         getByName("main") {
             aidl.srcDirs("src/main/aidl")
-            assets.srcDir(layout.buildDirectory.dir("generated/ocrModelAssets"))
-            assets.srcDir(layout.buildDirectory.dir("generated/projectDocuments"))
+            assets.srcDir(layout.buildDirectory.dir("generated/ocrModelAssets").get().asFile)
+            assets.srcDir(layout.buildDirectory.dir("generated/projectDocuments").get().asFile)
         }
     }
     androidResources {
@@ -174,6 +170,14 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.activity.compose)
     debugImplementation(libs.androidx.compose.ui.tooling)
+
+    // Miuix UI：与 KernelSU Manager 同版本（HyperOS 设计语言）。
+    implementation(libs.miuix.ui)
+    implementation(libs.miuix.icons)
+    implementation(libs.miuix.nav)
+    implementation(libs.miuix.preference)
+    implementation(libs.miuix.blur)
+    implementation(libs.material.kolor)
 
     // Persistence and JSON; processors share the runtime versions.
     implementation(libs.bundles.room)

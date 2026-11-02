@@ -2,14 +2,22 @@ package io.github.lumiagg.gestureevo.settings
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
 import android.widget.Toast
+import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.lifecycleScope
 import io.github.lumiagg.gestureevo.R
-import io.github.lumiagg.gestureevo.databinding.ActivityAdvancedSettingsBinding
 import io.github.lumiagg.gestureevo.db.APPModel
 import io.github.lumiagg.gestureevo.db.getAPPDao
 import io.github.lumiagg.gestureevo.db.updateDB
@@ -17,14 +25,17 @@ import io.github.lumiagg.gestureevo.search.ContactSearchHelper
 import io.github.lumiagg.gestureevo.search.SettingsShortcutSearchHelper
 import io.github.lumiagg.gestureevo.settings.ui.DefaultSelectAPPBottomSheet
 import io.github.lumiagg.gestureevo.settings.ui.SelectAPPCallBack
-import io.github.lumiagg.gestureevo.settings.ui.installPageHeader
 import io.github.lumiagg.gestureevo.settings.ui.showEditTextBottomSheet
+import io.github.lumiagg.gestureevo.ui.compose.MiuixEvoTheme
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixCard
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixScreen
 import io.github.lumiagg.gestureevo.utils.ClipboardUtils
 import io.github.lumiagg.gestureevo.utils.ExternalActionPermissionStore
 import io.github.lumiagg.gestureevo.utils.app.syncAppCatalog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.preference.ArrowPreference
 
 /**
  * 高级设置：收纳低频但需保留的进阶能力，三个分组
@@ -32,8 +43,6 @@ import kotlinx.coroutines.withContext
  * ③ 维护与日志（应用别名 / 索引重建 / 运行日志，原属数据页）。
  */
 class AdvancedSettingsActivity : AppCompatActivity() {
-
-    private lateinit var binding: ActivityAdvancedSettingsBinding
 
     /** 外部调用编辑器返回后直接复制生成的 Link。 */
     private val editorLauncher = registerForActivityResult(
@@ -56,50 +65,28 @@ class AdvancedSettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        binding = ActivityAdvancedSettingsBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        setupToolbar()
-        setupButtons()
-        SettingsSearchNavigator.focusAnchorIfNeeded(binding.root, intent)
-    }
-
-    override fun onResume() {
-        super.onResume()
-        refreshRecordsCount()
-    }
-
-    private fun setupToolbar() {
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.setDisplayShowHomeEnabled(true)
-        installPageHeader(
-            this,
-            binding.toolbar,
-            binding.toolbarLayout,
-            R.string.advanced_settings_title
-        )
-    }
-
-    private fun setupButtons() {
-        binding.newRecordButton.setOnClickListener { launchEditor() }
-
-        binding.openExternalWheelButton.setOnClickListener {
-            startActivity(
-                Intent(this, ActionViewSettingsActivity::class.java).apply {
-                    putExtra(ActionViewSettingsActivity.EXTRA_SCROLL_TO_EXTERNAL_CALL, true)
-                }
-            )
-        }
-
-        binding.recordsEntryButton.setOnClickListener {
-            startActivity(Intent(this, ExternalActionRecordsActivity::class.java))
-        }
-
-        binding.appAliasButton.setOnClickListener { showAppAliasSelector() }
-
-        binding.rebuildDBButton.setOnClickListener { rebuildDB() }
-
-        binding.logsEntryButton.setOnClickListener {
-            startActivity(Intent(this, LogManagerActivity::class.java))
+        setContent {
+            MiuixEvoTheme {
+                AdvancedScreen(
+                    onBack = { onBackPressedDispatcher.onBackPressed() },
+                    onNewRecord = { launchEditor() },
+                    onOpenExternalWheel = {
+                        startActivity(
+                            Intent(this, ActionViewSettingsActivity::class.java).apply {
+                                putExtra(ActionViewSettingsActivity.EXTRA_SCROLL_TO_EXTERNAL_CALL, true)
+                            }
+                        )
+                    },
+                    onOpenRecords = {
+                        startActivity(Intent(this, ExternalActionRecordsActivity::class.java))
+                    },
+                    onAppAlias = { showAppAliasSelector() },
+                    onRebuildDb = { rebuildDB() },
+                    onOpenLogs = {
+                        startActivity(Intent(this, LogManagerActivity::class.java))
+                    },
+                )
+            }
         }
     }
 
@@ -110,25 +97,10 @@ class AdvancedSettingsActivity : AppCompatActivity() {
         editorLauncher.launch(intent)
     }
 
-    /** 授权记录条数直接显示在行尾，明细进子页看。 */
-    private fun refreshRecordsCount() {
-        lifecycleScope.launch {
-            val count = ExternalActionPermissionStore.getAllPermissions().size
-            binding.recordsCountValue.text = getString(R.string.advanced_records_count, count)
-        }
-    }
-
-    // ------------------------------------------------------------ 维护与日志
-
     private fun rebuildDB() = lifecycleScope.launch(Dispatchers.IO) {
-        withContext(Dispatchers.Main) {
-            binding.rebuildDBProgress.visibility = View.VISIBLE
-        }
-
         val dao = getAPPDao()
         val appAliases = AppAliasEntry.collect(this@AdvancedSettingsActivity, dao.getAll())
         val appAliasMap = appAliases.associate { it.pkgName to it.alias }
-        // Retrieve package names for gestureBlack and recentBlack
         val gestureBlackPackages =
             dao.getAll(state = APPModel.FLAG_GESTURE_DISABLE).map { it.pkgName }
         val recentBlackPackages =
@@ -145,7 +117,6 @@ class AdvancedSettingsActivity : AppCompatActivity() {
             appAliasMap[appModel.pkgName]?.let { alias ->
                 appModel.name = alias
             }
-            // Set status if package name is present in gestureBlackPackages or recentBlackPackages
             when {
                 gestureBlackPackages.contains(appModel.pkgName) -> {
                     appModel.setState(APPModel.FLAG_GESTURE_DISABLE, true)
@@ -163,7 +134,6 @@ class AdvancedSettingsActivity : AppCompatActivity() {
                     appModel.setState(APPModel.FLAG_NOTIFICATION_APPS_ENABLE, true)
                 }
             }
-            // Update database
             updateDB(appModel)
         }
 
@@ -171,7 +141,6 @@ class AdvancedSettingsActivity : AppCompatActivity() {
         SettingsShortcutSearchHelper.syncShortcutsToDatabase(applicationContext, force = true)
 
         withContext(Dispatchers.Main) {
-            binding.rebuildDBProgress.visibility = View.INVISIBLE
             Toast.makeText(
                 applicationContext,
                 getString(R.string.data_backup_rebuild_done),
@@ -213,5 +182,79 @@ class AdvancedSettingsActivity : AppCompatActivity() {
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun AdvancedScreen(
+    onBack: () -> Unit,
+    onNewRecord: () -> Unit,
+    onOpenExternalWheel: () -> Unit,
+    onOpenRecords: () -> Unit,
+    onAppAlias: () -> Unit,
+    onRebuildDb: () -> Unit,
+    onOpenLogs: () -> Unit,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var recordsCount by remember { mutableIntStateOf(0) }
+    var rebuilding by remember { mutableStateOf(false) }
+
+    // 授权记录条数直接显示在行尾，明细进子页看。
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        recordsCount = ExternalActionPermissionStore.getAllPermissions().size
+    }
+
+    MiuixScreen(
+        title = stringResource(R.string.advanced_settings_title),
+        onBack = onBack,
+    ) {
+        item {
+            MiuixCard {
+                ArrowPreference(
+                    title = stringResource(R.string.external_action_editor_title),
+                    onClick = onNewRecord,
+                )
+                ArrowPreference(
+                    title = stringResource(R.string.external_action_open_wheel_button),
+                    onClick = onOpenExternalWheel,
+                )
+            }
+        }
+        item {
+            MiuixCard {
+                ArrowPreference(
+                    title = stringResource(R.string.external_action_history_title),
+                    summary = stringResource(R.string.advanced_records_count, recordsCount),
+                    onClick = onOpenRecords,
+                )
+            }
+        }
+        item {
+            MiuixCard {
+                ArrowPreference(
+                    title = stringResource(R.string.data_app_alias_action),
+                    onClick = onAppAlias,
+                )
+                ArrowPreference(
+                    title = stringResource(R.string.data_rebuild_index_action),
+                    summary = if (rebuilding) {
+                        stringResource(R.string.data_backup_rebuild_done)
+                    } else {
+                        null
+                    },
+                    onClick = {
+                        if (!rebuilding) {
+                            rebuilding = true
+                            onRebuildDb()
+                        }
+                    },
+                )
+                ArrowPreference(
+                    title = stringResource(R.string.log_open_manager),
+                    onClick = onOpenLogs,
+                )
+            }
+        }
     }
 }

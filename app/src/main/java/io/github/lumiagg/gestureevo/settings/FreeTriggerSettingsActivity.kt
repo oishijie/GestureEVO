@@ -1,109 +1,66 @@
 package io.github.lumiagg.gestureevo.settings
 
-import io.github.lumiagg.gestureevo.settings.ui.installPageHeader
-
 import android.content.Intent
-import android.graphics.Rect
 import android.os.Bundle
-import android.view.View
+import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.RecyclerView
-import com.drake.brv.utils.linear
-import com.drake.brv.utils.models
-import com.drake.brv.utils.setup
 import io.github.lumiagg.gestureevo.R
-import io.github.lumiagg.gestureevo.databinding.ActivityFreeTriggerSettingsBinding
-import io.github.lumiagg.gestureevo.databinding.FreeTriggerListItemBinding
 import io.github.lumiagg.gestureevo.gesture.EventBusManager.produceFreeTriggerEvent
 import io.github.lumiagg.gestureevo.gesture.FreeTriggerEvent
 import io.github.lumiagg.gestureevo.gesture.config.FreeTriggerConfig
 import io.github.lumiagg.gestureevo.gesture.config.FreeTriggerDataManager
-import io.github.lumiagg.gestureevo.utils.dp2px
+import io.github.lumiagg.gestureevo.ui.compose.MiuixEvoTheme
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixCard
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixScreen
 import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.preference.SwitchPreference
 
 class FreeTriggerSettingsActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityFreeTriggerSettingsBinding
     private lateinit var triggerConfigLauncher: ActivityResultLauncher<Intent>
+    private var reloadKey by mutableStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityFreeTriggerSettingsBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
         registerTriggerConfigLauncher()
         registerSelectionLauncher()
-        setupToolbar()
-        setupViews()
-        loadTriggers()
-    }
-
-    private fun setupToolbar() {
-        installPageHeader(this, binding.toolbar, binding.toolbarLayout, R.string.free_trigger_settings_title)
-        binding.toolbar.setNavigationOnClickListener { finish() }
-    }
-
-    private fun setupViews() {
-        // Setup RecyclerView
-        binding.triggerList.linear().setup {
-            addType<FreeTriggerConfig>(R.layout.free_trigger_list_item)
-
-            onBind {
-                val binding = getBinding<FreeTriggerListItemBinding>()
-                val trigger = getModel<FreeTriggerConfig>()
-
-                binding.triggerItem.setTitle(trigger.name)
-                binding.triggerItem.setSummary(getTriggerEnableSummary(trigger.enable))
-                binding.enableSwitch.setOnCheckedChangeListener(null)
-                binding.enableSwitch.isChecked = trigger.enable
-                binding.enableSwitch.setOnCheckedChangeListener { _, isChecked ->
-                    if (trigger.enable == isChecked) return@setOnCheckedChangeListener
-                    trigger.enable = isChecked
-                    binding.triggerItem.setSummary(getTriggerEnableSummary(isChecked))
-                    lifecycleScope.launch {
-                        FreeTriggerDataManager.updateTrigger(this@FreeTriggerSettingsActivity, trigger)
-                        produceFreeTriggerEvent(
-                            FreeTriggerEvent(isConfig = true)
-                        )
-                    }
-                }
-            }
-
-            onClick(R.id.editTriggerButton) {
-                showTriggerConfig(getModel())
+        setContent {
+            MiuixEvoTheme {
+                TriggerScreen(
+                    reloadKey = reloadKey,
+                    onBack = { finish() },
+                    onEdit = { trigger -> showTriggerConfig(trigger) },
+                    onAdd = { addNewTrigger() },
+                )
             }
         }
-
-        // Setup add button
-        binding.addTriggerFab.setOnClickListener {
-            addNewTrigger()
-        }
-
-        binding.triggerList.let { recyclerView ->
-            // Remove existing ItemDecoration to avoid duplicate dividers
-            for (i in 0 until recyclerView.itemDecorationCount) {
-                recyclerView.removeItemDecorationAt(i)
-            }
-
-            recyclerView.addItemDecoration(BottomSpaceItemDecoration(60.dp2px.toInt()))
-        }
-    }
-
-    private fun getTriggerEnableSummary(enabled: Boolean): String {
-        return getString(
-            if (enabled) {
-                R.string.free_trigger_item_enabled_summary
-            } else {
-                R.string.free_trigger_item_disabled_summary
-            }
-        )
     }
 
     override fun onResume() {
         super.onResume()
-        loadTriggers()
+        reloadKey++
         lifecycleScope.launch {
             produceFreeTriggerEvent(FreeTriggerEvent(isConfig = true))
         }
@@ -116,18 +73,10 @@ class FreeTriggerSettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadTriggers() {
-        lifecycleScope.launch {
-            val triggers = FreeTriggerDataManager.readTriggers(this@FreeTriggerSettingsActivity)
-            binding.triggerList.models = triggers
-        }
-    }
-
     private fun addNewTrigger() {
         val trigger = FreeTriggerConfig().apply {
             name = getString(R.string.free_trigger_new_name)
             tag = FreeTriggerDataManager.buildTag()
-            // Set default values
             setState(FreeTriggerConfig.FLAG_PORTRAIT, true)
             setState(FreeTriggerConfig.FLAG_LANDSCAPE, true)
             width = 50
@@ -136,11 +85,9 @@ class FreeTriggerSettingsActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             FreeTriggerDataManager.addTrigger(this@FreeTriggerSettingsActivity, trigger)
-            loadTriggers()
+            reloadKey++
             showTriggerConfig(trigger)
-            produceFreeTriggerEvent(
-                FreeTriggerEvent(isConfig = true)
-            )
+            produceFreeTriggerEvent(FreeTriggerEvent(isConfig = true))
         }
     }
 
@@ -152,15 +99,14 @@ class FreeTriggerSettingsActivity : AppCompatActivity() {
         triggerConfigLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) {
-            loadTriggers()
+            reloadKey++
         }
     }
 
-    lateinit var actionSelectionLauncher: ActivityResultLauncher<Intent>
     var selectionGestureActionCallback = object : SelectionGestureActionCallback {}
 
     private fun registerSelectionLauncher() {
-        actionSelectionLauncher = registerForActivityResult(
+        registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
             if (result.resultCode == RESULT_OK) {
@@ -169,16 +115,66 @@ class FreeTriggerSettingsActivity : AppCompatActivity() {
         }
     }
 
-    private class BottomSpaceItemDecoration(private val space: Int) :
-        RecyclerView.ItemDecoration() {
-        override fun getItemOffsets(
-            outRect: Rect,
-            view: View,
-            parent: RecyclerView,
-            state: RecyclerView.State
+    @Composable
+    private fun TriggerScreen(
+        reloadKey: Int,
+        onBack: () -> Unit,
+        onEdit: (FreeTriggerConfig) -> Unit,
+        onAdd: () -> Unit,
+    ) {
+        val context = LocalContext.current
+        val scope = rememberCoroutineScope()
+        val triggers = remember { mutableStateListOf<FreeTriggerConfig>() }
+
+        LaunchedEffect(reloadKey) {
+            triggers.clear()
+            triggers.addAll(FreeTriggerDataManager.readTriggers(context))
+        }
+
+        MiuixScreen(
+            title = stringResource(R.string.free_trigger_settings_title),
+            onBack = onBack,
         ) {
-            if (parent.getChildAdapterPosition(view) == parent.adapter?.itemCount?.minus(1)) {
-                outRect.bottom = space
+            item {
+                MiuixCard {
+                    triggers.forEach { trigger ->
+                        SwitchPreference(
+                            title = trigger.name,
+                            summary = stringResource(
+                                if (trigger.enable) R.string.free_trigger_item_enabled_summary
+                                else R.string.free_trigger_item_disabled_summary
+                            ),
+                            checked = trigger.enable,
+                            onCheckedChange = { isChecked ->
+                                if (trigger.enable != isChecked) {
+                                    trigger.enable = isChecked
+                                    scope.launch {
+                                        FreeTriggerDataManager.updateTrigger(context, trigger)
+                                        produceFreeTriggerEvent(FreeTriggerEvent(isConfig = true))
+                                    }
+                                }
+                            },
+                            endActions = {
+                                top.yukonga.miuix.kmp.basic.IconButton(onClick = { onEdit(trigger) }) {
+                                    top.yukonga.miuix.kmp.basic.Icon(
+                                        imageVector = ImageVector.vectorResource(
+                                            R.drawable.baseline_edit_24
+                                        ),
+                                        contentDescription = null,
+                                    )
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+            item {
+                MiuixCard {
+                    ArrowPreference(
+                        title = stringResource(R.string.free_trigger_add_trigger),
+                        onClick = onAdd,
+                    )
+                }
             }
         }
     }

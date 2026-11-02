@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -17,7 +18,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.progressindicator.CircularProgressIndicatorSpec
 import com.google.android.material.progressindicator.IndeterminateDrawable
 import io.github.lumiagg.gestureevo.R
-import io.github.lumiagg.gestureevo.databinding.ActivityDataBackBinding
 import io.github.lumiagg.gestureevo.db.APPModel
 import io.github.lumiagg.gestureevo.db.getAPPDao
 import io.github.lumiagg.gestureevo.db.updateDB
@@ -29,6 +29,11 @@ import io.github.lumiagg.gestureevo.search.SettingsShortcutSearchHelper
 import io.github.lumiagg.gestureevo.settings.ui.installPageHeader
 import io.github.lumiagg.gestureevo.settings.ui.showWebDAVConfigDialog
 import io.github.lumiagg.gestureevo.utils.BackupAppStates
+import io.github.lumiagg.gestureevo.ui.compose.MiuixEvoTheme
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixCard
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixScreen
+import androidx.compose.ui.res.stringResource
+import top.yukonga.miuix.kmp.preference.ArrowPreference
 import io.github.lumiagg.gestureevo.utils.ExternalActionPermissionStore
 import io.github.lumiagg.gestureevo.utils.MoshiUtils
 import io.github.lumiagg.gestureevo.utils.WebDAVManager
@@ -50,10 +55,24 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 class DataBackActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityDataBackBinding
     private var currentProgressDialog: androidx.appcompat.app.AlertDialog? = null
     private lateinit var webDavManager: WebDAVManager
     private var isWebDavConfigured = false
+
+    /** 界面状态：替代原 ViewBinding，由 Compose 页面订阅。 */
+    private val uiState = androidx.compose.runtime.mutableStateOf(BackupUiState())
+
+    private data class BackupUiState(
+        val webdavStatus: String = "",
+        val webdavActionEnabled: Boolean = false,
+        val actionsEnabled: Boolean = true,
+    )
+
+    private fun updateUi(block: (BackupUiState) -> BackupUiState) {
+        androidx.compose.runtime.snapshots.Snapshot.withMutableSnapshot {
+            uiState.value = block(uiState.value)
+        }
+    }
 
     companion object {
         const val BACKUP_SETTINGS_DIR = "settings"
@@ -92,60 +111,76 @@ class DataBackActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        binding = ActivityDataBackBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.setDisplayShowHomeEnabled(true)
-        installPageHeader(this, binding.toolbar, binding.toolbarLayout, R.string.data_backup_title)
-        binding.toolbar.setNavigationOnClickListener {
-            onBackPressedDispatcher.onBackPressed()
-        }
 
         webDavManager = WebDAVManager()
-        setupButtons()
-        checkProVersion()
-        checkWebDAVStatus()
-        SettingsSearchNavigator.focusAnchorIfNeeded(binding.root, intent)
-    }
-
-    private fun setupButtons() {
-        binding.statsEntryButton.setOnClickListener {
-            startActivity(Intent(this, DataStatsActivity::class.java))
-        }
-
-        // Local backup/restore
-        binding.backupButton.setOnClickListener {
-            showBackupConfirmDialog()
-        }
-
-        binding.restoreButton.setOnClickListener {
-            showRestoreConfirmDialog()
-        }
-
-        // WebDAV config and backup/restore
-        binding.configWebdavButton.setOnClickListener {
-            showWebDAVConfigDialog(this, lifecycleScope) {
-                // Callback when WebDAV is configured
-                checkWebDAVStatus()
+        setContent {
+            MiuixEvoTheme {
+                val state = uiState.value
+                MiuixScreen(
+                    title = stringResource(R.string.data_backup_title),
+                    onBack = { onBackPressedDispatcher.onBackPressed() },
+                ) {
+                    item {
+                        MiuixCard {
+                            ArrowPreference(
+                                title = stringResource(R.string.data_stats_entry_title),
+                                summary = stringResource(R.string.data_stats_entry_summary),
+                                onClick = {
+                                    startActivity(Intent(this@DataBackActivity, DataStatsActivity::class.java))
+                                },
+                            )
+                        }
+                    }
+                    item {
+                        MiuixCard {
+                            ArrowPreference(
+                                title = stringResource(R.string.data_backup_local),
+                                summary = stringResource(R.string.data_backup_confirm_message),
+                                enabled = state.actionsEnabled,
+                                onClick = { showBackupConfirmDialog() },
+                            )
+                            ArrowPreference(
+                                title = stringResource(R.string.data_restore_local),
+                                summary = stringResource(R.string.data_backup_restore_summary),
+                                enabled = state.actionsEnabled,
+                                onClick = { showRestoreConfirmDialog() },
+                            )
+                        }
+                    }
+                    item {
+                        MiuixCard {
+                            ArrowPreference(
+                                title = stringResource(R.string.data_backup_webdav_config),
+                                summary = state.webdavStatus.ifBlank {
+                                    stringResource(R.string.data_backup_webdav_status_disconnected)
+                                },
+                                onClick = {
+                                    showWebDAVConfigDialog(this@DataBackActivity, lifecycleScope) {
+                                        checkWebDAVStatus()
+                                    }
+                                },
+                            )
+                            ArrowPreference(
+                                title = stringResource(R.string.data_backup_webdav),
+                                enabled = state.webdavActionEnabled,
+                                onClick = { showWebDAVBackupConfirmDialog() },
+                            )
+                            ArrowPreference(
+                                title = stringResource(R.string.data_restore_webdav),
+                                enabled = state.webdavActionEnabled,
+                                onClick = { showWebDAVRestoreSelectionDialog() },
+                            )
+                        }
+                    }
+                }
             }
         }
-
-        binding.backupToWebdavButton.setOnClickListener {
-            showWebDAVBackupConfirmDialog()
-        }
-
-        binding.restoreFromWebdavButton.setOnClickListener {
-            showWebDAVRestoreSelectionDialog()
-        }
+        checkProVersion()
+        checkWebDAVStatus()
     }
 
     private fun checkProVersion() {
-        updateActionEnabledState(binding.backupButton, true)
-        updateActionEnabledState(binding.restoreButton, true)
-        updateActionEnabledState(binding.configWebdavButton, true)
-        updateActionEnabledState(binding.backupToWebdavButton, isWebDavConfigured)
-        updateActionEnabledState(binding.restoreFromWebdavButton, isWebDavConfigured)
+        updateUi { it.copy(actionsEnabled = true, webdavActionEnabled = isWebDavConfigured) }
     }
 
     private fun checkWebDAVStatus() {
@@ -159,7 +194,7 @@ class DataBackActivity : AppCompatActivity() {
                 isWebDavConfigured = loginResult.isSuccess
 
                 withContext(Dispatchers.Main) {
-                    binding.webdavStatusText.text = if (isWebDavConfigured) {
+                    val statusText = if (isWebDavConfigured) {
                         getString(R.string.data_backup_webdav_connected, serverUrl)
                     } else {
                         getString(
@@ -168,11 +203,12 @@ class DataBackActivity : AppCompatActivity() {
                                 ?: getString(R.string.data_backup_webdav_connect_failed)
                         )
                     }
-                    updateActionEnabledState(binding.backupToWebdavButton, isWebDavConfigured)
-                    updateActionEnabledState(
-                        binding.restoreFromWebdavButton,
-                        isWebDavConfigured
-                    )
+                    updateUi {
+                        it.copy(
+                            webdavStatus = statusText,
+                            webdavActionEnabled = isWebDavConfigured,
+                        )
+                    }
                 }
             }
         }
@@ -826,13 +862,7 @@ class DataBackActivity : AppCompatActivity() {
     }
 
     private fun setButtonsEnabled(enabled: Boolean) {
-        updateActionEnabledState(binding.backupButton, enabled)
-        updateActionEnabledState(binding.restoreButton, enabled)
-    }
-
-    private fun updateActionEnabledState(view: View, enabled: Boolean) {
-        view.isEnabled = enabled
-        view.alpha = if (enabled) 1f else 0.5f
+        updateUi { it.copy(actionsEnabled = enabled) }
     }
 
 }

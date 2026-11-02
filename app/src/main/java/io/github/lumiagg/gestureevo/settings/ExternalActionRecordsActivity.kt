@@ -1,23 +1,48 @@
 package io.github.lumiagg.gestureevo.settings
 
 import android.os.Bundle
-import android.view.View
-import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.isGone
-import androidx.lifecycle.lifecycleScope
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.lumiagg.gestureevo.R
-import io.github.lumiagg.gestureevo.databinding.ActivityExternalActionRecordsBinding
 import io.github.lumiagg.gestureevo.db.ExternalActionPermissionModel
-import io.github.lumiagg.gestureevo.settings.ui.installPageHeader
+import io.github.lumiagg.gestureevo.ui.compose.MiuixEvoTheme
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixCard
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixScreen
 import io.github.lumiagg.gestureevo.utils.ClipboardUtils
 import io.github.lumiagg.gestureevo.utils.ExternalActionPermissionStore
 import io.github.lumiagg.gestureevo.utils.GestureActionLink
 import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
  * 授权记录子页：列出已设为免确认的外部调用，可复制 Link 或删除记录以恢复确认。
@@ -26,63 +51,130 @@ import kotlinx.coroutines.launch
  */
 class ExternalActionRecordsActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityExternalActionRecordsBinding
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        binding = ActivityExternalActionRecordsBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.setDisplayShowHomeEnabled(true)
-        installPageHeader(
-            this,
-            binding.toolbar,
-            binding.toolbarLayout,
-            R.string.external_action_history_title
-        )
-    }
-
-    override fun onResume() {
-        super.onResume()
-        refreshRecords()
-    }
-
-    private fun refreshRecords() {
-        lifecycleScope.launch {
-            val records = ExternalActionPermissionStore.getAllPermissions()
-            binding.recordsContainer.removeAllViews()
-            binding.emptyHistoryText.visibility = if (records.isEmpty()) View.VISIBLE else View.GONE
-
-            records.forEach { record ->
-                val itemView = layoutInflater.inflate(
-                    R.layout.item_external_permission_record,
-                    binding.recordsContainer,
-                    false
-                )
-
-                itemView.findViewById<TextView>(R.id.recordTitle).isGone = true
-                itemView.findViewById<TextView>(R.id.recordId).text = buildRecordSummary(record)
-                itemView.findViewById<TextView>(R.id.recordLink).text = record.link
-
-                itemView.findViewById<MaterialButton>(R.id.copyRecordButton).apply {
-                    setOnClickListener { copyLink(record.link) }
-                }
-                itemView.findViewById<View>(R.id.recordLink).setOnClickListener {
-                    copyLink(record.link)
-                }
-                itemView.findViewById<View>(R.id.deleteRecordButton).setOnClickListener {
-                    confirmDeleteRecord(record)
-                }
-                binding.recordsContainer.addView(itemView)
+        setContent {
+            MiuixEvoTheme {
+                RecordsScreen(onBack = { onBackPressedDispatcher.onBackPressed() })
             }
         }
     }
 
-    private fun copyLink(link: String) {
-        ClipboardUtils.copyText(this, link)
-        Toast.makeText(this, getString(R.string.external_action_link_copied), Toast.LENGTH_SHORT)
-            .show()
+    @Composable
+    private fun RecordsScreen(onBack: () -> Unit) {
+        val context = LocalContext.current
+        val scope = rememberCoroutineScope()
+        var records by remember { mutableStateOf<List<ExternalActionPermissionModel>>(emptyList()) }
+        var pendingDelete by remember { mutableStateOf<ExternalActionPermissionModel?>(null) }
+
+        fun copyLink(link: String) {
+            ClipboardUtils.copyText(context, link)
+            Toast.makeText(context, R.string.external_action_link_copied, Toast.LENGTH_SHORT).show()
+        }
+
+        LaunchedEffect(Unit) {
+            records = ExternalActionPermissionStore.getAllPermissions()
+        }
+
+        MiuixScreen(
+            title = stringResource(R.string.external_action_history_title),
+            onBack = onBack,
+        ) {
+            if (records.isEmpty()) {
+                item {
+                    MiuixCard {
+                        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                            Text(
+                                text = stringResource(R.string.external_action_history_empty),
+                                fontSize = 14.sp,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            )
+                        }
+                    }
+                }
+            } else {
+                item {
+                    MiuixCard {
+                        records.forEach { record ->
+                            RecordRow(
+                                summary = buildRecordSummary(record),
+                                link = record.link,
+                                onCopy = { copyLink(record.link) },
+                                onDelete = { pendingDelete = record },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        pendingDelete?.let { record ->
+            AlertDialog(
+                onDismissRequest = { pendingDelete = null },
+                title = { Text(stringResource(R.string.external_action_delete_confirm_title)) },
+                text = { Text(stringResource(R.string.external_action_delete_confirm_message)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        scope.launch {
+                            ExternalActionPermissionStore.deletePermission(record.id)
+                            records = ExternalActionPermissionStore.getAllPermissions()
+                            pendingDelete = null
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.external_action_deleted),
+                                Toast.LENGTH_SHORT,
+                            ).show()
+                        }
+                    }) {
+                        Text(stringResource(R.string.external_action_delete_button))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingDelete = null }) {
+                        Text(stringResource(R.string.data_backup_cancel))
+                    }
+                },
+            )
+        }
+    }
+
+    @Composable
+    private fun RecordRow(
+        summary: String,
+        link: String,
+        onCopy: () -> Unit,
+        onDelete: () -> Unit,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(text = summary, fontSize = 16.sp)
+                Text(
+                    text = link,
+                    fontSize = 12.sp,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+            }
+            Spacer(Modifier.size(8.dp))
+            IconButton(onClick = onCopy) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_baseline_content_copy_24),
+                    contentDescription = null,
+                )
+            }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_delete),
+                    contentDescription = null,
+                )
+            }
+        }
     }
 
     private fun buildRecordSummary(record: ExternalActionPermissionModel): String {
@@ -104,24 +196,5 @@ class ExternalActionRecordsActivity : AppCompatActivity() {
             scopeLabel,
             actionName
         )
-    }
-
-    private fun confirmDeleteRecord(record: ExternalActionPermissionModel) {
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.external_action_delete_confirm_title)
-            .setMessage(R.string.external_action_delete_confirm_message)
-            .setPositiveButton(R.string.external_action_delete_button) { _, _ ->
-                lifecycleScope.launch {
-                    ExternalActionPermissionStore.deletePermission(record.id)
-                    refreshRecords()
-                    Toast.makeText(
-                        this@ExternalActionRecordsActivity,
-                        getString(R.string.external_action_deleted),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-            .setNegativeButton(R.string.data_backup_cancel, null)
-            .show()
     }
 }

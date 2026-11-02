@@ -2,24 +2,43 @@ package io.github.lumiagg.gestureevo.ui.home
 
 import android.content.Context
 import android.content.Intent
-import android.content.res.ColorStateList
-import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.view.View
-import android.widget.LinearLayout
+import androidx.activity.compose.setContent
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updatePadding
-import com.google.android.material.color.MaterialColors
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.lumiagg.gestureevo.R
-import io.github.lumiagg.gestureevo.databinding.ActivityFeatureGuideBinding
-import io.github.lumiagg.gestureevo.databinding.ItemOnboardingFeatureBinding
-import io.github.lumiagg.gestureevo.utils.dp2px
+import io.github.lumiagg.gestureevo.ui.compose.MiuixEvoTheme
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixCard
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixScreen
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
  * 分页功能引导：屏幕页与搜索页各自的玩法介绍。
@@ -29,9 +48,7 @@ import io.github.lumiagg.gestureevo.utils.dp2px
  */
 class FeatureGuideActivity : AppCompatActivity() {
 
-    private lateinit var binding: ActivityFeatureGuideBinding
     private var index = 0
-    private val indicators = mutableListOf<View>()
 
     private val page: String
         get() = intent?.getStringExtra(EXTRA_GUIDE_PAGE) ?: GUIDE_SCREEN
@@ -161,30 +178,16 @@ class FeatureGuideActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityFeatureGuideBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        applyInsets()
-
-        binding.guideTitle.setText(
-            when (page) {
-                GUIDE_SETTINGS -> R.string.guide_title_settings
-                GUIDE_GESTURE -> R.string.guide_title_gesture
-                GUIDE_SEARCH -> R.string.guide_title_search
-                else -> R.string.guide_title_screen
-            }
-        )
-        binding.guideBackButton.setOnClickListener { finish() }
-        binding.nextButton.setOnClickListener {
-            if (index >= steps.lastIndex) {
-                finish()
-            } else {
-                showStep(index + 1)
+        index = savedInstanceState?.getInt(KEY_STEP) ?: 0
+        setContent {
+            MiuixEvoTheme {
+                GuideScreen(
+                    initialStep = index,
+                    onStepChange = { index = it },
+                    onClose = { finish() },
+                )
             }
         }
-
-        buildIndicator()
-        showStep(savedInstanceState?.getInt(KEY_STEP) ?: 0)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -192,89 +195,95 @@ class FeatureGuideActivity : AppCompatActivity() {
         outState.putInt(KEY_STEP, index)
     }
 
-    private fun applyInsets() {
-        val topPadding = binding.guideTopBar.paddingTop
-        val bottomPadding = binding.guideBottomBar.paddingBottom
-        ViewCompat.setOnApplyWindowInsetsListener(binding.guideRoot) { _, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            binding.guideTopBar.updatePadding(top = topPadding + bars.top)
-            binding.guideBottomBar.updatePadding(bottom = bottomPadding + bars.bottom)
-            insets
-        }
-        ViewCompat.requestApplyInsets(binding.guideRoot)
-    }
+    @Composable
+    private fun GuideScreen(
+        initialStep: Int,
+        onStepChange: (Int) -> Unit,
+        onClose: () -> Unit,
+    ) {
+        var stepIndex by remember { mutableIntStateOf(initialStep.coerceIn(0, steps.lastIndex)) }
+        val step = steps[stepIndex]
 
-    private fun showStep(target: Int) {
-        index = target.coerceIn(0, steps.lastIndex)
-        binding.guideContainer.removeAllViews()
-
-        val step = steps[index]
-        val item = ItemOnboardingFeatureBinding.inflate(
-            layoutInflater,
-            binding.guideContainer,
-            false,
-        )
-        item.featureIcon.setImageResource(step.icon)
-        item.featureIcon.imageTintList = ColorStateList.valueOf(
-            MaterialColors.getColor(
-                item.root,
-                android.R.attr.colorPrimary,
-                Color.GRAY,
-            )
-        )
-        item.featureTitle.setText(step.title)
-        item.featureDesc.setText(step.desc)
-        binding.guideContainer.addView(item.root)
-
-        binding.nextButton.setText(
-            if (index == steps.lastIndex) R.string.guide_done else R.string.onboarding_next
-        )
-        updateIndicator()
-    }
-
-    private fun buildIndicator() {
-        indicators.clear()
-        binding.stepIndicator.removeAllViews()
-        repeat(steps.size) {
-            val dot = View(this).apply {
-                layoutParams = LinearLayout.LayoutParams(dotSizePx, dotSizePx).apply {
-                    marginEnd = 6f.dp2px.toInt()
+        MiuixScreen(
+            title = stringResource(
+                when (page) {
+                    GUIDE_SETTINGS -> R.string.guide_title_settings
+                    GUIDE_GESTURE -> R.string.guide_title_gesture
+                    GUIDE_SEARCH -> R.string.guide_title_search
+                    else -> R.string.guide_title_screen
                 }
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.RECTANGLE
-                    cornerRadius = dotSizePx / 2f
-                    setColor(Color.GRAY)
+            ),
+            onBack = onClose,
+        ) {
+            item {
+                MiuixCard {
+                    Column(Modifier.fillMaxWidth().padding(20.dp)) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(step.icon),
+                            contentDescription = null,
+                            tint = MiuixTheme.colorScheme.primary,
+                            modifier = Modifier.size(40.dp),
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            text = stringResource(step.title),
+                            fontSize = 22.sp,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(step.desc),
+                            fontSize = 15.sp,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+                    }
                 }
             }
-            binding.stepIndicator.addView(dot)
-            indicators += dot
-        }
-    }
-
-    private fun updateIndicator() {
-        val activeColor = MaterialColors.getColor(
-            binding.stepIndicator,
-            android.R.attr.colorPrimary,
-            Color.GRAY,
-        )
-        val inactiveColor = MaterialColors.getColor(
-            binding.stepIndicator,
-            com.google.android.material.R.attr.colorOutlineVariant,
-            Color.LTGRAY,
-        )
-        indicators.forEachIndexed { position, dot ->
-            (dot.background as? GradientDrawable)?.setColor(
-                if (position == index) activeColor else inactiveColor
-            )
-            (dot.layoutParams as? LinearLayout.LayoutParams)?.let { params ->
-                params.width = if (position == index) activeDotWidthPx else dotSizePx
-                dot.layoutParams = params
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    steps.indices.forEach { i ->
+                        val active = i == stepIndex
+                        Spacer(
+                            modifier = Modifier
+                                .height(8.dp)
+                                .width(if (active) 22.dp else 8.dp)
+                                .clip(CircleShape)
+                                .then(
+                                    Modifier.background(
+                                        if (active) MiuixTheme.colorScheme.primary
+                                        else MiuixTheme.colorScheme.outline.copy(alpha = 0.4f)
+                                    )
+                                ),
+                        )
+                        if (i != steps.lastIndex) Spacer(Modifier.width(6.dp))
+                    }
+                }
+            }
+            item {
+                Button(
+                    onClick = {
+                        if (stepIndex >= steps.lastIndex) {
+                            onClose()
+                        } else {
+                            stepIndex++
+                            onStepChange(stepIndex)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = stringResource(
+                            if (stepIndex == steps.lastIndex) R.string.guide_done
+                            else R.string.onboarding_next
+                        ),
+                    )
+                }
             }
         }
     }
-
-    private val dotSizePx: Int get() = 8f.dp2px.toInt()
-    private val activeDotWidthPx: Int get() = 22f.dp2px.toInt()
 
     companion object {
         /** 屏幕页引导。 */
