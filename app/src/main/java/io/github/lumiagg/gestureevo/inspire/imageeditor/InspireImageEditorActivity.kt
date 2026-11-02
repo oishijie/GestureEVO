@@ -1,4 +1,4 @@
-package io.github.lumiagg.gestureevo.inspire.imageeditor
+﻿package io.github.lumiagg.gestureevo.inspire.imageeditor
 
 import android.annotation.SuppressLint
 import androidx.core.graphics.drawable.toDrawable
@@ -11,7 +11,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Rect
-import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.LayerDrawable
 import android.os.Bundle
@@ -26,6 +25,7 @@ import android.widget.FrameLayout
 import android.widget.PopupWindow
 import android.view.animation.PathInterpolator
 import androidx.appcompat.app.AppCompatActivity
+import io.github.lumiagg.gestureevo.inspire.ui.showInspireEditBottomSheet
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowCompat
@@ -38,7 +38,6 @@ import com.google.android.material.button.MaterialButton
 import io.github.lumiagg.gestureevo.R
 import io.github.lumiagg.gestureevo.databinding.ActivityInspireImageEditorBinding
 import io.github.lumiagg.gestureevo.databinding.PopupInspireImageEditorScrubBinding
-import io.github.lumiagg.gestureevo.databinding.PopupInspireImageEditorSaveOptionsBinding
 import io.github.lumiagg.gestureevo.gesture.EventBusManager.produceInspireEvent
 import io.github.lumiagg.gestureevo.gesture.InspireEvent
 import io.github.lumiagg.gestureevo.inspire.InspireDataHolder
@@ -54,7 +53,6 @@ import io.github.lumiagg.gestureevo.inspire.imageeditor.ui.BrushSizePreviewView
 import io.github.lumiagg.gestureevo.inspire.imageeditor.ui.InspireImageEditorView
 import io.github.lumiagg.gestureevo.inspire.imageeditor.ui.ShapeTypePreviewView
 import io.github.lumiagg.gestureevo.inspire.imageeditor.utils.InAppCardBlur
-import io.github.lumiagg.gestureevo.inspire.ui.showInspireEditBottomSheet
 import io.github.lumiagg.gestureevo.pin.PinPoolStore
 import io.github.lumiagg.gestureevo.share.ImageShareLauncher
 import io.github.lumiagg.gestureevo.settings.InspireSettingsActivity.Companion.KEY_DEFAULT_SHARE_IMAGE_APP
@@ -140,7 +138,7 @@ class InspireImageEditorActivity : AppCompatActivity() {
     private var lastPersistedShapeType: ShapeType? = null
     private lateinit var modeButtons: List<Pair<MaterialButton, EditorMode>>
     private var enterAnimationPlayed = false
-    private var saveOptionsPopup: PopupWindow? = null
+    private var saveOptionsPopup: android.app.Dialog? = null
     private var scrubPopupWindow: PopupWindow? = null
     private var colorScrubOptions: List<ScrubOption<Int>> = emptyList()
     private var shapeScrubOptions: List<ScrubOption<ShapeType>> = emptyList()
@@ -1288,6 +1286,7 @@ class InspireImageEditorActivity : AppCompatActivity() {
         suggestedSize: Float,
         action: EditAction.Text?,
     ) {
+        if (isFinishing || isDestroyed) return
         showInspireEditBottomSheet(
             context = this,
             title = getString(R.string.inspire_image_edit_text_title),
@@ -1295,64 +1294,26 @@ class InspireImageEditorActivity : AppCompatActivity() {
             scopeText = getString(R.string.inspire_image_edit_text_scope),
             defaultText = action?.text.orEmpty(),
             disableDragToDismiss = true,
-            onConfirm = { input ->
-                val text = input.trim()
-                when {
-                    action != null && text.isEmpty() -> editorSession.removeAction(action.id)
-                    action != null -> editorSession.updateTextAction(action.id) {
-                        it.copy(text = text)
-                    }
-
-                    text.isNotEmpty() -> editorSession.addAction(
-                        EditAction.Text(
-                            id = System.nanoTime().toString(),
-                            text = text,
-                            anchor = anchor,
-                            color = editorSession.state.currentColor,
-                            textSize = suggestedSize,
-                        )
-                    )
-                }
+        ) { input ->
+            val text = input.trim()
+            when {
+                action != null && text.isEmpty() -> editorSession.removeAction(action.id)
+                action != null -> editorSession.updateTextAction(action.id) { it.copy(text = text) }
+                text.isNotEmpty() -> editorSession.addAction(EditAction.Text(
+                    id = System.nanoTime().toString(), text = text, anchor = anchor,
+                    color = editorSession.state.currentColor, textSize = suggestedSize,
+                ))
             }
-        )
+        }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun showSaveOptions(anchor: View) {
+        if (isFinishing || isDestroyed) return
         saveOptionsPopup?.dismiss()
-
-        val popupBinding = PopupInspireImageEditorSaveOptionsBinding.inflate(
-            LayoutInflater.from(this)
-        )
-        val popupWindow = PopupWindow(
-            popupBinding.root,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            true
-        ).apply {
-            isOutsideTouchable = true
-            setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
-            elevation = resources.displayMetrics.density * 10f
+        saveOptionsPopup = showMiuixSaveOptions(this) { minutes ->
+            exportAndSave(deleteAfterMinutes = minutes)
         }
-
-        popupBinding.actionSavePersist.setOnClickListener {
-            popupWindow.dismiss()
-            exportAndSave(deleteAfterMinutes = 0)
-        }
-        popupBinding.actionSaveAutoDelete.setOnClickListener {
-            popupWindow.dismiss()
-            exportAndSave(deleteAfterMinutes = 5)
-        }
-
-        popupBinding.root.measure(
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-        )
-        val horizontalOffset = anchor.width - popupBinding.root.measuredWidth
-        val verticalGap = (8 * resources.displayMetrics.density).toInt()
-        val verticalOffset = -(anchor.height + popupBinding.root.measuredHeight + verticalGap)
-
-        popupWindow.showAsDropDown(anchor, horizontalOffset, verticalOffset)
-        saveOptionsPopup = popupWindow
     }
 
     private fun exportAndSave(deleteAfterMinutes: Long) {

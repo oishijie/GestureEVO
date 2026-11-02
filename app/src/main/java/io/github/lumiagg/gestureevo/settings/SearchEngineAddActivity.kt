@@ -1,26 +1,56 @@
 package io.github.lumiagg.gestureevo.settings
 
-import io.github.lumiagg.gestureevo.databinding.BottomSheetIconSelectBinding
-
-
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import android.widget.Toast
+import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.browser.customtabs.CustomTabsService
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.neverEqualPolicy
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.graphics.createBitmap
 import androidx.lifecycle.lifecycleScope
 import io.github.lumiagg.gestureevo.R
-import io.github.lumiagg.gestureevo.databinding.ActivitySearchEngineAddBinding
 import io.github.lumiagg.gestureevo.db.APPModel
 import io.github.lumiagg.gestureevo.gesture.config.IconType
+import io.github.lumiagg.gestureevo.gesture.ui.RoundImageTextView
 import io.github.lumiagg.gestureevo.search.config.EngineType
 import io.github.lumiagg.gestureevo.search.config.SearchEngine
 import io.github.lumiagg.gestureevo.search.config.SearchEngineDataManager
 import io.github.lumiagg.gestureevo.search.setEngineIcon
+import io.github.lumiagg.gestureevo.settings.ui.ActivityFilter
 import io.github.lumiagg.gestureevo.settings.ui.ActivityFilters
 import io.github.lumiagg.gestureevo.settings.ui.ActivityModel
 import io.github.lumiagg.gestureevo.settings.ui.DefaultSelectAPPBottomSheet
@@ -28,435 +58,351 @@ import io.github.lumiagg.gestureevo.settings.ui.SelectAPPCallBack
 import io.github.lumiagg.gestureevo.settings.ui.SelectActivityBottomSheet
 import io.github.lumiagg.gestureevo.settings.ui.SelectActivityCallBack
 import io.github.lumiagg.gestureevo.settings.ui.showEditTextBottomSheet
-import io.github.lumiagg.gestureevo.utils.readKey
-import io.github.lumiagg.gestureevo.utils.settingsStore
+import io.github.lumiagg.gestureevo.ui.compose.MiuixEvoTheme
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixCard
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixScreen
 import io.github.lumiagg.gestureevo.utils.icon.IconFileUtils
 import io.github.lumiagg.gestureevo.utils.icon.IconHelper
 import io.github.lumiagg.gestureevo.utils.icon.IconImageIO
+import io.github.lumiagg.gestureevo.utils.readKey
+import io.github.lumiagg.gestureevo.utils.settingsStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.RadioButton
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.preference.SwitchPreference
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 class SearchEngineAddActivity : AppCompatActivity() {
-    private lateinit var binding: ActivitySearchEngineAddBinding
     private var editMode = false
-    private var searchEngine = SearchEngine()
+    // SearchEngine is mutable; invalidate readers even when a callback edits the same model.
+    private var searchEngine by mutableStateOf(SearchEngine(), neverEqualPolicy())
     private val iconFileUtils = IconFileUtils(this)
-    private var currentEngineType = EngineType.DIRECT_LINK
-    private var showImageBadge = true
+    private var showImageBadge by mutableStateOf(true)
+    private var showIconPicker by mutableStateOf(false)
+    private var customTabsSupported by mutableStateOf(false)
+    private var busy by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivitySearchEngineAddBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        setupToolbar()
-        initView()
-        initData(savedInstanceState)
-    }
-
-    private fun setupToolbar() {
-        binding.toolbar.title = getString(
-            if (editMode) {
-                R.string.search_engine_edit_page_title
-            } else {
-                R.string.search_engine_add_page_title
-            }
-        )
-        binding.toolbar.setNavigationIcon(androidx.appcompat.R.drawable.abc_ic_ab_back_material)
-        binding.toolbar.setNavigationOnClickListener {
-            onBackPressedDispatcher.onBackPressed()
+        editMode = intent.getBooleanExtra("editMode", false)
+        val draft = savedInstanceState?.getString("engine_draft")
+        val initialJson = draft ?: if (editMode) intent.getStringExtra("engine") else null
+        searchEngine = initialJson?.let(SearchEngine::toModel) ?: SearchEngine().apply {
+            tag = SearchEngineDataManager.buildTag()
         }
-    }
-
-    private fun initView() {
-        // Setup icon selection
-        binding.engineIcon.setImage(R.drawable.baseline_image_24)
-        binding.engineIcon.setOnClickListener {
-            selectIcon()
+        showIconPicker = savedInstanceState?.getBoolean("icon_picker_open") ?: false
+        if (searchEngine.engineType == EngineType.DIRECT_LINK) updateDirectLinkCustomTabsSwitch()
+        setContent {
+            MiuixEvoTheme {
+                Column(Modifier.fillMaxWidth().imePadding()) {
+                    EngineScreen()
+                }
+                if (showIconPicker) IconSourceDialog()
+            }
         }
         lifecycleScope.launch {
             showImageBadge = settingsStore.readKey(SearchEngineSettingsActivity.KEY_SHOW_IMAGE_BADGE, true)
-            updateEngineIconPreview()
-        }
-
-        // Setup save button
-        binding.fabSave.setOnClickListener {
-            saveSearchEngine()
-        }
-
-        // Setup share button
-        binding.fabShare.setOnClickListener {
-            shareEngineConfig()
-        }
-
-        setupModeSelector()
-
-        // Initially display configuration for first engine type
-        showConfigForType(EngineType.DIRECT_LINK)
-    }
-
-    private fun setupModeSelector() {
-        binding.modeChipGroup.setOnCheckedStateChangeListener { _, checkedIds ->
-            val selectedChipId = checkedIds.firstOrNull() ?: return@setOnCheckedStateChangeListener
-            val selectedType = engineTypeForChipId(selectedChipId)
-            if (selectedType != currentEngineType) {
-                showConfigForType(selectedType)
-            }
         }
     }
 
-    private fun chipIdForEngineType(type: EngineType): Int = when (type) {
-        EngineType.DIRECT_LINK -> R.id.chipDirectLink
-        EngineType.SHARE_TO_APP -> R.id.chipShareToApp
-        EngineType.SHARE_IMAGE_TO_APP -> R.id.chipShareImageToApp
-        EngineType.JUMP_TO_ACTIVITY -> R.id.chipJumpActivity
-        EngineType.EXTERN_JUMP_LINK -> R.id.chipExternJump
-    }
-
-    private fun engineTypeForChipId(chipId: Int): EngineType = when (chipId) {
-        R.id.chipShareToApp -> EngineType.SHARE_TO_APP
-        R.id.chipShareImageToApp -> EngineType.SHARE_IMAGE_TO_APP
-        R.id.chipJumpActivity -> EngineType.JUMP_TO_ACTIVITY
-        R.id.chipExternJump -> EngineType.EXTERN_JUMP_LINK
-        else -> EngineType.DIRECT_LINK
-    }
-
-    private fun showConfigForType(type: EngineType) {
-        currentEngineType = type
-        searchEngine.engineType = type
-        // Hide all configuration layouts
-        binding.directLinkConfig.root.visibility = View.GONE
-        binding.jumpActivityConfig.root.visibility = View.GONE
-        binding.externJumpConfig.root.visibility = View.GONE
-        binding.shareToAppConfig.root.visibility = View.GONE
-        binding.shareImageToAppConfig.root.visibility = View.GONE
-
-        // Show corresponding configuration layout
-        when (type) {
-            EngineType.DIRECT_LINK -> {
-                binding.directLinkConfig.root.visibility = View.VISIBLE
-                setupDirectLinkConfig()
-            }
-
-            EngineType.JUMP_TO_ACTIVITY -> {
-                binding.jumpActivityConfig.root.visibility = View.VISIBLE
-                setupJumpActivityConfig()
-            }
-
-            EngineType.EXTERN_JUMP_LINK -> {
-                binding.externJumpConfig.root.visibility = View.VISIBLE
-                setupExternJumpConfig()
-            }
-
-            EngineType.SHARE_TO_APP -> {
-                binding.shareToAppConfig.root.visibility = View.VISIBLE
-                setupShareToTextAppConfig()
-            }
-
-            EngineType.SHARE_IMAGE_TO_APP -> {
-                binding.shareImageToAppConfig.root.visibility = View.VISIBLE
-                setupShareToImageActivityConfig()
-            }
-        }
-        updateEngineIconPreview()
-    }
-
-    private fun setupDirectLinkConfig() {
-        updateDirectLinkCustomTabsSwitch()
-
-        binding.directLinkConfig.btnEditSearchLink.setOnClickListener {
-            showEditTextBottomSheet(
-                activity = this,
-                coroutineScope = lifecycleScope,
-                title = getString(R.string.search_engine_direct_link_title),
-                hint = getString(R.string.search_engine_direct_link_hint),
-                defaultText = searchEngine.searchLink,
-                onConfirm = { inputText ->
-                    if (inputText.isNotEmpty()) {
-                        searchEngine.searchLink = inputText
-                        binding.directLinkConfig.tvSearchLink.text = inputText
-                    }
-                }
-            )
-        }
-
-        binding.directLinkConfig.directLinkSelectActivity.setOnClickListener {
-            DefaultSelectAPPBottomSheet(this, lifecycleScope, object : SelectAPPCallBack {
-                override fun selectCompleted(model: APPModel) {
-                    searchEngine.targetPackage = model.pkgName
-                    binding.directLinkConfig.directLinkTargetPackage.text = model.pkgName
-                    updateDirectLinkCustomTabsSwitch()
-
-                    // Auto-populate icon
-                    if (searchEngine.iconType == IconType.OTHER) {
-                        IconHelper.getIcon(applicationContext, model.pkgName)?.let { drawable ->
-                            updateAndSaveIcon(drawable)
-                        }
-                    }
-                }
-            }).show()
-        }
-
-    }
-
-    private fun setupJumpActivityConfig() {
-        binding.jumpActivityConfig.jumpActivitySelectActivity.setOnClickListener {
-            SelectActivityBottomSheet(this, lifecycleScope, object : SelectActivityCallBack {
-                override fun selectCompleted(model: ActivityModel) {
-                    searchEngine.targetPackage = model.packageName
-                    searchEngine.targetActivity = model.activityName
-                    binding.jumpActivityConfig.jumpActivityTargetPackage.text = model.packageName
-                    binding.jumpActivityConfig.jumpActivityTargetActivity.text = model.activityName
-
-                    // Auto-populate icon
-                    if (searchEngine.iconType == IconType.OTHER) {
-                        IconHelper.getIcon(applicationContext, model.packageName)?.let { drawable ->
-                            updateAndSaveIcon(drawable)
-                        }
-                    }
-                }
-            }).show()
-        }
-        binding.jumpActivityConfig.jumpActivityAutoInputEnter.setOnCheckedChangeListener { _, isChecked ->
-            searchEngine.autoInputEnter = isChecked
-        }
-    }
-
-    private fun setupExternJumpConfig() {
-        // Select external launch package name
-        binding.externJumpConfig.btnSelectPackage.setOnClickListener {
-            DefaultSelectAPPBottomSheet(this, lifecycleScope, object : SelectAPPCallBack {
-                override fun selectCompleted(model: APPModel) {
-                    searchEngine.externJumpPackage = model.pkgName
-                    binding.externJumpConfig.tvExternPackage.text = model.pkgName
-
-                    // Auto-populate icon
-                    if (searchEngine.iconType == IconType.OTHER) {
-                        IconHelper.getIcon(applicationContext, model.pkgName)?.let { drawable ->
-                            updateAndSaveIcon(drawable)
-                        }
-                    }
-                }
-            }).show()
-        }
-
-        // Edit external launch URL
-        binding.externJumpConfig.btnEditExternLink.setOnClickListener {
-            showEditTextBottomSheet(
-                activity = this,
-                coroutineScope = lifecycleScope,
-                title = getString(R.string.search_engine_extern_jump_title),
-                hint = getString(R.string.search_engine_extern_jump_hint),
-                defaultText = searchEngine.externJumpLink,
-                onConfirm = { inputText ->
-                    if (inputText.isNotEmpty()) {
-                        searchEngine.externJumpLink = inputText
-                        binding.externJumpConfig.tvExternLink.text = inputText
-                    }
-                }
-            )
-        }
-
-        // Select target Activity
-        binding.externJumpConfig.btnSelectTargetActivity.setOnClickListener {
-            SelectActivityBottomSheet(this, lifecycleScope, object : SelectActivityCallBack {
-                override fun selectCompleted(model: ActivityModel) {
-                    searchEngine.targetPackage = model.packageName
-                    searchEngine.targetActivity = model.activityName
-                    binding.externJumpConfig.externJumpTargetActivity.text =
-                        getString(R.string.package_activity_label, model.packageName, model.activityName)
-                    // Auto-populate icon
-                    if (searchEngine.iconType == IconType.OTHER) {
-                        IconHelper.getIcon(applicationContext, model.packageName)?.let { drawable ->
-                            updateAndSaveIcon(drawable)
-                        }
-                    }
-                }
-            }).show()
-        }
-
-        binding.externJumpConfig.externJumpAutoInputEnter.setOnCheckedChangeListener { _, isChecked ->
-            searchEngine.autoInputEnter = isChecked
-        }
-    }
-
-    private fun setupShareToTextAppConfig() {
-        binding.shareToAppConfig.shareAppSelectActivity.setOnClickListener {
-            SelectActivityBottomSheet(this, lifecycleScope, object : SelectActivityCallBack {
-                override fun selectCompleted(model: ActivityModel) {
-                    searchEngine.targetPackage = model.packageName
-                    searchEngine.targetActivity = model.activityName
-                    binding.shareToAppConfig.shareAppTargetActivity.text =
-                        getString(R.string.package_activity_label, model.packageName, model.activityName)
-                    if (searchEngine.iconType == IconType.OTHER) {
-                        IconHelper.getIcon(applicationContext, model.packageName)
-                            ?.let { drawable -> updateAndSaveIcon(drawable) }
-                    }
-                }
-            }, ActivityFilters.textShareFilter()).show()
-        }
-    }
-
-    private fun setupShareToImageActivityConfig() {
-        binding.shareImageToAppConfig.shareImageSelectActivity.setOnClickListener {
-            SelectActivityBottomSheet(this, lifecycleScope, object : SelectActivityCallBack {
-                override fun selectCompleted(model: ActivityModel) {
-                    searchEngine.targetPackage = model.packageName
-                    searchEngine.targetActivity = model.activityName
-                    binding.shareImageToAppConfig.shareImageTargetActivity.text =
-                        getString(R.string.package_activity_label, model.packageName, model.activityName)
-                    if (searchEngine.iconType == IconType.OTHER) {
-                        IconHelper.getIcon(applicationContext, model.packageName)
-                            ?.let { drawable -> updateAndSaveIcon(drawable) }
-                    }
-                }
-            }, ActivityFilters.imageShareFilter()).show()
-        }
-    }
-
-    private fun initData(savedInstanceState: Bundle?) {
-        editMode = intent.getBooleanExtra("editMode", false)
-        setupToolbar()
-
-        if (editMode || savedInstanceState?.containsKey("engine_draft") == true) {
-            (savedInstanceState?.getString("engine_draft") ?: intent.getStringExtra("engine"))?.let { engineJson ->
-                SearchEngine.toModel(engineJson)?.let { engine ->
-                    searchEngine = engine
-                    fillEngineData()
-                }
-            }
-        } else {
-            searchEngine.tag = SearchEngineDataManager.buildTag()
-            updateEngineIconPreview()
-        }
+    private fun updateEngine(change: SearchEngine.() -> Unit) {
+        searchEngine = searchEngine.apply(change)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        searchEngine.name = binding.etEngineName.text.toString()
-        searchEngine.engineType = currentEngineType
         outState.putString("engine_draft", searchEngine.toJson())
+        outState.putBoolean("icon_picker_open", showIconPicker)
         super.onSaveInstanceState(outState)
     }
 
-    private fun fillEngineData() {
-        // Populate name
-        binding.etEngineName.setText(searchEngine.name)
+    @Composable
+    private fun EngineScreen() {
+        MiuixScreen(
+            title = stringResource(if (editMode) R.string.search_engine_edit_page_title else R.string.search_engine_add_page_title),
+            onBack = { onBackPressedDispatcher.onBackPressed() },
+        ) {
+            item {
+                MiuixCard {
+                    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        SectionTitle(R.string.search_engine_add_identity_title)
+                        Description(R.string.search_engine_add_identity_desc)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            val iconLabel = stringResource(R.string.icon_select_title)
+                            AndroidView(
+                                factory = { context -> RoundImageTextView(context) },
+                                update = { view -> updateEngineIconPreview(view) },
+                                modifier = Modifier.size(64.dp)
+                                    .semantics { contentDescription = iconLabel }
+                                    .clickable(role = Role.Button) { showIconPicker = true },
+                            )
+                            TextField(
+                                value = searchEngine.name.orEmpty(),
+                                onValueChange = { value -> updateEngine { name = value } },
+                                label = stringResource(R.string.search_engine_add_name_hint),
+                                singleLine = true,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+            }
+            item {
+                MiuixCard {
+                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                        SectionTitle(R.string.search_engine_add_mode_title)
+                    }
+                    Column(Modifier.selectableGroup()) {
+                        EngineType.entries.forEach { type ->
+                            val selected = searchEngine.engineType == type
+                            Row(
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                                    .selectable(selected = selected, role = Role.RadioButton, onClick = {
+                                        updateEngine { engineType = type }
+                                        if (type == EngineType.DIRECT_LINK) updateDirectLinkCustomTabsSwitch()
+                                    })
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Text(stringResource(modeLabel(type)), modifier = Modifier.weight(1f), fontSize = 16.sp)
+                                RadioButton(selected = selected, onClick = null)
+                            }
+                        }
+                    }
+                }
+            }
+            item { MiuixCard { EngineConfiguration() } }
+            item {
+                MiuixCard {
+                    Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                        ActionButton(R.string.search_engine_add_share_config, Modifier.weight(1f), enabled = !busy) { shareEngineConfig() }
+                        ActionButton(R.string.search_engine_add_save, Modifier.weight(1f), primary = true, enabled = !busy) { saveSearchEngine() }
+                    }
+                }
+            }
+            item { Spacer(Modifier.height(24.dp)) }
+        }
+    }
 
-        binding.modeChipGroup.check(chipIdForEngineType(searchEngine.engineType))
-
-        // Populate icon
-        setEngineIcon(applicationContext, binding.engineIcon, searchEngine, showImageBadge)
-
-        // Populate specific configuration
-        when (searchEngine.engineType) {
+    @Composable
+    private fun EngineConfiguration() {
+        val type = searchEngine.engineType
+        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            when (type) {
+                EngineType.DIRECT_LINK -> {
+                    SectionTitle(R.string.se_direct_link_title)
+                    Description(R.string.se_direct_link_example)
+                    Description(R.string.se_direct_link_placeholder)
+                }
+                EngineType.JUMP_TO_ACTIVITY -> {
+                    SectionTitle(R.string.se_jump_activity_title)
+                    Description(R.string.se_jump_activity_description)
+                    Description(R.string.se_jump_activity_target_question)
+                }
+                EngineType.EXTERN_JUMP_LINK -> {
+                    SectionTitle(R.string.se_extern_jump_title)
+                    Description(R.string.se_extern_jump_description)
+                    Description(R.string.se_extern_jump_source_app_question)
+                }
+                EngineType.SHARE_TO_APP -> {
+                    SectionTitle(R.string.se_share_title)
+                    Description(R.string.se_share_description)
+                }
+                EngineType.SHARE_IMAGE_TO_APP -> {
+                    SectionTitle(R.string.se_share_image_title)
+                    Description(R.string.se_share_image_description)
+                }
+            }
+        }
+        when (type) {
             EngineType.DIRECT_LINK -> {
-                binding.directLinkConfig.tvSearchLink.text = searchEngine.searchLink
-                binding.directLinkConfig.directLinkTargetPackage.text = searchEngine.targetPackage
-                updateDirectLinkCustomTabsSwitch()
+                ConfigRow(R.string.se_direct_link_set_link, searchEngine.searchLink) { editLink(external = false) }
+                Column(Modifier.padding(horizontal = 16.dp)) { Description(R.string.se_direct_link_choose_app) }
+                ConfigRow(R.string.se_direct_link_select_app, searchEngine.targetPackage) { selectPackage(external = false) }
+                if (customTabsSupported) {
+                    SwitchPreference(
+                        title = stringResource(R.string.se_direct_link_use_custom_tabs),
+                        checked = searchEngine.useCustomTabs,
+                        onCheckedChange = { checked -> updateEngine { useCustomTabs = checked } },
+                    )
+                }
             }
-
             EngineType.JUMP_TO_ACTIVITY -> {
-                binding.jumpActivityConfig.jumpActivityTargetPackage.text = searchEngine.targetPackage
-                binding.jumpActivityConfig.jumpActivityTargetActivity.text = searchEngine.targetActivity
-                binding.jumpActivityConfig.jumpActivityAutoInputEnter.isChecked =
-                    searchEngine.autoInputEnter
+                ConfigRow(R.string.se_jump_activity_select_activity, targetActivityLabel()) { selectActivity() }
+                AutoEnterPreference()
             }
-
             EngineType.EXTERN_JUMP_LINK -> {
-                binding.externJumpConfig.tvExternPackage.text = searchEngine.externJumpPackage
-                binding.externJumpConfig.tvExternLink.text = searchEngine.externJumpLink
-                binding.externJumpConfig.externJumpTargetActivity.text =
-                    getString(R.string.package_activity_label, searchEngine.targetPackage, searchEngine.targetActivity)
-                binding.externJumpConfig.externJumpAutoInputEnter.isChecked =
-                    searchEngine.autoInputEnter
+                ConfigRow(R.string.se_extern_jump_select_source_app, searchEngine.externJumpPackage) { selectPackage(external = true) }
+                ConfigRow(R.string.se_extern_jump_set_link, searchEngine.externJumpLink) { editLink(external = true) }
+                Column(Modifier.padding(horizontal = 16.dp)) { Description(R.string.se_extern_jump_target_activity_question) }
+                ConfigRow(R.string.se_extern_jump_select_target_activity, targetActivityLabel()) { selectActivity() }
+                AutoEnterPreference()
             }
+            EngineType.SHARE_TO_APP -> ConfigRow(R.string.se_share_select_activity, targetActivityLabel()) {
+                selectActivity(ActivityFilters.textShareFilter())
+            }
+            EngineType.SHARE_IMAGE_TO_APP -> ConfigRow(R.string.se_share_image_select_activity, targetActivityLabel()) {
+                selectActivity(ActivityFilters.imageShareFilter())
+            }
+        }
+    }
 
-            EngineType.SHARE_TO_APP -> {
-                binding.shareToAppConfig.shareAppTargetActivity.text =
-                    getString(R.string.package_activity_label, searchEngine.targetPackage, searchEngine.targetActivity)
-            }
+    @Composable
+    private fun SectionTitle(resource: Int) {
+        Text(stringResource(resource), fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.Medium)
+    }
 
-            EngineType.SHARE_IMAGE_TO_APP -> {
-                binding.shareImageToAppConfig.shareImageTargetActivity.text =
-                    getString(R.string.package_activity_label, searchEngine.targetPackage, searchEngine.targetActivity)
+    @Composable
+    private fun Description(resource: Int) {
+        Text(stringResource(resource), fontSize = 12.sp, lineHeight = 16.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+    }
+
+    @Composable
+    private fun ConfigRow(title: Int, value: String?, onClick: () -> Unit) {
+        ArrowPreference(
+            title = stringResource(title),
+            summary = value?.takeIf { it.isNotBlank() } ?: stringResource(R.string.se_direct_link_not_set),
+            onClick = onClick,
+        )
+    }
+
+    @Composable
+    private fun AutoEnterPreference() {
+        SwitchPreference(
+            title = stringResource(R.string.se_extern_jump_auto_enter),
+            checked = searchEngine.autoInputEnter,
+            onCheckedChange = { checked -> updateEngine { autoInputEnter = checked } },
+        )
+    }
+
+    @Composable
+    private fun ActionButton(label: Int, modifier: Modifier = Modifier, primary: Boolean = false, enabled: Boolean = true, onClick: () -> Unit) {
+        TextButton(
+            text = stringResource(label),
+            onClick = onClick,
+            modifier = modifier.heightIn(min = 48.dp),
+            enabled = enabled,
+            colors = if (primary) ButtonDefaults.textButtonColorsPrimary() else ButtonDefaults.textButtonColors(),
+        )
+    }
+
+    @Composable
+    private fun IconSourceDialog() {
+        Dialog(onDismissRequest = { showIconPicker = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            MiuixCard(Modifier.padding(horizontal = 12.dp)) {
+                Column(Modifier.fillMaxWidth().heightIn(max = 500.dp).verticalScroll(rememberScrollState())) {
+                    Column(Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 12.dp)) {
+                        SectionTitle(R.string.icon_select_title)
+                    }
+                    ArrowPreference(title = stringResource(R.string.icon_select_gallery), onClick = {
+                        showIconPicker = false
+                        selectImageLauncher.launch(IconEditorRequest(imageBadge = imageBadgeEnabled()))
+                    })
+                    ArrowPreference(title = stringResource(R.string.icon_select_app_icon), onClick = {
+                        showIconPicker = false
+                        DefaultSelectAPPBottomSheet(this@SearchEngineAddActivity, lifecycleScope, object : SelectAPPCallBack {
+                            override fun selectCompleted(model: APPModel) {
+                                selectImageLauncher.launch(IconEditorRequest(appPackage = model.pkgName, imageBadge = imageBadgeEnabled()))
+                            }
+                        }).show()
+                    })
+                    ArrowPreference(title = stringResource(R.string.icon_select_text_icon), onClick = {
+                        showIconPicker = false
+                        selectTextIconLauncher.launch(TextIconEditorRequest(
+                            text = if (searchEngine.iconType == IconType.TEXT) searchEngine.textIcon.orEmpty() else "",
+                            imageBadge = imageBadgeEnabled(),
+                        ))
+                    })
+                    Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 24.dp)) {
+                        ActionButton(android.R.string.cancel, Modifier.weight(1f)) { showIconPicker = false }
+                    }
+                }
             }
+        }
+    }
+
+    private fun modeLabel(type: EngineType): Int = when (type) {
+        EngineType.DIRECT_LINK -> R.string.search_engine_tab_direct_link
+        EngineType.SHARE_TO_APP -> R.string.search_engine_tab_share_to_app
+        EngineType.SHARE_IMAGE_TO_APP -> R.string.search_engine_tab_share_image_to_app
+        EngineType.JUMP_TO_ACTIVITY -> R.string.search_engine_tab_jump_activity
+        EngineType.EXTERN_JUMP_LINK -> R.string.search_engine_tab_extern_jump
+    }
+
+    private fun targetActivityLabel(): String? = if (searchEngine.targetPackage.isNullOrBlank()) null else {
+        getString(R.string.package_activity_label, searchEngine.targetPackage, searchEngine.targetActivity.orEmpty())
+    }
+
+    private fun editLink(external: Boolean) {
+        showEditTextBottomSheet(
+            activity = this,
+            coroutineScope = lifecycleScope,
+            title = getString(if (external) R.string.search_engine_extern_jump_title else R.string.search_engine_direct_link_title),
+            hint = getString(if (external) R.string.search_engine_extern_jump_hint else R.string.search_engine_direct_link_hint),
+            defaultText = if (external) searchEngine.externJumpLink else searchEngine.searchLink,
+            onConfirm = { input ->
+                if (input.isNotEmpty()) updateEngine {
+                    if (external) externJumpLink = input else searchLink = input
+                }
+            },
+        )
+    }
+
+    private fun selectPackage(external: Boolean) {
+        DefaultSelectAPPBottomSheet(this, lifecycleScope, object : SelectAPPCallBack {
+            override fun selectCompleted(model: APPModel) {
+                updateEngine { if (external) externJumpPackage = model.pkgName else targetPackage = model.pkgName }
+                if (!external) updateDirectLinkCustomTabsSwitch()
+                autoPopulateIcon(model.pkgName)
+            }
+        }).show()
+    }
+
+    private fun selectActivity(filter: ActivityFilter? = null) {
+        SelectActivityBottomSheet(this, lifecycleScope, object : SelectActivityCallBack {
+            override fun selectCompleted(model: ActivityModel) {
+                updateEngine {
+                    targetPackage = model.packageName
+                    targetActivity = model.activityName
+                }
+                autoPopulateIcon(model.packageName)
+            }
+        }, filter).show()
+    }
+
+    private fun autoPopulateIcon(packageName: String) {
+        if (searchEngine.iconType == IconType.OTHER) {
+            IconHelper.getIcon(applicationContext, packageName)?.let(::updateAndSaveIcon)
         }
     }
 
     private fun updateDirectLinkCustomTabsSwitch() {
-        val switch = binding.directLinkConfig.useCustomTabsSwitch
-        val supportsCustomTabs = supportsCustomTabs(searchEngine.targetPackage)
-        switch.setOnCheckedChangeListener(null)
-        val row = switch.parent as? View ?: switch
-        if (supportsCustomTabs) {
-            row.visibility = View.VISIBLE
-            switch.isChecked = searchEngine.useCustomTabs
-            switch.setOnCheckedChangeListener { _, isChecked ->
-                searchEngine.useCustomTabs = isChecked
-            }
-        } else {
-            row.visibility = View.GONE
-            switch.isChecked = false
-            searchEngine.useCustomTabs = false
-        }
+        customTabsSupported = supportsCustomTabs(searchEngine.targetPackage)
+        if (!customTabsSupported) updateEngine { useCustomTabs = false }
     }
 
     private fun supportsCustomTabs(packageName: String?): Boolean {
         if (packageName.isNullOrBlank()) return false
-        val serviceIntent = Intent(CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION).apply {
-            setPackage(packageName)
-        }
+        val serviceIntent = Intent(CustomTabsService.ACTION_CUSTOM_TABS_CONNECTION).apply { setPackage(packageName) }
         return packageManager.queryIntentServices(serviceIntent, 0).isNotEmpty()
     }
 
-    private fun selectIcon() {
-        val bottomSheet = com.google.android.material.bottomsheet.BottomSheetDialog(
-            this, R.style.ThemeOverlay_BottomSheetDialog_Scrollable
-        )
-        val bottomSheetView = BottomSheetIconSelectBinding.inflate(layoutInflater).root
-
-        bottomSheetView.findViewById<View>(R.id.select_gallery)
-            .setOnClickListener {
-                bottomSheet.dismiss()
-                selectImageLauncher.launch(IconEditorRequest(
-                    imageBadge = searchEngine.engineType == EngineType.SHARE_IMAGE_TO_APP && showImageBadge,
-                ))
-            }
-
-        bottomSheetView.findViewById<View>(R.id.select_app_icon)
-            .setOnClickListener {
-                bottomSheet.dismiss()
-                DefaultSelectAPPBottomSheet(this, lifecycleScope, object : SelectAPPCallBack {
-                    override fun selectCompleted(model: APPModel) {
-                        selectImageLauncher.launch(IconEditorRequest(
-                            appPackage = model.pkgName,
-                            imageBadge = searchEngine.engineType == EngineType.SHARE_IMAGE_TO_APP && showImageBadge,
-                        ))
-                    }
-                }).show()
-            }
-
-        bottomSheetView.findViewById<View>(R.id.select_text_icon)
-            .setOnClickListener {
-                bottomSheet.dismiss()
-                selectTextIconLauncher.launch(TextIconEditorRequest(
-                    text = if (searchEngine.iconType == IconType.TEXT) searchEngine.textIcon.orEmpty() else "",
-                    imageBadge = searchEngine.engineType == EngineType.SHARE_IMAGE_TO_APP && showImageBadge,
-                ))
-            }
-
-        bottomSheet.setContentView(bottomSheetView)
-        bottomSheet.show()
-    }
+    private fun imageBadgeEnabled() = searchEngine.engineType == EngineType.SHARE_IMAGE_TO_APP && showImageBadge
 
     private val selectTextIconLauncher = registerForActivityResult(TextIconEditorContract()) { text ->
         if (text != null) {
             iconFileUtils.clear()
-            searchEngine.textIcon = text
-            searchEngine.iconType = IconType.TEXT
-            searchEngine.icon = null
-            updateEngineIconPreview()
+            updateEngine {
+                textIcon = text
+                iconType = IconType.TEXT
+                icon = null
+            }
         }
     }
 
@@ -466,10 +412,10 @@ class SearchEngineAddActivity : AppCompatActivity() {
             if (bitmap != null) {
                 iconFileUtils.setImgBitmap(bitmap)
                 iconFileUtils.imgPath = path
-                searchEngine.iconType = IconType.URI
-                searchEngine.icon = path
-                binding.engineIcon.setImage(bitmap)
-                updateEngineIconBadgePreview()
+                updateEngine {
+                    iconType = IconType.URI
+                    icon = path
+                }
             } else {
                 Toast.makeText(this@SearchEngineAddActivity, R.string.icon_editor_load_failed, Toast.LENGTH_SHORT).show()
             }
@@ -477,176 +423,87 @@ class SearchEngineAddActivity : AppCompatActivity() {
     }
 
     private fun updateAndSaveIcon(drawable: Drawable) {
-        searchEngine.iconType = IconType.URI
-        binding.engineIcon.setImage(drawable)
-        updateEngineIconBadgePreview()
-        drawable.let { d ->
-            val bitmap = createBitmap(d.intrinsicWidth, d.intrinsicHeight)
-            val canvas = android.graphics.Canvas(bitmap)
-            d.setBounds(0, 0, canvas.width, canvas.height)
-            d.draw(canvas)
-            iconFileUtils.setImgBitmap(bitmap)
-        }
-    }
-
-    private fun updateEngineIconPreview() {
-        if (searchEngine.iconType == IconType.URI && searchEngine.icon.isNullOrBlank()) {
-            iconFileUtils.getImgBitmap()?.let { bitmap ->
-                binding.engineIcon.setImage(bitmap)
-                updateEngineIconBadgePreview()
-                return
-            }
-        }
-
-        val hasCustomPreview = searchEngine.iconType == IconType.URI ||
-                searchEngine.iconType == IconType.TEXT ||
-                !searchEngine.targetPackage.isNullOrEmpty() ||
-                !searchEngine.name.isNullOrEmpty()
-        if (hasCustomPreview) {
-            setEngineIcon(applicationContext, binding.engineIcon, searchEngine, showImageBadge)
-        } else {
-            binding.engineIcon.setImage(R.drawable.baseline_image_24)
-            updateEngineIconBadgePreview()
-        }
-    }
-
-    private fun updateEngineIconBadgePreview() {
-        if (searchEngine.engineType == EngineType.SHARE_IMAGE_TO_APP && showImageBadge) {
-            binding.engineIcon.setBadge(R.drawable.baseline_image_24)
-        } else {
-            binding.engineIcon.setBadge(null)
-        }
-    }
-
-
-    private suspend fun checkSearchEngine(): Boolean {
-        // Get engine name
-        val engineName = binding.etEngineName.text.toString().trim()
-        if (engineName.isEmpty()) {
-            withContext(Dispatchers.Main) {
-                Toast.makeText(
-                    this@SearchEngineAddActivity,
-                    getString(R.string.search_engine_name_required),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-            return false
-        }
-
-        // Validate configuration
-        val isValid = when (currentEngineType) {
-            EngineType.DIRECT_LINK -> {
-                !searchEngine.searchLink.isNullOrEmpty()
-            }
-
-            EngineType.JUMP_TO_ACTIVITY -> {
-                !searchEngine.targetPackage.isNullOrEmpty() &&
-                        !searchEngine.targetActivity.isNullOrEmpty()
-            }
-
-            EngineType.EXTERN_JUMP_LINK -> {
-                !searchEngine.externJumpLink.isNullOrEmpty() &&
-                        !searchEngine.externJumpPackage.isNullOrEmpty()
-            }
-
-            EngineType.SHARE_TO_APP -> {
-                !searchEngine.targetPackage.isNullOrEmpty()
-            }
-
-            EngineType.SHARE_IMAGE_TO_APP -> {
-                !searchEngine.targetPackage.isNullOrEmpty()
-            }
-        }
-
-        if (!isValid) {
-            withContext(Dispatchers.Main) {
-                Toast.makeText(
-                    this@SearchEngineAddActivity,
-                    getString(R.string.search_engine_config_incomplete),
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-            return false
-        }
-
-        return true
-    }
-
-    private fun saveSearchEngine() = lifecycleScope.launch(Dispatchers.IO) {
-        if (!checkSearchEngine()) return@launch
-
-        val engineName = binding.etEngineName.text.toString().trim()
-        searchEngine.name = engineName
-        searchEngine.engineType = currentEngineType
-        // Save icon
+        val bitmap = createBitmap(drawable.intrinsicWidth.coerceAtLeast(1), drawable.intrinsicHeight.coerceAtLeast(1))
+        val canvas = android.graphics.Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        iconFileUtils.clear().setImgBitmap(bitmap)
+        // Give an automatically populated icon a durable path immediately, so drafts restore it too.
         if (iconFileUtils.saveIcon()) {
-            searchEngine.icon = iconFileUtils.imgPath
-        }
-
-        // Save or update search engine
-        if (editMode) {
-            val success = SearchEngineDataManager.updateSearchEngine(
-                applicationContext,
-                searchEngine
-            )
-            withContext(Dispatchers.Main) {
-                if (success) {
-                    Toast.makeText(
-                        this@SearchEngineAddActivity,
-                        getString(R.string.search_engine_update_success),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    finish()
-                } else {
-                    Toast.makeText(
-                        this@SearchEngineAddActivity,
-                        getString(R.string.search_engine_update_failed),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
+            updateEngine { iconType = IconType.URI; icon = iconFileUtils.imgPath }
         } else {
-            SearchEngineDataManager.addSearchEngine(
-                applicationContext,
-                searchEngine
-            )
-            withContext(Dispatchers.Main) {
-                Toast.makeText(
-                    this@SearchEngineAddActivity,
-                    getString(R.string.search_engine_add_success),
-                    Toast.LENGTH_SHORT
-                ).show()
-                finish()
+            updateEngine { iconType = IconType.URI; icon = null }
+        }
+    }
+
+    private fun updateEngineIconPreview(view: RoundImageTextView) {
+        val engine = searchEngine
+        if (engine.iconType == IconType.URI && engine.icon.isNullOrBlank() && iconFileUtils.getImgBitmap() != null) {
+            view.setImage(iconFileUtils.getImgBitmap())
+        } else if (engine.iconType == IconType.URI || engine.iconType == IconType.TEXT ||
+            !engine.targetPackage.isNullOrEmpty() || !engine.name.isNullOrEmpty()) {
+            setEngineIcon(applicationContext, view, engine, showImageBadge)
+        } else {
+            view.setImage(R.drawable.baseline_image_24)
+        }
+        view.setBadge(if (imageBadgeEnabled()) R.drawable.baseline_image_24 else null)
+    }
+
+    private fun checkedEngineSnapshot(): SearchEngine? {
+        val engineName = searchEngine.name.orEmpty().trim()
+        if (engineName.isEmpty()) {
+            Toast.makeText(this, R.string.search_engine_name_required, Toast.LENGTH_SHORT).show()
+            return null
+        }
+        val valid = when (searchEngine.engineType) {
+            EngineType.DIRECT_LINK -> !searchEngine.searchLink.isNullOrEmpty()
+            EngineType.JUMP_TO_ACTIVITY -> !searchEngine.targetPackage.isNullOrEmpty() && !searchEngine.targetActivity.isNullOrEmpty()
+            EngineType.EXTERN_JUMP_LINK -> !searchEngine.externJumpLink.isNullOrEmpty() && !searchEngine.externJumpPackage.isNullOrEmpty()
+            EngineType.SHARE_TO_APP, EngineType.SHARE_IMAGE_TO_APP -> !searchEngine.targetPackage.isNullOrEmpty()
+        }
+        if (!valid) {
+            Toast.makeText(this, R.string.search_engine_config_incomplete, Toast.LENGTH_SHORT).show()
+            return null
+        }
+        updateEngine { name = engineName }
+        // Read Compose state on Main, and hand IO an independent model rather than a live draft.
+        return SearchEngine.toModel(searchEngine.toJson())
+    }
+
+    private fun saveSearchEngine() {
+        if (busy) return
+        val engine = checkedEngineSnapshot() ?: return
+        busy = true
+        lifecycleScope.launch {
+            try {
+                val success = withContext(Dispatchers.IO) {
+                    if (iconFileUtils.saveIcon()) engine.icon = iconFileUtils.imgPath
+                    if (editMode) SearchEngineDataManager.updateSearchEngine(applicationContext, engine)
+                    else { SearchEngineDataManager.addSearchEngine(applicationContext, engine); true }
+                }
+                Toast.makeText(this@SearchEngineAddActivity,
+                    if (!success) R.string.search_engine_update_failed
+                    else if (editMode) R.string.search_engine_update_success else R.string.search_engine_add_success,
+                    Toast.LENGTH_SHORT).show()
+                Log.d(TAG, "saveSearchEngine: ${engine.toJson()}")
+                if (success) finish()
+            } finally {
+                busy = false
             }
         }
-
-        Log.d(TAG, "saveSearchEngine: ${searchEngine.toJson()}")
     }
 
-    private fun shareEngineConfig() = lifecycleScope.launch(Dispatchers.IO) {
-        if (!checkSearchEngine()) return@launch
-
-        val json = SearchEngine.toExportJsonList(listOf(searchEngine))
-
-        withContext(Dispatchers.Main) {
-            // Copy to clipboard
-            val clipboard =
-                getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            val clip = android.content.ClipData.newPlainText(
-                getString(R.string.search_engine_clipboard_label),
-                json
-            )
-            clipboard.setPrimaryClip(clip)
-
-            Toast.makeText(
-                this@SearchEngineAddActivity,
-                getString(R.string.search_engine_clipboard_copied),
-                Toast.LENGTH_SHORT
-            ).show()
+    private fun shareEngineConfig() {
+        if (busy) return
+        val engine = checkedEngineSnapshot() ?: return
+        lifecycleScope.launch {
+            val json = withContext(Dispatchers.IO) { SearchEngine.toExportJsonList(listOf(engine)) }
+            val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText(getString(R.string.search_engine_clipboard_label), json))
+            Toast.makeText(this@SearchEngineAddActivity, R.string.search_engine_clipboard_copied, Toast.LENGTH_SHORT).show()
+            Log.d(TAG, "shareSearchEngine: ${engine.toJson()}")
         }
-        Log.d(TAG, "shareSearchEngine: ${searchEngine.toJson()}")
     }
-
 
     companion object {
         const val TAG = "SearchEngineAddActivity"

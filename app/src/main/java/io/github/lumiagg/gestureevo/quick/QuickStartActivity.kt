@@ -1,43 +1,67 @@
 package io.github.lumiagg.gestureevo.quick
 
-import android.animation.AnimatorSet
-import android.animation.ObjectAnimator
 import android.animation.Animator
-import android.annotation.SuppressLint
+import android.animation.AnimatorSet
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
-import androidx.activity.addCallback
 import android.view.MotionEvent
 import android.view.View
 import android.view.animation.PathInterpolator
+import androidx.activity.addCallback
+import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color as ComposeColor
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.animation.addListener
+import androidx.core.graphics.drawable.toBitmap
 import androidx.core.view.allViews
-import androidx.core.view.doOnLayout
-import androidx.core.view.doOnPreDraw
-import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.RecyclerView
-import com.drake.brv.utils.grid
-import com.drake.brv.utils.models
-import com.drake.brv.utils.setup
 import com.google.android.material.card.MaterialCardView
 import io.github.lumiagg.gestureevo.R
-import io.github.lumiagg.gestureevo.databinding.QuickStartFloatingViewBinding
-import io.github.lumiagg.gestureevo.databinding.QuickStartItemBinding
 import io.github.lumiagg.gestureevo.db.APPModel
 import io.github.lumiagg.gestureevo.db.getAPPDao
 import io.github.lumiagg.gestureevo.gesture.TriggerSide
 import io.github.lumiagg.gestureevo.gesture.config.GestureActionType
 import io.github.lumiagg.gestureevo.quick.ui.KeyboardOnChangeListener
 import io.github.lumiagg.gestureevo.quick.ui.KeyboardType
+import io.github.lumiagg.gestureevo.quick.ui.KeyboardView
 import io.github.lumiagg.gestureevo.settings.AppearanceSettingsActivity.Companion.KEY_BLUR_ENABLED
 import io.github.lumiagg.gestureevo.settings.AppearanceSettingsActivity.Companion.KEY_KEYBOARD_BACKGROUND_BLUR
 import io.github.lumiagg.gestureevo.settings.AppearanceSettingsActivity.Companion.KEY_KEYBOARD_CARD_BACKGROUND_BLUR
 import io.github.lumiagg.gestureevo.settings.InspireSettingsActivity.Companion.KEY_KEYBOARD_TYPE
+import io.github.lumiagg.gestureevo.ui.compose.MiuixEvoTheme
 import io.github.lumiagg.gestureevo.utils.ActionProxy
+import io.github.lumiagg.gestureevo.utils.CardRegionBlur
 import io.github.lumiagg.gestureevo.utils.DynamicColorUtils
 import io.github.lumiagg.gestureevo.utils.GlassEffectUtils
 import io.github.lumiagg.gestureevo.utils.TransparentActivityLauncher
@@ -50,10 +74,15 @@ import io.github.lumiagg.gestureevo.utils.readKey
 import io.github.lumiagg.gestureevo.utils.saveKey
 import io.github.lumiagg.gestureevo.utils.settingsStore
 import io.github.lumiagg.gestureevo.utils.uriBuilder
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import kotlin.math.roundToInt
 
 class QuickStartActivity : AppCompatActivity() {
     companion object {
@@ -61,22 +90,18 @@ class QuickStartActivity : AppCompatActivity() {
         private const val KEY_KEYBOARD_HEIGHT_PORT = "key_keyboard_height_port"
         private const val KEY_KEYBOARD_LOC_X_PORT = "key_keyboard_loc_x_port"
         private const val KEY_KEYBOARD_LOC_Y_PORT = "key_keyboard_loc_y_port"
-
         private const val KEY_KEYBOARD_WIDTH_LAND = "key_keyboard_width_land"
         private const val KEY_KEYBOARD_HEIGHT_LAND = "key_keyboard_height_land"
         private const val KEY_KEYBOARD_LOC_X_LAND = "key_keyboard_loc_x_land"
         private const val KEY_KEYBOARD_LOC_Y_LAND = "key_keyboard_loc_y_land"
-
         private const val DEFAULT_WIDTH_RATIO_PORT = 0.9f
         private const val DEFAULT_HEIGHT_RATIO_PORT = 0.58f
         private const val DEFAULT_WIDTH_RATIO_LAND = 0.62f
         private const val DEFAULT_HEIGHT_RATIO_LAND = 0.72f
         private const val MIN_SIZE = 200
-        private const val MAX_SCREEN_RATIO = 0.9f // Maximum screen size ratio
-
+        private const val MAX_SCREEN_RATIO = 0.9f
         private val EMPHASIZED = PathInterpolator(0.2f, 0f, 0f, 1f)
         private val EMPHASIZED_ACCELERATE = PathInterpolator(0.3f, 0f, 0.8f, 0.15f)
-
         private var inputKeys = ""
 
         fun start(context: Context, side: String? = null) {
@@ -87,66 +112,50 @@ class QuickStartActivity : AppCompatActivity() {
         }
     }
 
-    private data class KeySet(
-        val widthKey: String,
-        val heightKey: String,
-        val xKey: String,
-        val yKey: String,
-    )
-
-    private lateinit var binding: QuickStartFloatingViewBinding
-    private var isResizeMode = false
+    private data class KeySet(val widthKey: String, val heightKey: String, val xKey: String, val yKey: String)
+    private lateinit var keyboard: KeyboardView
+    private var isResizeMode by mutableStateOf(false)
+    private var ready by mutableStateOf(false)
+    private var panelWidth by mutableStateOf(0)
+    private var panelHeight by mutableStateOf(0)
+    private var panelX by mutableStateOf(0f)
+    private var panelY by mutableStateOf(0f)
+    private var panelAlpha by mutableStateOf(0f)
+    private var panelScale by mutableStateOf(0.8f)
+    private var appResults by mutableStateOf<List<APPModel>>(emptyList())
     private var isAnimating = false
+    private var finishRequested = false
+    private var activeAnimator: AnimatorSet? = null
+    private var searchJob: Job? = null
+    private var currentQuery = ""
     private var keyboardBackgroundBlurEnabled = false
     private var keyboardCardBackgroundBlurEnabled = false
     private val minSize = MIN_SIZE.dp2px.toInt()
     private var triggerSide: String? = null
 
-    private fun isLandscape(): Boolean {
-        val displayMetrics = resources.displayMetrics
-        return displayMetrics.widthPixels > displayMetrics.heightPixels
-    }
+    private fun isLandscape() = resources.displayMetrics.run { widthPixels > heightPixels }
 
-    private fun getOrientationSpecificKeys(): KeySet {
-        return if (isLandscape()) {
-            KeySet(
-                widthKey = KEY_KEYBOARD_WIDTH_LAND,
-                heightKey = KEY_KEYBOARD_HEIGHT_LAND,
-                xKey = KEY_KEYBOARD_LOC_X_LAND,
-                yKey = KEY_KEYBOARD_LOC_Y_LAND
-            )
-        } else {
-            KeySet(
-                widthKey = KEY_KEYBOARD_WIDTH_PORT,
-                heightKey = KEY_KEYBOARD_HEIGHT_PORT,
-                xKey = KEY_KEYBOARD_LOC_X_PORT,
-                yKey = KEY_KEYBOARD_LOC_Y_PORT
-            )
-        }
+    private fun getOrientationSpecificKeys() = if (isLandscape()) {
+        KeySet(KEY_KEYBOARD_WIDTH_LAND, KEY_KEYBOARD_HEIGHT_LAND, KEY_KEYBOARD_LOC_X_LAND, KEY_KEYBOARD_LOC_Y_LAND)
+    } else {
+        KeySet(KEY_KEYBOARD_WIDTH_PORT, KEY_KEYBOARD_HEIGHT_PORT, KEY_KEYBOARD_LOC_X_PORT, KEY_KEYBOARD_LOC_Y_PORT)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         triggerSide = intent?.getStringExtra(TriggerSide.EXTRA_TRIGGER_SIDE)
-        binding = QuickStartFloatingViewBinding.inflate(layoutInflater)
-
-        binding.root.visibility = View.INVISIBLE
-        setContentView(binding.root)
+        // Keep the manifest's transparent/immersive window and launcher flags unchanged.
+        window.decorView.setBackgroundColor(Color.TRANSPARENT)
+        keyboard = KeyboardView(this)
         onBackPressedDispatcher.addCallback(this) { finishWithAnimation() }
-
+        setContent { MiuixEvoTheme { QuickStartContent() } }
         lifecycleScope.launch {
             initAppearanceConfig()
-            applyKeyboardGlassStyle()
+            GlassEffectUtils.applyWindowBlurProgress(window, 0f)
             initializeLayout()
-            initAll()
+            initKeyboard()
+            ready = true
             requestAppDbSync()
-
-            withContext(Dispatchers.Main) {
-                binding.root.visibility = View.VISIBLE
-                binding.root.doOnPreDraw {
-                    if (!isFinishing && !isDestroyed) showWithAnimation()
-                }
-            }
         }
     }
 
@@ -157,35 +166,13 @@ class QuickStartActivity : AppCompatActivity() {
     }
 
     private suspend fun initAppearanceConfig() {
-        // 总开关关闭时所有分区模糊一律停用。
         val blurMaster = settingsStore.readKey(KEY_BLUR_ENABLED, true)
-        keyboardBackgroundBlurEnabled =
-            blurMaster && settingsStore.readKey(KEY_KEYBOARD_BACKGROUND_BLUR, false)
-        keyboardCardBackgroundBlurEnabled = blurMaster && settingsStore.readKey(
-            KEY_KEYBOARD_CARD_BACKGROUND_BLUR,
-            false
-        )
-    }
-
-    private fun applyKeyboardGlassStyle() {
-        GlassEffectUtils.applyWindowBlurProgress(window, 0f)
-        binding.root.setBackgroundColor(Color.TRANSPARENT)
-        GlassEffectUtils.applyCardStyle(
-            card = binding.quickStart,
-            color = DynamicColorUtils.surfaceContainerHighColor,
-            glassEnabled = keyboardCardBackgroundBlurEnabled,
-            backgroundBlurEnabled = keyboardBackgroundBlurEnabled,
-            blurRegion = GlassEffectUtils.usesCardRegionBlur(
-                keyboardBackgroundBlurEnabled,
-                keyboardCardBackgroundBlurEnabled,
-            ),
-        )
-        GlassEffectUtils.applyFixedGlassChrome(binding.quickStart)
-        applyKeyboardKeyGlassStyle()
+        keyboardBackgroundBlurEnabled = blurMaster && settingsStore.readKey(KEY_KEYBOARD_BACKGROUND_BLUR, false)
+        keyboardCardBackgroundBlurEnabled = blurMaster && settingsStore.readKey(KEY_KEYBOARD_CARD_BACKGROUND_BLUR, false)
     }
 
     private fun applyKeyboardKeyGlassStyle() {
-        binding.keyboard.allViews.forEach { view ->
+        keyboard.allViews.forEach { view ->
             val card = view as? MaterialCardView ?: return@forEach
             GlassEffectUtils.applyCardStyle(
                 card = card,
@@ -197,278 +184,241 @@ class QuickStartActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun initializeLayout() = withContext(Dispatchers.IO) {
+    private suspend fun initializeLayout() {
         val keys = getOrientationSpecificKeys()
         val width = settingsStore.readKey(keys.widthKey, -1)
         val height = settingsStore.readKey(keys.heightKey, -1)
         val savedX = settingsStore.readKey(keys.xKey, -1)
         val savedY = settingsStore.readKey(keys.yKey, -1)
-        val keyboardType = settingsStore.readKey(KEY_KEYBOARD_TYPE, KeyboardType.DOUBLE_KEY.name)
+        val type = settingsStore.readKey(KEY_KEYBOARD_TYPE, KeyboardType.DOUBLE_KEY.name)
+        val metrics = resources.displayMetrics
+        val screenWidth = metrics.widthPixels
+        val screenHeight = metrics.heightPixels
+        val defaultWidth = (screenWidth * if (isLandscape()) DEFAULT_WIDTH_RATIO_LAND else DEFAULT_WIDTH_RATIO_PORT).toInt()
+        val defaultHeight = (screenHeight * if (isLandscape()) DEFAULT_HEIGHT_RATIO_LAND else DEFAULT_HEIGHT_RATIO_PORT).toInt()
+        val hasSavedPosition = savedX > 0 && savedY > 0
+        panelWidth = when {
+            width <= 0 -> defaultWidth
+            !hasSavedPosition && width < defaultWidth -> defaultWidth
+            else -> width
+        }.coerceInSafe(minSize, (screenWidth * MAX_SCREEN_RATIO).toInt())
+        panelHeight = when {
+            height <= 0 -> defaultHeight
+            !hasSavedPosition && height < defaultHeight -> defaultHeight
+            else -> height
+        }.coerceInSafe(minSize, (screenHeight * MAX_SCREEN_RATIO).toInt())
+        // The former card had zero elevation/content padding, so stored coordinates
+        // remain the same physical pixels without adding a new Compose inset.
+        panelX = (if (hasSavedPosition) savedX.toFloat() else (screenWidth - panelWidth) / 2f)
+            .coerceInSafe(0f, (screenWidth - panelWidth).coerceAtLeast(0).toFloat())
+        panelY = (if (hasSavedPosition) savedY.toFloat() else (screenHeight - panelHeight) / 2f)
+            .coerceInSafe(0f, (screenHeight - panelHeight).coerceAtLeast(0).toFloat())
+        if (hasSavedPosition && (panelX != savedX.toFloat() || panelY != savedY.toFloat())) saveLayoutState()
+        keyboard.keyboardType = KeyboardType.valueOfSafe(type)
+        applyKeyboardKeyGlassStyle()
+    }
 
-        withContext(Dispatchers.Main) {
-            binding.quickStart.apply {
-                alpha = 0f
-                scaleX = 0.8f
-                scaleY = 0.8f
-            }
-
-            // Retrieve screen dimensions
-            val displayMetrics = resources.displayMetrics
-            val screenWidth = displayMetrics.widthPixels
-            val screenHeight = displayMetrics.heightPixels
-
-            // Compute maximum allowed dimensions
-            val maxWidth = (screenWidth * MAX_SCREEN_RATIO).toInt()
-            val maxHeight = (screenHeight * MAX_SCREEN_RATIO).toInt()
-
-            val (defaultWidth, defaultHeight) = if (isLandscape()) {
-                Pair(
-                    (screenWidth * DEFAULT_WIDTH_RATIO_LAND).toInt(),
-                    (screenHeight * DEFAULT_HEIGHT_RATIO_LAND).toInt()
-                )
-            } else {
-                Pair(
-                    (screenWidth * DEFAULT_WIDTH_RATIO_PORT).toInt(),
-                    (screenHeight * DEFAULT_HEIGHT_RATIO_PORT).toInt()
-                )
-            }
-
-            val hasSavedPosition = savedX > 0 && savedY > 0
-            val targetWidth = when {
-                width <= 0 -> defaultWidth
-                !hasSavedPosition && width < defaultWidth -> defaultWidth
-                else -> width
-            }
-            val targetHeight = when {
-                height <= 0 -> defaultHeight
-                !hasSavedPosition && height < defaultHeight -> defaultHeight
-                else -> height
-            }
-
-            // Clamp dimensions within valid range
-            val finalWidth = targetWidth.coerceInSafe(minSize, maxWidth)
-            val finalHeight = targetHeight.coerceInSafe(minSize, maxHeight)
-
-            // Apply layout dimensions
-            binding.quickStart.layoutParams = binding.quickStart.layoutParams.apply {
-                this.width = finalWidth
-                this.height = finalHeight
-            }
-
-            // Position layout once view dimensions are measured
-            binding.quickStart.doOnLayout {
-                // Calculate valid coordinate bounds
-                val maxX = (screenWidth - finalWidth).coerceAtLeast(0)
-                val maxY = (screenHeight - finalHeight).coerceAtLeast(0)
-
-                if (savedX > 0 && savedY > 0) {
-                    // Account for shadow and padding offsets
-                    val shadowDx =
-                        (binding.quickStart.cardElevation + binding.quickStart.contentPaddingLeft).toInt()
-                    val shadowDy =
-                        (binding.quickStart.cardElevation + binding.quickStart.contentPaddingTop).toInt()
-
-                    // Compute adjusted position clamped to screen bounds
-                    val newX = (savedX + shadowDx).toFloat()
-                    val newY = (savedY + shadowDy).toFloat()
-
-                    val finalX = newX.coerceInSafe(0f, maxX.toFloat())
-                    val finalY = newY.coerceInSafe(0f, maxY.toFloat())
-
-                    binding.quickStart.x = finalX
-                    binding.quickStart.y = finalY
-
-                    // Persist updated coordinates if clamped
-                    if (finalX != newX || finalY != newY) {
-                        saveLayoutState()
+    @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class, androidx.compose.ui.ExperimentalComposeUiApi::class)
+    @Composable
+    private fun QuickStartContent() {
+        Box(Modifier.fillMaxSize()) {
+            // A separate outside hit target never intercepts clicks inside the panel.
+            Box(Modifier.fillMaxSize().combinedClickable(onClick = { finishWithAnimation() }))
+            if (!ready) return@Box
+            val density = LocalDensity.current
+            val shape = RoundedCornerShape(24.dp)
+            var animationStarted by remember { mutableStateOf(false) }
+            Box(
+                Modifier.offset { IntOffset(panelX.roundToInt(), panelY.roundToInt()) }
+                    .requiredSize(with(density) { panelWidth.toDp() }, with(density) { panelHeight.toDp() })
+                    .onGloballyPositioned {
+                        if (!animationStarted) {
+                            animationStarted = true
+                            showWithAnimation()
+                        }
                     }
-                } else {
-                    // Center on screen
-                    binding.quickStart.x =
-                        ((screenWidth - finalWidth) / 2f).coerceInSafe(0f, maxX.toFloat())
-                    binding.quickStart.y = ((screenHeight - finalHeight) / 2f)
+                    .shadow(12.dp, shape, clip = false)
+                    .graphicsLayer {
+                        alpha = panelAlpha
+                        scaleX = panelScale
+                        scaleY = panelScale
+                        this.shape = shape
+                        clip = true
+                    }
+                    .combinedClickable(onClick = {})
+            ) {
+                // Native system BackgroundBlurDrawable cannot be drawn by Compose.
+                // This empty, noninteractive background is only the regional blur bridge;
+                // all page structure, results and drag/resize UI below are Compose.
+                if (keyboardCardBackgroundBlurEnabled) {
+                    AndroidView(
+                        factory = { context ->
+                            MaterialCardView(context).apply {
+                                radius = 24.dp2px
+                                isClickable = false
+                                isFocusable = false
+                                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                                GlassEffectUtils.applyCardStyle(
+                                    card = this,
+                                    color = DynamicColorUtils.surfaceContainerHighColor,
+                                    glassEnabled = true,
+                                    backgroundBlurEnabled = keyboardBackgroundBlurEnabled,
+                                    blurRegion = GlassEffectUtils.usesCardRegionBlur(keyboardBackgroundBlurEnabled, true),
+                                )
+                            }
+                        },
+                        modifier = Modifier.matchParentSize(),
+                        onReset = null,
+                        onRelease = { CardRegionBlur.update(it, false, 0f) },
+                    )
+                }
+                Card(
+                    modifier = Modifier.fillMaxSize(),
+                    colors = CardDefaults.defaultColors(
+                        color = if (keyboardCardBackgroundBlurEnabled) ComposeColor.Transparent else MiuixTheme.colorScheme.surface,
+                    ),
+                ) {
+                    Column(Modifier.fillMaxSize()) {
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth().height(80.dp),
+                            reverseLayout = true,
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                        ) {
+                            items(appResults, key = { it.pkgName }) { model -> QuickStartItem(model) }
+                        }
+                        // Preserve the custom keyboard's T9/double-key layouts, vibration,
+                        // long-press functions and native directional focus navigation.
+                        AndroidView(
+                            factory = { keyboard },
+                            modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 5.dp),
+                        )
+                        val handleScale by animateFloatAsState(if (isResizeMode) 1.5f else 1f, tween(200), label = "resize handle")
+                        val touchListener = remember { CombinedTouchListener() }
+                        Box(
+                            Modifier.fillMaxWidth().height(30.dp)
+                                .semantics {
+                                    contentDescription = getString(if (isResizeMode) R.string.quick_start_resize_hint else R.string.quick_start_move_hint)
+                                }
+                                .pointerInteropFilter { touchListener.onTouch(it) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Box(Modifier.size(100.dp, 5.dp).graphicsLayer { scaleX = handleScale; scaleY = handleScale }
+                                .background(MiuixTheme.colorScheme.onSurfaceVariantSummary, RoundedCornerShape(50)))
+                        }
+                    }
                 }
             }
-
-            binding.keyboard.keyboardType = KeyboardType.valueOfSafe(keyboardType)
-            applyKeyboardKeyGlassStyle()
         }
     }
 
-    override fun onDestroy() {
-        GlassEffectUtils.applyWindowBlur(window, false)
-        super.onDestroy()
-    }
-
-    private fun initAll() {
-        initView()
-        initAppRecycler()
-        initKeyboard()
-        initTouchListener()
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    private fun initView() {
-        binding.dragBarFrameLayout.setOnTouchListener(CombinedTouchListener())
-    }
-
-    private fun initAppRecycler() {
-        binding.appRecycler.grid(
-            spanCount = 1,
-            reverseLayout = true,
-            orientation = RecyclerView.HORIZONTAL
-        ).setup {
-            addType<APPModel>(R.layout.quick_start_item)
-            onBind {
-                val itemBinding = QuickStartItemBinding.bind(itemView)
-                val model = getModel<APPModel>()
-                itemBinding.name.text = model.name
-                itemBinding.icon.setImagePadding(8.dp2px.toInt())
-                itemBinding.icon.setImage(
-                    IconHelper.getIcon(this@QuickStartActivity, model.pkgName)
-                )
+    @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+    @Composable
+    private fun QuickStartItem(model: APPModel) {
+        val bitmap = remember(model.pkgName) { IconHelper.getIcon(this, model.pkgName)?.toBitmap()?.asImageBitmap() }
+        var focused by remember { mutableStateOf(false) }
+        Column(Modifier.width(70.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                Modifier.size(50.dp)
+                    .background(if (focused) MiuixTheme.colorScheme.secondaryContainer else ComposeColor.Transparent, RoundedCornerShape(12.dp))
+                    .onFocusChanged { focused = it.isFocused }
+                    .combinedClickable(
+                    onClick = { openAPP(model, false) },
+                    onLongClick = { openAPP(model, true) },
+                ), contentAlignment = Alignment.Center,
+            ) {
+                bitmap?.let {
+                    // Same 8dp image inset and global icon-rounding preference as the old item.
+                    Image(it, model.name, Modifier.size(34.dp).clip(RoundedCornerShape(
+                        percent = (IconHelper.iconImageRoundPercent.coerceIn(0f, 1f) * 50).roundToInt(),
+                    )))
+                }
             }
-            onClick(R.id.icon) {
-                openAPP(getModel<APPModel>(), false)
-            }
-            onLongClick(R.id.icon) {
-                openAPP(getModel<APPModel>(), true)
-            }
+            Text(model.name, modifier = Modifier.fillMaxWidth().height(20.dp), fontSize = 12.sp,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+                color = MiuixTheme.colorScheme.onSurface)
         }
     }
 
     private fun initKeyboard() {
-        binding.keyboard.onChangeListener = object : KeyboardOnChangeListener {
+        keyboard.onChangeListener = object : KeyboardOnChangeListener {
             override fun onInput(inputSequence: String) {
-                super.onInput(inputSequence)
-                CoroutineScope(Dispatchers.Main).launch {
-                    binding.appRecycler.models = if (inputSequence.isNotEmpty()) {
-                        withContext(Dispatchers.IO) { filterResult(inputSequence) }
-                    } else {
-                        listOf()
-                    }
+                currentQuery = inputSequence
+                searchJob?.cancel()
+                searchJob = lifecycleScope.launch {
+                    appResults = if (inputSequence.isNotEmpty()) withContext(Dispatchers.IO) {
+                        filterResult(inputSequence)
+                    } else emptyList()
                 }
             }
 
             override fun onEnter(longClick: Boolean) {
-                binding.appRecycler.models?.firstOrNull()?.let {
-                    openAPP(it as APPModel, longClick)
-                }
+                appResults.firstOrNull()?.let { openAPP(it, longClick) }
             }
 
             override fun onSettings(longClick: Boolean) {
                 isResizeMode = !isResizeMode
-                lifecycleScope.launch {
-                    binding.keyboard.setInputPrompt(
-                        if (isResizeMode) getString(R.string.quick_start_resize_hint)
-                        else getString(R.string.quick_start_move_hint)
-                    )
-                }
-
-                binding.dragBar.animate()
-                    .scaleX(if (isResizeMode) 1.5f else 1f)
-                    .scaleY(if (isResizeMode) 1.5f else 1f)
-                    .setDuration(200)
-                    .start()
+                keyboard.setInputPrompt(getString(if (isResizeMode) R.string.quick_start_resize_hint else R.string.quick_start_move_hint))
             }
         }
-        binding.keyboard.resumeContent(inputKeys)
+        keyboard.resumeContent(inputKeys)
     }
 
     private fun requestAppDbSync() {
-        lifecycleScope.launch(Dispatchers.Default) {
-            syncAppCatalogIfNeeded(applicationContext)
-            val inputSequence = binding.keyboard.getInputKeys()
-            if (inputSequence.isNotEmpty()) {
-                val results = withContext(Dispatchers.IO) { filterResult(inputSequence) }
-                withContext(Dispatchers.Main) {
-                    binding.appRecycler.models = results
-                }
+        lifecycleScope.launch {
+            withContext(Dispatchers.Default) { syncAppCatalogIfNeeded(applicationContext) }
+            val query = currentQuery
+            if (query.isNotEmpty()) {
+                val results = withContext(Dispatchers.IO) { filterResult(query) }
+                if (currentQuery == query) appResults = results
             }
-        }
-    }
-
-    private fun initTouchListener() {
-        binding.root.setOnClickListener {
-            finishWithAnimation()
         }
     }
 
     private suspend fun filterResult(inputSequence: String): List<APPModel> {
         val resultSet = LinkedHashSet<APPModel>()
-        when (binding.keyboard.keyboardType) {
+        when (keyboard.keyboardType) {
             KeyboardType.T9 -> {
-                resultSet.addAll(
-                    getAPPDao().findByInitialsT9(inputSequence, APPModel.FLAG_LAUNCHER)
-                )
-                resultSet.addAll(
-                    getAPPDao().findByPinYinT9(inputSequence, APPModel.FLAG_LAUNCHER)
-                )
+                resultSet.addAll(getAPPDao().findByInitialsT9(inputSequence, APPModel.FLAG_LAUNCHER))
+                resultSet.addAll(getAPPDao().findByPinYinT9(inputSequence, APPModel.FLAG_LAUNCHER))
             }
-
             KeyboardType.DOUBLE_KEY, KeyboardType.FULL_KEY -> {
-                resultSet.addAll(
-                    getAPPDao().findByInitialsDK(inputSequence, APPModel.FLAG_LAUNCHER)
-                )
-                resultSet.addAll(
-                    getAPPDao().findByPinYinDK(inputSequence, APPModel.FLAG_LAUNCHER)
-                )
+                resultSet.addAll(getAPPDao().findByInitialsDK(inputSequence, APPModel.FLAG_LAUNCHER))
+                resultSet.addAll(getAPPDao().findByPinYinDK(inputSequence, APPModel.FLAG_LAUNCHER))
             }
         }
-
-        return resultSet.toList().sortedWith(
-            when (binding.keyboard.keyboardType) {
-                KeyboardType.T9 -> compareByDescending<APPModel> { it.openCount }
-                    .thenBy { -TextUtil.calculateSimilarity(inputSequence, it.initialsT9) }
-                    .thenBy { -TextUtil.calculateSimilarity(inputSequence, it.pinyinT9) }
-
-                else -> compareByDescending<APPModel> { it.openCount }
-                    .thenBy { -TextUtil.calculateSimilarity(inputSequence, it.initialsDK) }
-                    .thenBy { -TextUtil.calculateSimilarity(inputSequence, it.pinyinDK) }
-            }
-        )
+        return resultSet.toList().sortedWith(when (keyboard.keyboardType) {
+            KeyboardType.T9 -> compareByDescending<APPModel> { it.openCount }
+                .thenBy { -TextUtil.calculateSimilarity(inputSequence, it.initialsT9) }
+                .thenBy { -TextUtil.calculateSimilarity(inputSequence, it.pinyinT9) }
+            else -> compareByDescending<APPModel> { it.openCount }
+                .thenBy { -TextUtil.calculateSimilarity(inputSequence, it.initialsDK) }
+                .thenBy { -TextUtil.calculateSimilarity(inputSequence, it.pinyinDK) }
+        })
     }
 
     private fun showWithAnimation() {
-        if (isAnimating) return
-        isAnimating = true
-
-        AnimatorSet().apply {
-            val animators = mutableListOf<Animator>(
-                ObjectAnimator.ofFloat(binding.quickStart, View.ALPHA, 0f, 1f),
-                ObjectAnimator.ofFloat(binding.quickStart, View.SCALE_X, 0.8f, 1f),
-                ObjectAnimator.ofFloat(binding.quickStart, View.SCALE_Y, 0.8f, 1f)
-            )
-            if (keyboardBackgroundBlurEnabled) {
-                GlassEffectUtils.createWindowBlurAnimator(window, 0f, 1f)?.let(animators::add)
-            }
-            playTogether(animators)
-            interpolator = EMPHASIZED
-            duration = 300
-            addListener(onEnd = { isAnimating = false })
-            start()
-        }
+        if (isAnimating || isFinishing || isDestroyed) return
+        animatePanel(true) { if (finishRequested) finishWithAnimation() }
     }
 
-    private fun hideWithAnimation(onEnd: () -> Unit = {}) {
-        if (isAnimating) return
+    private fun animatePanel(show: Boolean, onEnd: () -> Unit) {
         isAnimating = true
-
-        AnimatorSet().apply {
-            val animators = mutableListOf<Animator>(
-                ObjectAnimator.ofFloat(binding.quickStart, View.ALPHA, 1f, 0f),
-                ObjectAnimator.ofFloat(binding.quickStart, View.SCALE_X, 1f, 0.8f),
-                ObjectAnimator.ofFloat(binding.quickStart, View.SCALE_Y, 1f, 0.8f)
-            )
-            if (keyboardBackgroundBlurEnabled) {
-                GlassEffectUtils.createWindowBlurAnimator(window, 1f, 0f)?.let(animators::add)
-            }
+        val from = panelAlpha
+        val to = if (show) 1f else 0f
+        activeAnimator = AnimatorSet().apply {
+            val animators = mutableListOf<Animator>(ValueAnimator.ofFloat(from, to).apply {
+                addUpdateListener {
+                    panelAlpha = it.animatedValue as Float
+                    panelScale = 0.8f + 0.2f * panelAlpha
+                }
+            })
+            if (keyboardBackgroundBlurEnabled) GlassEffectUtils.createWindowBlurAnimator(window, from, to)?.let(animators::add)
             playTogether(animators)
-            duration = 250
-            interpolator = EMPHASIZED_ACCELERATE
+            duration = if (show) 300L else 250L
+            interpolator = if (show) EMPHASIZED else EMPHASIZED_ACCELERATE
             addListener(onEnd = {
                 isAnimating = false
-                onEnd()
+                if (!isDestroyed) onEnd()
             })
             start()
         }
@@ -479,54 +429,50 @@ class QuickStartActivity : AppCompatActivity() {
             val link = uriBuilder(GestureActionType.OPEN_APP)
                 .appendQueryParameter("pkg", model.pkgName)
                 .appendQueryParameter("freeform", freeform.toString())
-                .apply {
-                    triggerSide?.let { appendQueryParameter("triggerSide", it) }
-                }
-                .build()
+                .apply { triggerSide?.let { appendQueryParameter("triggerSide", it) } }.build()
             ActionProxy(this@QuickStartActivity, link.toString()).execute(side = triggerSide)
             finishWithAnimation()
         }
     }
 
     private fun finishWithAnimation() = lifecycleScope.launch(Dispatchers.Main) {
-        if (binding.root.isVisible) {
-            hideWithAnimation { finish() }
-        } else {
-            finish()
-        }
+        finishRequested = true
+        if (isAnimating) return@launch
+        if (ready && panelAlpha > 0f) animatePanel(false) { finish() } else finish()
     }
 
     override fun finish() {
+        if (::keyboard.isInitialized) inputKeys = keyboard.getInputKeys()
         super.finish()
-        inputKeys = binding.keyboard.getInputKeys()
+    }
+
+    override fun onDestroy() {
+        activeAnimator?.removeAllListeners()
+        activeAnimator?.cancel()
+        searchJob?.cancel()
+        if (::keyboard.isInitialized) keyboard.onChangeListener = object : KeyboardOnChangeListener {}
+        GlassEffectUtils.applyWindowBlur(window, false)
+        super.onDestroy()
     }
 
     private fun saveLayoutState() {
+        // Snapshot on Main: no background-thread reads of View/Compose geometry.
+        val keys = getOrientationSpecificKeys()
+        val width = panelWidth
+        val height = panelHeight
+        val x = panelX.roundToInt()
+        val y = panelY.roundToInt()
         lifecycleScope.launch(Dispatchers.IO) {
-            val keys = getOrientationSpecificKeys()
-            val (actualX, actualY) = getActualViewPosition()
-
-            val shadowDx =
-                (binding.quickStart.cardElevation + binding.quickStart.contentPaddingLeft).toInt()
-            val shadowDy =
-                (binding.quickStart.cardElevation + binding.quickStart.contentPaddingTop).toInt()
-
             settingsStore.apply {
-                saveKey(keys.widthKey, binding.quickStart.width)
-                saveKey(keys.heightKey, binding.quickStart.height)
-                saveKey(keys.xKey, actualX - shadowDx)
-                saveKey(keys.yKey, actualY - shadowDy)
+                saveKey(keys.widthKey, width)
+                saveKey(keys.heightKey, height)
+                saveKey(keys.xKey, x)
+                saveKey(keys.yKey, y)
             }
         }
     }
 
-    private fun getActualViewPosition(): Pair<Int, Int> {
-        val location = IntArray(2)
-        binding.quickStart.getLocationOnScreen(location)
-        return Pair(location[0], location[1])
-    }
-
-    inner class CombinedTouchListener : View.OnTouchListener {
+    private inner class CombinedTouchListener {
         private var initialTouchX = 0f
         private var initialTouchY = 0f
         private var initialWidth = 0
@@ -535,32 +481,23 @@ class QuickStartActivity : AppCompatActivity() {
         private var initialY = 0f
         private var isDragging = false
 
-        @SuppressLint("ClickableViewAccessibility")
-        override fun onTouch(view: View, event: MotionEvent): Boolean {
-            when (event.action) {
+        fun onTouch(event: MotionEvent): Boolean {
+            when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     isDragging = true
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
-                    initialWidth = binding.quickStart.width
-                    initialHeight = binding.quickStart.height
-                    initialX = binding.quickStart.x
-                    initialY = binding.quickStart.y
+                    initialWidth = panelWidth
+                    initialHeight = panelHeight
+                    initialX = panelX
+                    initialY = panelY
                 }
-
                 MotionEvent.ACTION_MOVE -> {
                     if (!isDragging) return true
-
                     val deltaX = event.rawX - initialTouchX
                     val deltaY = event.rawY - initialTouchY
-
-                    if (isResizeMode) {
-                        updateSize(deltaX, deltaY)
-                    } else {
-                        updatePosition(deltaX, deltaY)
-                    }
+                    if (isResizeMode) updateSize(deltaX, deltaY) else updatePosition(deltaX, deltaY)
                 }
-
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     if (!isDragging) return true
                     isDragging = false
@@ -571,40 +508,15 @@ class QuickStartActivity : AppCompatActivity() {
         }
 
         private fun updatePosition(deltaX: Float, deltaY: Float) {
-            val displayMetrics = resources.displayMetrics
-            val screenWidth = displayMetrics.widthPixels
-            val screenHeight = displayMetrics.heightPixels
-
-            val viewWidth = binding.quickStart.width
-            val viewHeight = binding.quickStart.height
-
-            val maxX = (screenWidth - viewWidth).coerceAtLeast(0)
-            val maxY = (screenHeight - viewHeight).coerceAtLeast(0)
-
-            val newX = (initialX + deltaX).coerceInSafe(0f, maxX.toFloat())
-            val newY = (initialY + deltaY).coerceInSafe(0f, maxY.toFloat())
-
-            binding.quickStart.x = newX
-            binding.quickStart.y = newY
+            val metrics = resources.displayMetrics
+            panelX = (initialX + deltaX).coerceInSafe(0f, (metrics.widthPixels - panelWidth).coerceAtLeast(0).toFloat())
+            panelY = (initialY + deltaY).coerceInSafe(0f, (metrics.heightPixels - panelHeight).coerceAtLeast(0).toFloat())
         }
 
         private fun updateSize(deltaX: Float, deltaY: Float) {
-            val displayMetrics = resources.displayMetrics
-            val screenWidth = displayMetrics.widthPixels
-            val screenHeight = displayMetrics.heightPixels
-
-            val maxWidth = (screenWidth * MAX_SCREEN_RATIO).toInt()
-            val maxHeight = (screenHeight * MAX_SCREEN_RATIO).toInt()
-
-            val newWidth = (initialWidth + deltaX).toInt().coerceInSafe(minSize, maxWidth)
-            val newHeight = (initialHeight + deltaY).toInt().coerceInSafe(minSize, maxHeight)
-
-            binding.quickStart.layoutParams = binding.quickStart.layoutParams.apply {
-                width = newWidth
-                height = newHeight
-            }
-
-            // Ensure position remains within screen bounds after resizing
+            val metrics = resources.displayMetrics
+            panelWidth = (initialWidth + deltaX).toInt().coerceInSafe(minSize, (metrics.widthPixels * MAX_SCREEN_RATIO).toInt())
+            panelHeight = (initialHeight + deltaY).toInt().coerceInSafe(minSize, (metrics.heightPixels * MAX_SCREEN_RATIO).toInt())
             updatePosition(0f, 0f)
         }
     }

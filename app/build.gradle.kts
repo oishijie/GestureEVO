@@ -12,7 +12,7 @@ android {
     namespace = "io.github.lumiagg.gestureevo"
     compileSdk = 37
     compileSdkMinor = 0
-    // TEMP-VERIFY: ndkVersion = "27.0.12077973"
+    ndkVersion = "27.0.12077973"
 
     defaultConfig {
         applicationId = "io.github.lumiagg.gestureevo"
@@ -23,15 +23,15 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // TEMP-VERIFY: ndk {
-        // TEMP-VERIFY:     abiFilters += listOf("arm64-v8a")
-        // TEMP-VERIFY: }
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
 
-        // TEMP-VERIFY: externalNativeBuild {
-        // TEMP-VERIFY:     cmake {
-        // TEMP-VERIFY:         cppFlags += "-std=c++17"
-        // TEMP-VERIFY:     }
-        // TEMP-VERIFY: }
+        externalNativeBuild {
+            cmake {
+                cppFlags += "-std=c++17"
+            }
+        }
     }
 
     val signingEnvironment = listOf(
@@ -71,12 +71,12 @@ android {
         aidl = true
         compose = true      // UI 重构 Demo（Compose 首页原型）
     }
-    // TEMP-VERIFY: externalNativeBuild {
-    // TEMP-VERIFY:     cmake {
-    // TEMP-VERIFY:         path = file("src/main/cpp/CMakeLists.txt")
-    // TEMP-VERIFY:         version = "3.22.1"
-    // TEMP-VERIFY:     }
-    // TEMP-VERIFY: }
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
     sourceSets {
         getByName("main") {
             aidl.srcDirs("src/main/aidl")

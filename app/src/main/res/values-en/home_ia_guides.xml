@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_ia_overview">Overview</string>
+    <string name="home_ia_control">Control</string>
+    <string name="home_ia_content">Content</string>
+    <string name="home_ia_management">Management</string>
+
+    <string name="guide_title_ia_overview">Overview guide</string>
+    <string name="guide_title_ia_control">Control guide</string>
+    <string name="guide_title_ia_content">Content guide</string>
+    <string name="guide_title_ia_management">Management guide</string>
+
+    <string name="guide_ia_overview_welcome_title">Meet the home page</string>
+    <string name="guide_ia_overview_welcome_desc">Get a quick view of GestureEVO\'s core capabilities and common entry points.</string>
+    <string name="guide_ia_overview_service_title">Enable the service first</string>
+    <string name="guide_ia_overview_service_desc">Accessibility service access is required for gestures, screen content and floating features.</string>
+    <string name="guide_ia_overview_personalize_title">Personalize your experience</string>
+    <string name="guide_ia_overview_personalize_desc">Adjust themes, colors, display and behavior so the home page works your way.</string>
+
+    <string name="guide_ia_control_gesture_title">Gesture trigger</string>
+    <string name="guide_ia_control_gesture_desc">Choose the trigger direction, area and recognition method to invoke actions from the screen edge.</string>
+    <string name="guide_ia_control_wheel_title">Action wheel</string>
+    <string name="guide_ia_control_wheel_desc">Organize common actions, reorder them and tune their icons for one-tap access.</string>
+    <string name="guide_ia_control_window_title">Floating window</string>
+    <string name="guide_ia_control_window_desc">View selected content in a floating window and adjust its size, opacity and dwell behavior.</string>
+
+    <string name="guide_ia_content_recognition_title">Screen recognition</string>
+    <string name="guide_ia_content_recognition_desc">Use OCR to recognize screen text, with confirmation and feedback options for steadier selection.</string>
+    <string name="guide_ia_content_pin_title">Pin Pool</string>
+    <string name="guide_ia_content_pin_desc">Save screen snippets to Pin Pool so you can revisit, organize and clean up important content.</string>
+    <string name="guide_ia_content_share_title">Share and open</string>
+    <string name="guide_ia_content_share_desc">Choose the right apps and default behaviors for translation, search, image tools and sharing.</string>
+
+    <string name="guide_ia_management_search_title">Search management</string>
+    <string name="guide_ia_management_search_desc">Manage search engines, result layouts, history and search shortcuts.</string>
+    <string name="guide_ia_management_backup_title">Backup and restore</string>
+    <string name="guide_ia_management_backup_desc">Export your configuration for backup, then import it after reinstalling or moving to a new device.</string>
+    <string name="guide_ia_management_maintenance_title">Maintenance and stability</string>
+    <string name="guide_ia_management_maintenance_desc">Use background stability, advanced settings and data maintenance to keep the app reliable.</string>
+</resources>

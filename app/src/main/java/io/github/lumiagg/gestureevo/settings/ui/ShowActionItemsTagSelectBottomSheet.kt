@@ -1,23 +1,34 @@
 package io.github.lumiagg.gestureevo.settings.ui
 
-import android.view.View
-import android.widget.FrameLayout
-import android.widget.RadioButton
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.LifecycleCoroutineScope
-import androidx.recyclerview.widget.RecyclerView
-import com.drake.brv.BindingAdapter
-import com.drake.brv.utils.linear
-import com.drake.brv.utils.setup
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.lumiagg.gestureevo.R
 import io.github.lumiagg.gestureevo.gesture.config.ActionItemsTag
 import io.github.lumiagg.gestureevo.gesture.config.GestureActionDataManager
-import io.github.lumiagg.gestureevo.utils.DynamicColorUtils
-import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.basic.RadioButton
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
+@Suppress("UNUSED_PARAMETER")
 fun showPieGroupSelectBottomSheet(
     activity: AppCompatActivity,
     coroutineScope: LifecycleCoroutineScope,
@@ -26,82 +37,30 @@ fun showPieGroupSelectBottomSheet(
     currentSelectedTag: String,
     onSelect: (String) -> Unit
 ) {
-    val themedContext = DynamicColorUtils.dynamicThemedContext(activity)
-    val bottomSheetDialog =
-        BottomSheetDialog(themedContext, R.style.ThemeOverlay_BottomSheetDialog_Scrollable)
-
-    bottomSheetDialog.setContentView(R.layout.action_items_tag_select_bottomsheet)
-
-    // Set title and subtitle
-    bottomSheetDialog.findViewById<TextView>(R.id.title)?.apply {
-        text = title
-    }
-    bottomSheetDialog.findViewById<TextView>(R.id.subtitle)?.apply {
-        text = subtitle
-    }
-
-    // Get RecyclerView
-    val recyclerView = bottomSheetDialog.findViewById<RecyclerView>(R.id.pieGroupsRecyclerView)
-
-    // Configure RecyclerView with BRV
-    recyclerView?.linear()
-
-    // Load wheel group data
-    coroutineScope.launch {
-        val pieGroups = GestureActionDataManager.readActionListTags(activity.applicationContext)
-
-        if (pieGroups.isEmpty()) {
-            // If no groups exist, show empty state or dismiss
-            bottomSheetDialog.dismiss()
-            return@launch
+    showMiuixSheet(activity) { dismiss ->
+        var groups by remember { mutableStateOf<List<ActionItemsTag>>(emptyList()) }
+        LaunchedEffect(Unit) {
+            val loaded = GestureActionDataManager.readActionListTags(activity.applicationContext)
+            if (loaded.isEmpty()) dismiss() else groups = loaded
         }
-
-        // Setup adapter with BRV
-        recyclerView?.setup {
-            addType<ActionItemsTag>(R.layout.action_items_tags_list_item)
-
-            // Bind view and data
-            onBind {
-                val item = getModel<ActionItemsTag>()
-                findView<TextView>(R.id.pieGroupName).text = item.name
-                findView<RadioButton>(R.id.radioButton).isChecked = item.tag == currentSelectedTag
-            }
-
-            // Setup click listener
-            onClick(R.id.root) {
-                val item = getModel<ActionItemsTag>()
-                // If clicked item is not current selection, invoke callback and dismiss
-                onSelect(item.tag)
-                bottomSheetDialog.dismiss()
+        Column(Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(title, modifier = Modifier.padding(horizontal = 24.dp), fontSize = 17.sp,
+                lineHeight = 22.sp, fontWeight = FontWeight.Medium)
+            Text(subtitle, modifier = Modifier.padding(horizontal = 24.dp), fontSize = 14.sp,
+                lineHeight = 20.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+            LazyColumn(Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 500.dp)) {
+                items(groups, key = { it.tag }) { group ->
+                    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                        .clickable { onSelect(group.tag); dismiss() }
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                        Text(group.name, modifier = Modifier.weight(1f), fontSize = 16.sp, lineHeight = 22.sp)
+                        RadioButton(selected = group.tag == currentSelectedTag, onClick = null)
+                    }
+                }
             }
         }
-
-        // Set data
-        (recyclerView?.adapter as? BindingAdapter)?.models = pieGroups
     }
-
-    // Configure bottom sheet behavior
-    bottomSheetDialog.setOnShowListener { dialog ->
-        val bottomSheet = (dialog as BottomSheetDialog)
-            .findViewById<View>(com.google.android.material.R.id.design_bottom_sheet) as FrameLayout?
-
-        bottomSheet?.let { sheet ->
-            DynamicColorUtils.applyBottomSheetSurface(dialog)
-            val behavior = BottomSheetBehavior.from(sheet)
-            behavior.apply {
-                state = BottomSheetBehavior.STATE_EXPANDED
-                isDraggable = true
-                skipCollapsed = true
-                isFitToContents = true
-                isHideable = true
-            }
-
-            // Set maximum height
-            val windowHeight = activity.window.decorView.height
-            sheet.layoutParams.height = (windowHeight * 0.7).toInt()
-        }
-    }
-
-    // Display bottom sheet
-    bottomSheetDialog.show()
 }

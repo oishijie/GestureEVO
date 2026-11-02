@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="floating_bottom_bar_title">Floating bottom bar</string>
+    <string name="floating_bottom_bar_summary">Use a floating capsule when on, or docked navigation when off. All four destinations remain available.</string>
+</resources>

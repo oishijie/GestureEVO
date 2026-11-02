@@ -1,7 +1,5 @@
 package io.github.lumiagg.gestureevo.pin
 
-import androidx.core.graphics.drawable.toDrawable
-
 import android.animation.Animator
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
@@ -25,8 +23,35 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
 import android.widget.FrameLayout
-import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
+import android.view.ViewGroup
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import io.github.lumiagg.gestureevo.ui.compose.MiuixEvoTheme
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.PressFeedbackType
+import top.yukonga.miuix.kmp.window.WindowDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.content.ContextCompat
@@ -46,7 +71,6 @@ import com.drake.brv.utils.setup
 import com.google.android.material.card.MaterialCardView
 import io.github.lumiagg.gestureevo.utils.DynamicColorUtils
 import com.google.android.material.datepicker.MaterialDatePicker
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.timepicker.MaterialTimePicker
 import com.google.android.material.timepicker.TimeFormat
 import io.github.lumiagg.gestureevo.R
@@ -98,7 +122,8 @@ import kotlin.math.min
 class PinPoolFloating : AppCompatActivity() {
     private lateinit var binding: PinPoolFloatingViewBinding
     private var pendingScrollItemId: String? = null
-    private var reminderCandidateDialog: AlertDialog? = null
+    private var reminderCandidateDialog: PinPoolDialogHandle? = null
+    private var clearPinsDialog: PinPoolDialogHandle? = null
 
     private var pinPoolBackgroundBlurEnabled = false
     private var pinPoolCardBackgroundBlurEnabled = false
@@ -1175,41 +1200,52 @@ class PinPoolFloating : AppCompatActivity() {
         item: PinPoolItem,
         candidate: PinPoolReminderTimeCandidate
     ) {
-        if (isFinishing) return
+        if (isFinishing || isDestroyed) return
         reminderCandidateDialog?.dismiss()
-        val card = LayoutInflater.from(this)
-            .inflate(R.layout.pin_pool_reminder_candidate_card, binding.root, false)
-        card.findViewById<TextView>(R.id.reminderCandidateTitle).text =
-            getString(R.string.pin_pool_reminder_candidate_title)
-        card.findViewById<TextView>(R.id.reminderCandidateTime).text = getString(
-            R.string.pin_pool_reminder_candidate_time,
-            formatReminderTime(candidate.triggerAt),
-            candidate.matchedText
-        )
-        card.setOnClickListener {
-            reminderCandidateDialog?.dismiss()
-            showReminderDatePicker(item, candidate.triggerAt)
-        }
-
-        reminderCandidateDialog = MaterialAlertDialogBuilder(this)
-            .setView(card)
-            .create()
-            .apply {
-                setOnShowListener {
-                    window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
-                    window?.setDimAmount(0.12f)
-                    window?.setLayout(
-                        (resources.displayMetrics.widthPixels * 0.86f).toInt(),
-                        WindowManager.LayoutParams.WRAP_CONTENT
+        reminderCandidateDialog = showPinPoolDialog { dismiss ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                pressFeedbackType = PressFeedbackType.Tilt,
+                onClick = {
+                    dismiss()
+                    showReminderDatePicker(item, candidate.triggerAt)
+                },
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp)
+                        .verticalScroll(rememberScrollState()).padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.pin_pool_reminder_candidate_title),
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MiuixTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.pin_pool_reminder_candidate_time,
+                            formatReminderTime(candidate.triggerAt),
+                            candidate.matchedText,
+                        ),
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    )
+                    Text(
+                        text = stringResource(R.string.pin_pool_reminder_candidate_action),
+                        fontSize = 15.sp,
+                        color = MiuixTheme.colorScheme.primary,
                     )
                 }
-                show()
             }
+        }
     }
 
     override fun onDestroy() {
         GlassEffectUtils.applyWindowBlur(window, false)
         reminderCandidateDialog?.dismiss()
+        clearPinsDialog?.dismiss()
         PinDragCancelOverlay.hide()
         super.onDestroy()
     }
@@ -1222,22 +1258,105 @@ class PinPoolFloating : AppCompatActivity() {
                 R.string.pin_pool_title
             }
         )
-        MaterialAlertDialogBuilder(this)
-            .setTitle(getString(R.string.pin_pool_clear_title, categoryName))
-            .setMessage(getString(R.string.pin_pool_clear_message, categoryName))
-            .setNegativeButton(R.string.pin_pool_cancel, null)
-            .setPositiveButton(R.string.pin_pool_clear_action) { _, _ ->
-                lifecycleScope.launch(Dispatchers.Main) {
-                    val remaining = withContext(Dispatchers.IO) {
-                        PinPoolStore.sortPins(
-                            PinPoolStore.clearPins(this@PinPoolFloating, currentCategory)
-                        )
-                    }
-                    clearMissingImagePreviewCache(remaining)
-                    updatePins(remaining)
+        clearPinsDialog?.dismiss()
+        clearPinsDialog = showPinPoolDialog { dismiss ->
+            val submitted = remember { mutableStateOf(false) }
+            Column {
+                Text(
+                    text = stringResource(R.string.pin_pool_clear_title, categoryName),
+                    modifier = Modifier.fillMaxWidth().padding(
+                        start = 24.dp, end = 24.dp, top = 24.dp, bottom = 12.dp
+                    ),
+                    textAlign = TextAlign.Center,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MiuixTheme.colorScheme.onSurface,
+                )
+                Column(
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                        .heightIn(max = 500.dp).verticalScroll(rememberScrollState()),
+                ) {
+                    Text(
+                        text = stringResource(R.string.pin_pool_clear_message, categoryName),
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(
+                        start = 24.dp, end = 24.dp, top = 12.dp, bottom = 24.dp
+                    ),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    TextButton(
+                        text = stringResource(R.string.pin_pool_cancel),
+                        modifier = Modifier.weight(1f).heightIn(min = 44.dp),
+                        onClick = dismiss,
+                    )
+                    TextButton(
+                        text = stringResource(R.string.pin_pool_clear_action),
+                        modifier = Modifier.weight(1f).heightIn(min = 44.dp),
+                        colors = ButtonDefaults.textButtonColorsPrimary(),
+                        enabled = !submitted.value,
+                        onClick = {
+                            if (submitted.value) return@TextButton
+                            submitted.value = true
+                            dismiss()
+                            lifecycleScope.launch(Dispatchers.Main) {
+                                val remaining = withContext(Dispatchers.IO) {
+                                    PinPoolStore.sortPins(
+                                        PinPoolStore.clearPins(this@PinPoolFloating, currentCategory)
+                                    )
+                                }
+                                clearMissingImagePreviewCache(remaining)
+                                updatePins(remaining)
+                            }
+                        },
+                    )
                 }
             }
-            .show()
+        }
+    }
+
+    /** A zero-size host keeps these dialogs independent of the legacy list and floating window. */
+    private fun showPinPoolDialog(
+        content: @Composable (dismiss: () -> Unit) -> Unit,
+    ): PinPoolDialogHandle? {
+        if (isFinishing || isDestroyed) return null
+        val handle = PinPoolDialogHandle()
+        val host = ComposeView(this).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        }
+        binding.root.addView(host, ViewGroup.LayoutParams(0, 0))
+        host.setContent {
+            MiuixEvoTheme {
+                WindowDialog(
+                    show = handle.visible.value,
+                    insideMargin = DpSize(0.dp, 0.dp),
+                    onDismissRequest = handle::dismiss,
+                    onDismissFinished = {
+                        // Wait for the Miuix exit animation before disposing its composition.
+                        host.post {
+                            host.disposeComposition()
+                            (host.parent as? ViewGroup)?.removeView(host)
+                        }
+                    },
+                ) {
+                    content(handle::dismiss)
+                }
+            }
+        }
+        return handle
+    }
+
+    private class PinPoolDialogHandle {
+        val visible = mutableStateOf(true)
+
+        fun dismiss() {
+            visible.value = false
+        }
     }
 
     private fun updatePins(items: List<PinPoolItem>) {

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="floating_bottom_bar_title">悬浮底栏</string>
+    <string name="floating_bottom_bar_summary">开启为悬浮胶囊，关闭为贴底导航。保留总览、操控、内容和管理四个入口。</string>
+</resources>

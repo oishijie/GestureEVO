@@ -10,16 +10,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import io.github.lumiagg.gestureevo.R
 import io.github.lumiagg.gestureevo.ui.compose.MiuixEvoTheme
 import io.github.lumiagg.gestureevo.ui.miuix.MiuixCard
@@ -52,8 +57,18 @@ class SettingsSearchActivity : AppCompatActivity() {
         onOpen: (SettingsSearchEntry) -> Unit,
     ) {
         val context = LocalContext.current
+        val keyboardController = LocalSoftwareKeyboardController.current
+        val focusRequester = remember { FocusRequester() }
         var query by remember { mutableStateOf("") }
         val entries = remember(query) { SettingsSearchRegistry.search(context, query) }
+
+        // Restore the search affordance from the previous settings flow: focus and open IME
+        // once the first frame is attached, rather than racing composition/layout.
+        LaunchedEffect(Unit) {
+            delay(120)
+            focusRequester.requestFocus()
+            keyboardController?.show()
+        }
 
         MiuixScreen(
             title = stringResource(R.string.settings_search_hint),
@@ -66,7 +81,9 @@ class SettingsSearchActivity : AppCompatActivity() {
                             value = query,
                             onValueChange = { query = it },
                             label = stringResource(R.string.settings_search_hint),
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                 .fillMaxWidth()
+                                 .focusRequester(focusRequester),
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                         )

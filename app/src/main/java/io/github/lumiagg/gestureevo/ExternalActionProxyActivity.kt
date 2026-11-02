@@ -3,19 +3,44 @@ package io.github.lumiagg.gestureevo
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.widget.TextView
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.view.Gravity
+import android.view.ViewGroup
+import android.view.WindowManager
+import androidx.activity.ComponentDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AlertDialog
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.github.lumiagg.gestureevo.db.ExternalActionPermissionModel
-import io.github.lumiagg.gestureevo.settings.ui.SettingsNavRow
+import io.github.lumiagg.gestureevo.ui.compose.MiuixEvoTheme
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixCard
 import io.github.lumiagg.gestureevo.utils.ActionProxy
 import io.github.lumiagg.gestureevo.utils.ExternalActionPermissionStore
 import io.github.lumiagg.gestureevo.utils.GestureActionLink
 import io.github.lumiagg.gestureevo.utils.ToastHelper
 import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 class ExternalActionProxyActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,69 +81,126 @@ class ExternalActionProxyActivity : AppCompatActivity() {
     }
 
     private fun showAuthorizationDialog(link: String, callerPackage: String?) {
+        if (isFinishing || isDestroyed) return
         val callerName = resolveAppName(callerPackage)
         val canRememberPermission = !callerPackage.isNullOrBlank()
         val dialogMessage = buildDialogMessage(link, canRememberPermission)
-        val dialogView = layoutInflater.inflate(R.layout.dialog_external_action_permission, null)
-
-        dialogView.findViewById<TextView>(R.id.dialogTitle).text = getString(
-            R.string.action_proxy_permission_inferred_caller_title,
-            callerName
-        )
-        dialogView.findViewById<TextView>(R.id.dialogMessage).text = dialogMessage
-
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setView(dialogView)
-            .setOnCancelListener {
-                finish()
-            }
-            .create()
-
-        dialogView.findViewById<SettingsNavRow>(R.id.allowActionButton).apply {
-            setTitle(getString(R.string.action_proxy_permission_allow_action))
-            isEnabled = canRememberPermission
-            setOnClickListener {
-                rememberPermissionAndExecute(
-                    dialog = dialog,
-                    callerPackage = callerPackage,
-                    link = link,
-                    scopeType = ExternalActionPermissionModel.ScopeType.ACTION
-                )
-            }
+        // ComponentDialog installs lifecycle, saved-state and back owners for ComposeView.
+        // Keep action execution in the Activity scope: dismissing must not cancel it.
+        val dialog = ComponentDialog(this)
+        var actionStarted = false
+        dialog.setCancelable(true)
+        dialog.setCanceledOnTouchOutside(true)
+        dialog.setOnCancelListener { finish() }
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_DESTROY) dialog.dismiss()
         }
+        lifecycle.addObserver(observer)
+        dialog.setOnDismissListener { lifecycle.removeObserver(observer) }
 
-        dialogView.findViewById<SettingsNavRow>(R.id.allowLinkButton).apply {
-            setTitle(getString(R.string.action_proxy_permission_allow_link))
-            isEnabled = canRememberPermission
-            setOnClickListener {
-                rememberPermissionAndExecute(
-                    dialog = dialog,
-                    callerPackage = callerPackage,
-                    link = link,
-                    scopeType = ExternalActionPermissionModel.ScopeType.LINK
-                )
-            }
-        }
-
-        dialogView.findViewById<SettingsNavRow>(R.id.allowOnceButton).apply {
-            setTitle(getString(R.string.action_proxy_permission_allow_once))
-            setOnClickListener {
-                dialog.dismiss()
-                lifecycleScope.launch {
-                    executeAndFinish(link)
+        val view = ComposeView(dialog.context).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                MiuixEvoTheme {
+                    MiuixCard(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp)
+                            .heightIn(max = resources.configuration.screenHeightDp.dp * 0.9f)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                text = stringResource(
+                                    R.string.action_proxy_permission_inferred_caller_title, callerName
+                                ),
+                                modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+                                textAlign = TextAlign.Center,
+                                fontSize = 17.sp,
+                                lineHeight = 22.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = MiuixTheme.colorScheme.onSurface
+                            )
+                            Column(
+                                modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                                    .heightIn(max = 500.dp).verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                    text = dialogMessage,
+                                    fontSize = 14.sp,
+                                    lineHeight = 20.sp,
+                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                                )
+                                TextButton(
+                                    text = stringResource(R.string.action_proxy_permission_allow_action),
+                                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                                    enabled = canRememberPermission,
+                                    onClick = {
+                                        if (actionStarted) return@TextButton
+                                        actionStarted = true
+                                        rememberPermissionAndExecute(
+                                            dismiss = { dialog.dismiss() },
+                                            callerPackage = callerPackage,
+                                            link = link,
+                                            scopeType = ExternalActionPermissionModel.ScopeType.ACTION
+                                        )
+                                    }
+                                )
+                                TextButton(
+                                    text = stringResource(R.string.action_proxy_permission_allow_link),
+                                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                                    enabled = canRememberPermission,
+                                    onClick = {
+                                        if (actionStarted) return@TextButton
+                                        actionStarted = true
+                                        rememberPermissionAndExecute(
+                                            dismiss = { dialog.dismiss() },
+                                            callerPackage = callerPackage,
+                                            link = link,
+                                            scopeType = ExternalActionPermissionModel.ScopeType.LINK
+                                        )
+                                    }
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 24.dp),
+                                horizontalArrangement = Arrangement.spacedBy(20.dp)
+                            ) {
+                                TextButton(
+                                    text = stringResource(R.string.data_backup_cancel),
+                                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                                    onClick = {
+                                        dialog.dismiss()
+                                        finish()
+                                    }
+                                )
+                                TextButton(
+                                    text = stringResource(R.string.action_proxy_permission_allow_once),
+                                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                                    colors = ButtonDefaults.textButtonColorsPrimary(),
+                                    onClick = {
+                                        if (actionStarted) return@TextButton
+                                        actionStarted = true
+                                        dialog.dismiss()
+                                        lifecycleScope.launch { executeAndFinish(link) }
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
-
-        dialogView.findViewById<MaterialButton>(R.id.cancelButton).apply {
-            text = getString(R.string.data_backup_cancel)
-            setOnClickListener {
-                dialog.dismiss()
-                finish()
-            }
+        dialog.setContentView(view)
+        dialog.window?.apply {
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+            setDimAmount(0.32f)
+            setGravity(Gravity.CENTER)
         }
-
         dialog.show()
+        dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
     private fun buildDialogMessage(link: String, canRememberPermission: Boolean): String {
@@ -137,7 +219,7 @@ class ExternalActionProxyActivity : AppCompatActivity() {
     }
 
     private fun rememberPermissionAndExecute(
-        dialog: AlertDialog,
+        dismiss: () -> Unit,
         callerPackage: String?,
         link: String,
         scopeType: ExternalActionPermissionModel.ScopeType
@@ -163,7 +245,7 @@ class ExternalActionProxyActivity : AppCompatActivity() {
                     getString(R.string.action_proxy_permission_saved)
                 )
             }
-            dialog.dismiss()
+            dismiss()
             executeAndFinish(link)
         }
     }

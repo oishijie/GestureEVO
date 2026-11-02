@@ -6,6 +6,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ActionCatalogTest {
+    @Test fun entryPointRestrictionsAreIndependent() {
+        for (wheel in listOf(false, true)) for (none in listOf(false, true)) for (click in listOf(false, true)) {
+            val types = actionCategories(36, wheel, none, click).flatMap { it.second }.map { it.type }
+            assertEquals(wheel, GestureActionType.SHOW_ACTION_VIEW in types)
+            assertEquals(none, GestureActionType.NONE in types)
+            assertEquals(click, GestureActionType.CLICK_THROUGH in types)
+            assertTrue(GestureActionType.OPEN_APP in types)
+        }
+    }
+
     @Test fun unifiedCatalogIncludesEveryExistingActionType() {
         val choices = actionCategories(36).flatMap { it.second }
         assertEquals(GestureActionType.entries.toSet(), choices.map { it.type }.toSet())

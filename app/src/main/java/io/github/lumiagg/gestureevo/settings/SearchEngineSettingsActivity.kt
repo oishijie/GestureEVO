@@ -1,15 +1,30 @@
 package io.github.lumiagg.gestureevo.settings
 
 import android.Manifest
-import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import kotlinx.coroutines.Job
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,6 +33,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text as M3Text
@@ -25,6 +43,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +54,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,7 +69,6 @@ import io.github.lumiagg.gestureevo.search.config.SearchEngineDataManager
 import io.github.lumiagg.gestureevo.ui.compose.MiuixEvoTheme
 import io.github.lumiagg.gestureevo.ui.miuix.MiuixCard
 import io.github.lumiagg.gestureevo.ui.miuix.MiuixScreen
-import io.github.lumiagg.gestureevo.utils.dp2px
 import io.github.lumiagg.gestureevo.utils.readKey
 import io.github.lumiagg.gestureevo.utils.saveKey
 import io.github.lumiagg.gestureevo.utils.settingsStore
@@ -83,6 +103,43 @@ class SearchEngineSettingsActivity : AppCompatActivity() {
         const val MAX_COLUMN_COUNT = 8
     }
 
+    private var focusedSections by mutableStateOf<Set<Int>>(emptySet())
+    private var focusRequestVersion by mutableIntStateOf(0)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        readFocusIntent(intent)
+    }
+
+    /** Keep the historical XML anchors accepted by settings search and home shortcuts. */
+    private fun readFocusIntent(source: Intent) {
+        val ids = buildList {
+            source.getIntExtra(SettingsSearchNavigator.EXTRA_TARGET_VIEW_ID, View.NO_ID)
+                .takeIf { it != View.NO_ID }?.let(::add)
+            source.getIntArrayExtra(SettingsSearchNavigator.EXTRA_TARGET_VIEW_IDS)?.let { addAll(it.toList()) }
+        }
+        focusedSections = ids.mapNotNull { id ->
+            when (id) {
+                R.id.engineListCard, R.id.engine_recycler, R.id.empty_view, R.id.progress_bar,
+                R.id.fab_add, R.id.fab_preview_sort -> R.id.engineListCard
+                R.id.displayCard, R.id.rowCountRow, R.id.rowCountMinus, R.id.rowCountValue,
+                R.id.rowCountPlus, R.id.columnCountRow, R.id.columnCountMinus,
+                R.id.columnCountValue, R.id.columnCountPlus, R.id.showLabelSwitch,
+                R.id.bottomLayoutSwitch, R.id.doubleColumnSwitch, R.id.keyboardAnimationSwitch,
+                R.id.imageBadgeSwitch -> R.id.displayCard
+                R.id.functionCard, R.id.clipboardContentSwitch, R.id.historySwitch,
+                R.id.contactSwitch, R.id.settingsShortcutsSwitch, R.id.enterFirstSwitch,
+                R.id.keepLastSwitch -> R.id.functionCard
+                R.id.startupCard, R.id.defaultSearchPageSwitch -> R.id.startupCard
+                R.id.transferCard, R.id.importEnginesRow, R.id.exportEnginesRow,
+                R.id.hiddenResultsCard, R.id.hiddenResultsRow -> R.id.transferCard
+                else -> null
+            }
+        }.toSet()
+        focusRequestVersion++
+    }
+
     /** 通讯录权限结果：授予则落库并同步，拒绝则回退开关。 */
     private var onContactPermissionResult: ((Boolean) -> Unit)? = null
 
@@ -95,6 +152,7 @@ class SearchEngineSettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        readFocusIntent(intent) // Filter synchronously, before the first composition or any IO.
         setContent {
             MiuixEvoTheme {
                 SettingsScreen(
@@ -130,6 +188,16 @@ class SearchEngineSettingsActivity : AppCompatActivity() {
     ) {
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
+        val listState = rememberLazyListState()
+        val visibleSections = listOf(R.id.engineListCard, R.id.displayCard, R.id.functionCard,
+            R.id.startupCard, R.id.transferCard)
+            .filter { focusedSections.isEmpty() || it in focusedSections }
+        LaunchedEffect(focusRequestVersion) {
+            focusedSections.firstOrNull()?.let { target ->
+                val index = visibleSections.indexOf(target)
+                if (index >= 0) listState.scrollToItem(index)
+            }
+        }
 
         var rowCount by remember { mutableIntStateOf(1) }
         var columnCount by remember { mutableIntStateOf(5) }
@@ -149,8 +217,47 @@ class SearchEngineSettingsActivity : AppCompatActivity() {
         var showImportDialog by remember { mutableStateOf(false) }
         var importJson by remember { mutableStateOf("") }
         var pendingContactEnable by remember { mutableStateOf(false) }
+        var actionEngineTag by remember { mutableStateOf<String?>(null) }
+        var actionMenuExpanded by remember { mutableStateOf(false) }
 
         val engines = remember { mutableStateListOf<SearchEngine>() }
+        var engineRefreshJob by remember { mutableStateOf<Job?>(null) }
+        var engineWriteJob by remember { mutableStateOf<Job?>(null) }
+        fun persistEngineChange(block: suspend () -> Unit) {
+            engineRefreshJob?.cancel()
+            val previousWrite = engineWriteJob
+            engineWriteJob = scope.launch {
+                previousWrite?.join()
+                block()
+            }
+        }
+
+        // Only refresh engines on resume: re-reading preferences here would undo in-flight edits.
+        // A single cancellable reader cannot apply an older snapshot after a newer resume/local edit.
+        DisposableEffect(lifecycle, scope) {
+            val observer = LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_RESUME -> {
+                        engineRefreshJob?.cancel()
+                        engineRefreshJob = scope.launch {
+                            engineWriteJob?.join()
+                            val refreshed = withContext(Dispatchers.IO) {
+                                SearchEngineDataManager.readSearchEngineList(context.applicationContext)
+                            }
+                            engines.clear()
+                            engines.addAll(refreshed)
+                        }
+                    }
+                    Lifecycle.Event.ON_PAUSE -> engineRefreshJob?.cancel()
+                    else -> Unit
+                }
+            }
+            lifecycle.addObserver(observer) // Also catches up if composition starts already resumed.
+            onDispose {
+                lifecycle.removeObserver(observer)
+                engineRefreshJob?.cancel()
+            }
+        }
 
         LaunchedEffect(Unit) {
             rowCount = context.settingsStore.readKey(KEY_ROW_COUNT, 1)
@@ -167,22 +274,16 @@ class SearchEngineSettingsActivity : AppCompatActivity() {
             keepLast = context.settingsStore.readKey(KEY_KEEP_LAST_SEARCH_RESULT, true)
             searchContact = context.settingsStore.readKey(KEY_SEARCH_CONTACT, false)
             defaultSearchPage = context.settingsStore.readKey(KEY_DEFAULT_SEARCH_PAGE, false)
-
-            engines.clear()
-            engines.addAll(
-                withContext(Dispatchers.IO) {
-                    SearchEngineDataManager.readSearchEngineList(context.applicationContext)
-                }
-            )
         }
 
         MiuixScreen(
             title = stringResource(R.string.search_engine_settings_title),
             onBack = onBack,
+            listState = listState,
         ) {
             // ---- 引擎列表
-            item {
-                MiuixCard {
+            if (R.id.engineListCard in visibleSections) item(key = R.id.engineListCard) {
+                SearchSectionCard(R.id.engineListCard) {
                     Column(Modifier.fillMaxWidth().padding(16.dp)) {
                         Text(
                             text = stringResource(R.string.search_engine_settings_engine_list_title),
@@ -206,23 +307,147 @@ class SearchEngineSettingsActivity : AppCompatActivity() {
                         }
                     } else {
                         engines.forEach { engine ->
-                            ArrowPreference(
-                                title = engine.name.orEmpty(),
-                                summary = engineTypeLabel(engine.engineType),
-                                onClick = { onEditEngine(engine) },
-                            )
+                            key(engine.tag) {
+                                val dragDescription = stringResource(R.string.search_engine_drag_reorder)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    // 手柄独立处理拖拽，行内容的长按只负责打开菜单。
+                                    Text(
+                                        text = "≡",
+                                        modifier = Modifier
+                                            .semantics { contentDescription = dragDescription }
+                                            .pointerInput(engine.tag) {
+                                                var dragDistance = 0f
+                                                var orderChanged = false
+                                                val threshold = 48.dp.toPx()
+                                                fun finishDrag() {
+                                                    dragDistance = 0f
+                                                    if (orderChanged) {
+                                                        orderChanged = false
+                                                        val snapshot = engines.toList()
+                                                        persistEngineChange {
+                                                            SearchEngineDataManager.saveSearchEngineList(context, snapshot)
+                                                        }
+                                                    }
+                                                }
+                                                detectDragGestures(
+                                                    onDragStart = {
+                                                        engineRefreshJob?.cancel()
+                                                        dragDistance = 0f
+                                                        orderChanged = false
+                                                        actionMenuExpanded = false
+                                                    },
+                                                    onDragCancel = { finishDrag() },
+                                                    onDragEnd = { finishDrag() },
+                                                    onDrag = { change, amount ->
+                                                        change.consume()
+                                                        dragDistance += amount.y
+                                                        val currentIndex = engines.indexOfFirst { it.tag == engine.tag }
+                                                        if (currentIndex >= 0 && kotlin.math.abs(dragDistance) >= threshold) {
+                                                            val targetIndex = currentIndex + if (dragDistance > 0f) 1 else -1
+                                                            if (targetIndex in engines.indices) {
+                                                                val currentEngine = engines.removeAt(currentIndex)
+                                                                engines.add(targetIndex, currentEngine)
+                                                                orderChanged = true
+                                                            }
+                                                            dragDistance = 0f
+                                                        }
+                                                    },
+                                                )
+                                            }
+                                            .padding(16.dp),
+                                        fontSize = 24.sp,
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .combinedClickable(
+                                                onClick = { onEditEngine(engine) },
+                                                onLongClick = {
+                                                    actionEngineTag = engine.tag
+                                                    actionMenuExpanded = true
+                                                },
+                                            ),
+                                    ) {
+                                        Column(Modifier.fillMaxWidth().padding(vertical = 16.dp, horizontal = 8.dp)) {
+                                            Text(text = engine.name.orEmpty(), fontSize = 16.sp)
+                                            Text(
+                                                text = engineTypeLabel(engine.engineType),
+                                                fontSize = 12.sp,
+                                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                            )
+                                        }
+                                        DropdownMenu(
+                                            expanded = actionMenuExpanded && actionEngineTag == engine.tag,
+                                            onDismissRequest = { actionMenuExpanded = false },
+                                        ) {
+                                            DropdownMenuItem(
+                                                text = { M3Text(stringResource(R.string.search_engine_option_set_default)) },
+                                                onClick = {
+                                                    actionMenuExpanded = false
+                                                    if (engines.any { it.tag == engine.tag }) {
+                                                        persistEngineChange { SearchEngineDataManager.setDefaultEngineTag(context, engine.tag) }
+                                                    }
+                                                },
+                                            )
+                                            DropdownMenuItem(
+                                                text = {
+                                                    M3Text(stringResource(
+                                                        if (engine.showInSearchEngineList) R.string.search_engine_option_hide
+                                                        else R.string.search_engine_option_show
+                                                    ))
+                                                },
+                                                onClick = {
+                                                    actionMenuExpanded = false
+                                                    val currentIndex = engines.indexOfFirst { it.tag == engine.tag }
+                                                    if (currentIndex >= 0) {
+                                                        val currentEngine = engines.removeAt(currentIndex)
+                                                        currentEngine.showInSearchEngineList = !currentEngine.showInSearchEngineList
+                                                        val targetIndex = if (currentEngine.showInSearchEngineList) {
+                                                            engines.indexOfFirst { !it.showInSearchEngineList }
+                                                                .takeIf { it >= 0 } ?: engines.size
+                                                        } else engines.size
+                                                        engines.add(targetIndex, currentEngine)
+                                                        val snapshot = engines.toList()
+                                                        persistEngineChange { SearchEngineDataManager.saveSearchEngineList(context, snapshot) }
+                                                    }
+                                                },
+                                            )
+                                            DropdownMenuItem(
+                                                text = { M3Text(stringResource(R.string.search_engine_option_delete)) },
+                                                onClick = {
+                                                    actionMenuExpanded = false
+                                                    val currentIndex = engines.indexOfFirst { it.tag == engine.tag }
+                                                    if (currentIndex >= 0) {
+                                                        engines.removeAt(currentIndex)
+                                                        persistEngineChange {
+                                                            SearchEngineDataManager.removeSearchEngine(context, engine.tag)
+                                                        }
+                                                    }
+                                                },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     ArrowPreference(
                         title = stringResource(R.string.search_engine_settings_add_engine),
                         onClick = onAddEngine,
                     )
+                    ArrowPreference(
+                        title = stringResource(R.string.search_engine_settings_preview_mode),
+                        onClick = { QuickSearchActivity.start(this@SearchEngineSettingsActivity, previewSortMode = true) },
+                    )
                 }
             }
 
             // ---- 显示设置
-            item {
-                MiuixCard {
+            if (R.id.displayCard in visibleSections) item(key = R.id.displayCard) {
+                SearchSectionCard(R.id.displayCard) {
                     Column(Modifier.fillMaxWidth().padding(16.dp)) {
                         Text(
                             text = stringResource(R.string.search_engine_settings_display_title),
@@ -316,8 +541,8 @@ class SearchEngineSettingsActivity : AppCompatActivity() {
             }
 
             // ---- 功能设置
-            item {
-                MiuixCard {
+            if (R.id.functionCard in visibleSections) item(key = R.id.functionCard) {
+                SearchSectionCard(R.id.functionCard) {
                     SwitchPreference(
                         title = stringResource(R.string.search_engine_settings_show_clipboard_content),
                         summary = stringResource(R.string.search_engine_settings_show_clipboard_content_desc),
@@ -407,8 +632,8 @@ class SearchEngineSettingsActivity : AppCompatActivity() {
             }
 
             // ---- 启动设置
-            item {
-                MiuixCard {
+            if (R.id.startupCard in visibleSections) item(key = R.id.startupCard) {
+                SearchSectionCard(R.id.startupCard) {
                     SwitchPreference(
                         title = stringResource(R.string.search_engine_settings_default_search_page),
                         summary = stringResource(R.string.search_engine_settings_default_search_page_desc),
@@ -428,8 +653,8 @@ class SearchEngineSettingsActivity : AppCompatActivity() {
             }
 
             // ---- 导入导出与隐藏结果
-            item {
-                MiuixCard {
+            if (R.id.transferCard in visibleSections) item(key = R.id.transferCard) {
+                SearchSectionCard(R.id.transferCard) {
                     ArrowPreference(
                         title = stringResource(R.string.search_engine_settings_import),
                         onClick = { showImportDialog = true },
@@ -444,10 +669,6 @@ class SearchEngineSettingsActivity : AppCompatActivity() {
                         onClick = {
                             startActivity(Intent(this@SearchEngineSettingsActivity, HiddenSearchResultsActivity::class.java))
                         },
-                    )
-                    ArrowPreference(
-                        title = stringResource(R.string.search_engine_settings_preview_mode),
-                        onClick = { QuickSearchActivity.start(this@SearchEngineSettingsActivity, previewSortMode = true) },
                     )
                 }
             }
@@ -509,6 +730,27 @@ class SearchEngineSettingsActivity : AppCompatActivity() {
                 },
             )
         }
+    }
+
+    @Composable
+    private fun SearchSectionCard(section: Int, content: @Composable ColumnScope.() -> Unit) {
+        val focusRequester = remember { FocusRequester() }
+        val isTarget = focusedSections.firstOrNull() == section
+        var settled by remember(isTarget, focusRequestVersion) { mutableStateOf(!isTarget) }
+        val highlightAlpha by animateFloatAsState(
+            targetValue = if (settled) 1f else 0.68f,
+            animationSpec = tween(300), label = "search-section-focus",
+        )
+        LaunchedEffect(isTarget, focusRequestVersion) {
+            if (isTarget) {
+                focusRequester.requestFocus()
+                settled = true
+            }
+        }
+        MiuixCard(
+            modifier = Modifier.alpha(highlightAlpha).focusRequester(focusRequester).focusable(),
+            content = content,
+        )
     }
 
     @Composable

@@ -1,30 +1,56 @@
 package io.github.lumiagg.gestureevo.settings.ui
 
-import io.github.lumiagg.gestureevo.databinding.BottomSheetDefaultLinkOpenBinding
-
 import android.app.Activity
 import android.content.Context
 import android.graphics.drawable.Drawable
-import android.text.InputType
-import android.view.LayoutInflater
-import android.view.View
-import android.widget.EditText
-import androidx.core.content.ContextCompat
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.LifecycleCoroutineScope
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.drake.brv.BindingAdapter
-import com.drake.brv.utils.models
-import com.drake.brv.utils.setup
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.button.MaterialButton
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.imageview.ShapeableImageView
 import com.google.android.material.textview.MaterialTextView
 import io.github.lumiagg.gestureevo.R
 import io.github.lumiagg.gestureevo.db.APPModel
 import io.github.lumiagg.gestureevo.gesture.ui.RoundImageTextView
-import io.github.lumiagg.gestureevo.utils.DynamicColorUtils
+import io.github.lumiagg.gestureevo.db.getAPPDao
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixCard
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import kotlinx.coroutines.delay
 import io.github.lumiagg.gestureevo.utils.MoshiUtils
 import io.github.lumiagg.gestureevo.utils.app.appDisplayNameFromDatabase
 import io.github.lumiagg.gestureevo.utils.icon.IconHelper
@@ -97,118 +123,92 @@ class DefaultLinkOpenBottomSheet(
     private val domainAppList: MutableList<DomainAppModel> = mutableListOf()
 ) {
 
-    private lateinit var bottomSheetDialog: BottomSheetDialog
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var addButton: View
+    private var dismissSheet: (() -> Unit)? = null
+    private var dismissRequested by mutableStateOf(false)
+    private var revision by mutableStateOf(0)
 
     fun show() {
-        setupBottomSheet()
-        setupRecyclerView()
-        refreshList()
-        bottomSheetDialog.show()
-    }
-
-    private fun setupBottomSheet() {
-        val themedContext = DynamicColorUtils.dynamicThemedContext(activity)
-        bottomSheetDialog = BottomSheetDialog(themedContext)
-        val view =
-            BottomSheetDefaultLinkOpenBinding.inflate(LayoutInflater.from(themedContext)).root
-        bottomSheetDialog.setContentView(view)
-        bottomSheetDialog.setOnShowListener { dialog ->
-            DynamicColorUtils.applyBottomSheetSurface(dialog as BottomSheetDialog)
-        }
-
-        recyclerView = view.findViewById(R.id.recyclerView)
-        addButton = view.findViewById(R.id.addButton)
-
-        view.findViewById<MaterialTextView>(R.id.title)?.text =
-            activity.getString(R.string.link_open_default_title)
-        view.findViewById<MaterialTextView>(R.id.description)?.text =
-            activity.getString(R.string.link_open_description)
-
-        addButton.setOnClickListener {
-            showDomainInputDialog()
-        }
-    }
-
-    private fun setupRecyclerView() {
-        recyclerView.layoutManager = LinearLayoutManager(activity)
-        recyclerView.setup {
-            addType<DomainAppModel>(R.layout.item_domain_app)
-            onBind {
-                val domainApp = getModel<DomainAppModel>()
-                val position = bindingAdapterPosition
-                if (position == RecyclerView.NO_POSITION) return@onBind
-
-                findView<MaterialTextView>(R.id.domain).text = domainApp.domain
-                findView<MaterialTextView>(R.id.appName).text =
-                    activity.getString(R.string.link_open_app_summary, domainApp.appName)
-                findView<ShapeableImageView>(R.id.appIcon).setImageDrawable(domainApp.appIcon)
-
-                findView<MaterialButton>(R.id.editButton).apply {
-                    visibility = View.VISIBLE
-                    icon = ContextCompat.getDrawable(activity, R.drawable.baseline_edit_24)
-                    contentDescription = activity.getString(R.string.link_open_action_edit_domain)
-                    setOnClickListener {
-                        showDomainInputDialog(domainApp, position)
-                    }
-                }
-
-                findView<MaterialButton>(R.id.deleteButton).apply {
-                    visibility = View.VISIBLE
-                    icon = ContextCompat.getDrawable(activity, R.drawable.ic_delete)
-                    contentDescription = activity.getString(R.string.link_open_action_delete)
-                    setOnClickListener {
-                        showDeleteConfirmDialog(domainApp)
-                    }
-                }
-
-                itemView.setOnClickListener {
-                    showSelectAppDialog(domainApp.domain, domainApp, position)
-                }
-            }
-        }
-    }
-
-    private fun refreshList() {
+        dismissRequested = false
         domainAppList.sortBy { it.domain.lowercase() }
-        recyclerView.models = domainAppList
-    }
-
-    private fun showDomainInputDialog(domainApp: DomainAppModel? = null, position: Int = -1) {
-        val editText = EditText(activity).apply {
-            hint = activity.getString(R.string.link_open_domain_hint)
-            inputType = InputType.TYPE_TEXT_VARIATION_URI
-            setText(domainApp?.domain.orEmpty())
-        }
-
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(
-                if (domainApp == null) {
-                    R.string.link_open_add_domain_title
-                } else {
-                    R.string.link_open_edit_domain_title
-                }
-            )
-            .setView(editText)
-            .setPositiveButton(R.string.link_open_next_step) { _, _ ->
-                val normalizedDomain = LinkOpenDomainUtils.normalizeDomainInput(
-                    editText.text?.toString().orEmpty()
-                )
-
-                when {
-                    normalizedDomain == null -> showInvalidDomainDialog()
-                    isDomainExists(normalizedDomain, position) -> showDomainExistsDialog()
-                    domainApp != null && position >= 0 -> {
-                        domainAppList[position] = domainApp.copy(domain = normalizedDomain)
-                        persistAndRefresh()
+        showMiuixSheet(activity) { dismiss ->
+            dismissSheet = dismiss
+            LaunchedEffect(dismissRequested) { if (dismissRequested) dismiss() }
+            @Suppress("UNUSED_VARIABLE") val currentRevision = revision
+            var editor by remember { mutableStateOf<Pair<DomainAppModel?, Int>?>(null) }
+            var deleting by remember { mutableStateOf<DomainAppModel?>(null) }
+            var message by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+                LinkSheetTitle(stringResource(R.string.link_open_default_title))
+                Text(stringResource(R.string.link_open_description),
+                    modifier = Modifier.padding(bottom = 12.dp), fontSize = 12.sp,
+                    lineHeight = 16.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+                LazyColumn(Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 500.dp)) {
+                    itemsIndexed(domainAppList.toList()) { position, item ->
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            LinkAppIcon(item.appIcon)
+                            Column(Modifier.weight(1f)) {
+                                ArrowPreference(title = item.domain,
+                                    summary = activity.getString(R.string.link_open_app_summary, item.appName),
+                                    onClick = { showSelectAppDialog(item.domain, item, position) })
+                            }
+                            IconButton(onClick = { editor = item to position }, modifier = Modifier.size(44.dp)) {
+                                Icon(painterResource(R.drawable.baseline_edit_24),
+                                    stringResource(R.string.link_open_action_edit_domain))
+                            }
+                            IconButton(onClick = { deleting = item }, modifier = Modifier.size(44.dp)) {
+                                Icon(painterResource(R.drawable.ic_delete),
+                                    stringResource(R.string.link_open_action_delete))
+                            }
+                        }
                     }
-
-                    else -> showSelectAppDialog(normalizedDomain)
+                }
+                TextButton(text = stringResource(R.string.default_link_open_add_domain),
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 24.dp).heightIn(min = 44.dp),
+                    colors = ButtonDefaults.textButtonColorsPrimary(),
+                    onClick = { editor = null to -1 })
+            }
+            editor?.let { (item, position) ->
+                var input by rememberSaveable(item, position) { mutableStateOf(item?.domain.orEmpty()) }
+                LinkSheetDialog(
+                    title = stringResource(if (item == null) R.string.link_open_add_domain_title else R.string.link_open_edit_domain_title),
+                    confirm = stringResource(R.string.link_open_next_step), onDismiss = { editor = null },
+                    onConfirm = {
+                        val normalized = LinkOpenDomainUtils.normalizeDomainInput(input)
+                        editor = null
+                        when {
+                            normalized == null -> message = R.string.link_open_invalid_domain_title to R.string.link_open_invalid_domain_message
+                            isDomainExists(normalized, position) -> message = R.string.link_open_domain_exists_title to R.string.link_open_domain_exists_message
+                            item != null && position in domainAppList.indices -> {
+                                domainAppList[position] = item.copy(domain = normalized)
+                                persistAndRefresh()
+                            }
+                            else -> showSelectAppDialog(normalized)
+                        }
+                    }) {
+                    TextField(value = input, onValueChange = { input = it },
+                        label = stringResource(R.string.link_open_domain_hint), singleLine = true,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
                 }
             }
-            .setNegativeButton(R.string.link_open_cancel, null)
-            .show()
+            deleting?.let { item ->
+                LinkSheetDialog(title = stringResource(R.string.link_open_delete_title),
+                    confirm = stringResource(R.string.link_open_action_delete), onDismiss = { deleting = null },
+                    onConfirm = {
+                        domainAppList.removeAll { it.domain == item.domain }
+                        deleting = null
+                        persistAndRefresh()
+                    }) {
+                    LinkSheetSummary(activity.getString(R.string.link_open_delete_message, item.domain))
+                }
+            }
+            message?.let { (title, body) ->
+                LinkSheetDialog(title = stringResource(title), confirm = stringResource(R.string.link_open_ok),
+                    onDismiss = { message = null }, onConfirm = { message = null }, showCancel = false) {
+                    LinkSheetSummary(stringResource(body))
+                }
+            }
+        }
     }
 
     private fun showSelectAppDialog(
@@ -216,81 +216,84 @@ class DefaultLinkOpenBottomSheet(
         originalDomainApp: DomainAppModel? = null,
         position: Int = -1
     ) {
-        LinkHandlerSelectAPPBottomSheet(
-            activity = activity,
-            coroutineScope = coroutineScope,
-            selectAPPCallBack = object : SelectAPPCallBack {
-                override fun selectCompleted(model: APPModel) {
-                    coroutineScope.launch(Dispatchers.IO) {
-                        val updatedDomainApp = DomainAppModel(
-                            domain = domain,
-                            packageName = model.pkgName,
-                            appName = model.name,
-                            appIcon = IconHelper.getIcon(activity, model.pkgName)
-                        )
-
-                        withContext(Dispatchers.Main) {
-                            if (originalDomainApp != null && position in domainAppList.indices) {
-                                domainAppList[position] = updatedDomainApp
-                            } else {
-                                domainAppList.add(updatedDomainApp)
-                            }
-                            persistAndRefresh()
+        LinkHandlerSelectAPPBottomSheet(activity, coroutineScope, object : SelectAPPCallBack {
+            override fun selectCompleted(model: APPModel) {
+                coroutineScope.launch(Dispatchers.IO) {
+                    val updatedDomainApp = DomainAppModel(domain, model.pkgName, model.name,
+                        IconHelper.getIcon(activity, model.pkgName))
+                    withContext(Dispatchers.Main) {
+                        if (originalDomainApp != null && position in domainAppList.indices) {
+                            domainAppList[position] = updatedDomainApp
+                        } else {
+                            domainAppList.add(updatedDomainApp)
                         }
+                        persistAndRefresh()
                     }
                 }
             }
-        ).show()
-    }
-
-    private fun showDeleteConfirmDialog(domainApp: DomainAppModel) {
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.link_open_delete_title)
-            .setMessage(activity.getString(R.string.link_open_delete_message, domainApp.domain))
-            .setPositiveButton(R.string.link_open_action_delete) { _, _ ->
-                domainAppList.removeAll { it.domain == domainApp.domain }
-                persistAndRefresh()
-            }
-            .setNegativeButton(R.string.link_open_cancel, null)
-            .show()
-    }
-
-    private fun showDomainExistsDialog() {
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.link_open_domain_exists_title)
-            .setMessage(R.string.link_open_domain_exists_message)
-            .setPositiveButton(R.string.link_open_ok, null)
-            .show()
-    }
-
-    private fun showInvalidDomainDialog() {
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.link_open_invalid_domain_title)
-            .setMessage(R.string.link_open_invalid_domain_message)
-            .setPositiveButton(R.string.link_open_ok, null)
-            .show()
+        }).show()
     }
 
     private fun persistAndRefresh() {
-        refreshList()
+        domainAppList.sortBy { it.domain.lowercase() }
+        revision++
         coroutineScope.launch {
             defaultLinkOpenCallBack.onDomainAppListChanged(domainAppList)
         }
     }
 
-    private fun isDomainExists(domain: String, excludePosition: Int = -1): Boolean {
-        return domainAppList.withIndex().any { (index, item) ->
+    private fun isDomainExists(domain: String, excludePosition: Int = -1): Boolean =
+        domainAppList.withIndex().any { (index, item) ->
             index != excludePosition && item.domain.equals(domain, ignoreCase = true)
         }
-    }
 
     fun dismiss() {
-        if (::bottomSheetDialog.isInitialized) {
-            bottomSheetDialog.dismiss()
+        dismissRequested = true
+        dismissSheet?.invoke()
+        dismissSheet = null
+    }
+}
+
+@Composable
+private fun LinkSheetTitle(title: String) {
+    Text(title, modifier = Modifier.padding(top = 24.dp, bottom = 12.dp),
+        fontSize = 17.sp, lineHeight = 22.sp, fontWeight = FontWeight.Medium,
+        color = MiuixTheme.colorScheme.onSurface)
+}
+
+@Composable
+private fun LinkSheetSummary(summary: String) {
+    Text(summary, fontSize = 14.sp, lineHeight = 20.sp,
+        color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+}
+
+@Composable
+private fun LinkSheetDialog(
+    title: String, confirm: String, onDismiss: () -> Unit, onConfirm: () -> Unit,
+    showCancel: Boolean = true, content: @Composable () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        MiuixCard {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+                LinkSheetTitle(title)
+                content()
+                Row(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    if (showCancel) TextButton(text = stringResource(R.string.link_open_cancel),
+                        modifier = Modifier.weight(1f).heightIn(min = 44.dp), onClick = onDismiss)
+                    TextButton(text = confirm, modifier = Modifier.weight(1f).heightIn(min = 44.dp),
+                        colors = ButtonDefaults.textButtonColorsPrimary(), onClick = onConfirm)
+                }
+            }
         }
     }
 }
 
+@Composable
+private fun LinkAppIcon(drawable: Drawable?) {
+    val bitmap = remember(drawable) { drawable?.toBitmap(48, 48)?.asImageBitmap() }
+    bitmap?.let { Image(it, contentDescription = null, modifier = Modifier.size(44.dp)) }
+}
 @JsonClass(generateAdapter = true)
 data class StoreDomainApp(
     val pkg: String,
@@ -363,6 +366,75 @@ class LinkHandlerSelectAPPBottomSheet(
     coroutineScope: LifecycleCoroutineScope,
     selectAPPCallBack: SelectAPPCallBack
 ) : BaseSelectAPPBottomSheet(activity, coroutineScope, selectAPPCallBack) {
+
+    override fun show() {
+        // Retain the BaseSelectAPP subtype/binding hook, without opening its XML window.
+        showMiuixSheet(activity, dismissOnOutside = false) { dismiss ->
+            var query by rememberSaveable { mutableStateOf("") }
+            var selectedFlag by rememberSaveable { mutableStateOf(appFlags) }
+            var apps by remember { mutableStateOf<List<APPModel>>(emptyList()) }
+            var loading by remember { mutableStateOf(true) }
+            var submitted by remember { mutableStateOf(false) }
+            LaunchedEffect(selectedFlag) {
+                loading = true
+                appFlags = selectedFlag
+                fullAppList = withContext(Dispatchers.IO) { getAPPDao().getAll(getAppFlag()) }
+                apps = withContext(Dispatchers.Default) { filterApps(query.trim().lowercase()) }
+                loading = false
+            }
+            LaunchedEffect(query, loading) {
+                if (!loading) {
+                    delay(300)
+                    apps = withContext(Dispatchers.Default) { filterApps(query.trim().lowercase()) }
+                }
+            }
+            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+                LinkSheetTitle(stringResource(R.string.app_select_name_hint))
+                TextField(value = query, onValueChange = { query = it }, singleLine = true,
+                    label = stringResource(R.string.app_select_name_hint),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp))
+                Row(Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    listOf(APPModel.FLAG_USER to R.string.app_select_user_apps,
+                        APPModel.FLAG_SYSTEM to R.string.app_select_system_apps).forEach { (flag, label) ->
+                        TextButton(text = stringResource(label),
+                            modifier = Modifier.weight(1f).heightIn(min = 44.dp),
+                            colors = if (selectedFlag == flag) ButtonDefaults.textButtonColorsPrimary()
+                                else ButtonDefaults.textButtonColors(),
+                            onClick = { selectedFlag = flag })
+                    }
+                }
+                if (loading) androidx.compose.material3.LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(), color = MiuixTheme.colorScheme.primary)
+                LazyColumn(Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 500.dp)) {
+                    itemsIndexed(apps) { _, app ->
+                        val bitmap by produceState<ImageBitmap?>(null, app.pkgName) {
+                            value = withContext(Dispatchers.IO) {
+                                IconHelper.getIcon(activity, app.pkgName)?.toBitmap(48, 48)?.asImageBitmap()
+                            }
+                        }
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            bitmap?.let { Image(it, contentDescription = null, modifier = Modifier.size(44.dp)) }
+                            Column(Modifier.weight(1f)) {
+                                ArrowPreference(title = app.name, summary = app.pkgName,
+                                    enabled = !loading && !submitted,
+                                    onClick = {
+                                        if (!submitted) {
+                                            submitted = true
+                                            selectAPPCallBack.selectCompleted(app)
+                                            dismiss()
+                                        }
+                                    })
+                            }
+                        }
+                    }
+                }
+                TextButton(text = stringResource(R.string.link_open_cancel),
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 24.dp).heightIn(min = 44.dp),
+                    onClick = dismiss)
+            }
+        }
+    }
 
     override fun onBindItem(holder: BindingAdapter.BindingViewHolder) {
         holder.findView<MaterialTextView>(R.id.name).text = holder.getModel<APPModel>().name

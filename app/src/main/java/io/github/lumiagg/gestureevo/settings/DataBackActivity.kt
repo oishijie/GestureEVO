@@ -6,17 +6,41 @@ import io.github.lumiagg.gestureevo.diagnostics.LogModule
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.View
-import android.widget.Toast
+import android.view.ViewGroup
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.window.WindowDialog
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.progressindicator.CircularProgressIndicatorSpec
-import com.google.android.material.progressindicator.IndeterminateDrawable
 import io.github.lumiagg.gestureevo.R
 import io.github.lumiagg.gestureevo.db.APPModel
 import io.github.lumiagg.gestureevo.db.getAPPDao
@@ -55,7 +79,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 class DataBackActivity : AppCompatActivity() {
-    private var currentProgressDialog: androidx.appcompat.app.AlertDialog? = null
+    private var currentProgressDialog: BackupDialogHandle? = null
     private lateinit var webDavManager: WebDAVManager
     private var isWebDavConfigured = false
 
@@ -215,30 +239,33 @@ class DataBackActivity : AppCompatActivity() {
     }
 
     private fun showBackupConfirmDialog() {
-        MaterialAlertDialogBuilder(this).setTitle(R.string.data_backup_confirm_title)
-            .setMessage(R.string.data_backup_confirm_message)
-            .setPositiveButton(R.string.data_backup_confirm_pick_location) { _, _ ->
-                selectBackupLocation()
-            }
-            .setNegativeButton(R.string.data_backup_cancel, null).show()
+        showBackupDialog(
+            title = getString(R.string.data_backup_confirm_title),
+            message = getString(R.string.data_backup_confirm_message),
+            positiveLabel = getString(R.string.data_backup_confirm_pick_location),
+            negativeLabel = getString(R.string.data_backup_cancel),
+            onPositive = { selectBackupLocation() },
+        )
     }
 
     private fun showWebDAVBackupConfirmDialog() {
-        MaterialAlertDialogBuilder(this).setTitle(R.string.data_backup_webdav_confirm_title)
-            .setMessage(R.string.data_backup_webdav_confirm_message)
-            .setPositiveButton(R.string.data_backup_webdav_confirm_action) { _, _ ->
-                performWebDAVBackup()
-            }
-            .setNegativeButton(R.string.data_backup_cancel, null).show()
+        showBackupDialog(
+            title = getString(R.string.data_backup_webdav_confirm_title),
+            message = getString(R.string.data_backup_webdav_confirm_message),
+            positiveLabel = getString(R.string.data_backup_webdav_confirm_action),
+            negativeLabel = getString(R.string.data_backup_cancel),
+            onPositive = { performWebDAVBackup() },
+        )
     }
 
     private fun showRestoreConfirmDialog() {
-        MaterialAlertDialogBuilder(this).setTitle(R.string.data_restore_confirm_title)
-            .setMessage(R.string.data_restore_confirm_message)
-            .setPositiveButton(R.string.data_restore_confirm_pick_file) { _, _ ->
-                selectRestoreFile()
-            }
-            .setNegativeButton(R.string.data_backup_cancel, null).show()
+        showBackupDialog(
+            title = getString(R.string.data_restore_confirm_title),
+            message = getString(R.string.data_restore_confirm_message),
+            positiveLabel = getString(R.string.data_restore_confirm_pick_file),
+            negativeLabel = getString(R.string.data_backup_cancel),
+            onPositive = { selectRestoreFile() },
+        )
     }
 
     private fun selectBackupLocation() {
@@ -489,16 +516,13 @@ class DataBackActivity : AppCompatActivity() {
     }
 
     private fun showWebDAVBackupSelectionDialog(backupFiles: List<DavResource>) {
-        val backupNames = backupFiles.map { it.name }.toTypedArray()
-
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.data_backup_select_file_title)
-            .setItems(backupNames) { _, which ->
-                val selectedBackup = backupFiles[which]
-                performWebDAVRestore(selectedBackup.name)
-            }
-            .setNegativeButton(R.string.data_backup_cancel, null)
-            .show()
+        showBackupDialog(
+            title = getString(R.string.data_backup_select_file_title),
+            negativeLabel = getString(R.string.data_backup_cancel),
+            items = backupFiles.map { it.name },
+            // Like setItems, choosing a file immediately restores it; there is no second OK step.
+            onItemSelected = { which -> performWebDAVRestore(backupFiles[which].name) },
+        )
     }
 
     private fun performWebDAVRestore(backupFileName: String) {
@@ -822,16 +846,8 @@ class DataBackActivity : AppCompatActivity() {
     }
 
     private fun showProgressDialog(title: String, message: String) {
-        val spec = CircularProgressIndicatorSpec(
-            this,
-            null,
-            0,
-            com.google.android.material.R.style.Widget_Material3_CircularProgressIndicator_Small
-        )
-        val progressIndicatorDrawable = IndeterminateDrawable.createCircularDrawable(this, spec)
-
-        currentProgressDialog = MaterialAlertDialogBuilder(this).setTitle(title).setMessage(message)
-            .setIcon(progressIndicatorDrawable).setCancelable(false).show()
+        dismissProgressDialog()
+        currentProgressDialog = showBackupDialog(title = title, message = message, progress = true)
     }
 
     private suspend fun updateProgress(message: String) {
@@ -846,19 +862,174 @@ class DataBackActivity : AppCompatActivity() {
     }
 
     private fun showSuccessDialog(title: String, message: String) {
-        MaterialAlertDialogBuilder(this).setTitle(title).setMessage(message)
-            .setPositiveButton(R.string.data_backup_ok, null).show()
+        showBackupDialog(title, message, positiveLabel = getString(R.string.data_backup_ok))
     }
 
     private fun showErrorDialog(title: String, message: String) {
-        MaterialAlertDialogBuilder(this).setTitle(title).setMessage(message)
-            .setPositiveButton(R.string.data_backup_ok, null).show()
+        showBackupDialog(title, message, positiveLabel = getString(R.string.data_backup_ok))
     }
 
     private fun showRestoreSuccessDialog() {
-        MaterialAlertDialogBuilder(this).setTitle(R.string.data_restore_success_title)
-            .setMessage(R.string.data_restore_success_message)
-            .setPositiveButton(R.string.data_backup_ok, null).show()
+        showSuccessDialog(
+            getString(R.string.data_restore_success_title),
+            getString(R.string.data_restore_success_message),
+        )
+    }
+
+    /** Imperative bridge: operation jobs stay in lifecycleScope, never in the dialog composition. */
+    private class BackupDialogHandle(initialMessage: String) {
+        var visible by mutableStateOf(true)
+            private set
+        private var messageState by mutableStateOf(initialMessage)
+        val message: String get() = messageState
+        val isShowing: Boolean get() = visible
+
+        fun setMessage(value: String) {
+            if (isShowing) messageState = value
+        }
+
+        fun dismiss() {
+            visible = false
+        }
+    }
+
+    private fun showBackupDialog(
+        title: String,
+        message: String = "",
+        positiveLabel: String? = null,
+        negativeLabel: String? = null,
+        progress: Boolean = false,
+        items: List<String> = emptyList(),
+        onPositive: () -> Unit = {},
+        onItemSelected: (Int) -> Unit = {},
+    ): BackupDialogHandle {
+        val handle = BackupDialogHandle(message)
+        if (isFinishing || isDestroyed) {
+            handle.dismiss()
+            return handle
+        }
+        // Follow ColorPicker's host pattern without replacing/rebuilding the settings page.
+        val parent = window.decorView as ViewGroup
+        val host = ComposeView(this).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+        }
+        var disposed = false
+        lateinit var observer: LifecycleEventObserver
+        fun disposeHost() {
+            if (disposed) return
+            disposed = true
+            handle.dismiss()
+            lifecycle.removeObserver(observer)
+            host.disposeComposition()
+            (host.parent as? ViewGroup)?.removeView(host)
+            if (currentProgressDialog === handle) currentProgressDialog = null
+        }
+        observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_DESTROY) disposeHost()
+        }
+        lifecycle.addObserver(observer)
+        parent.addView(host, ViewGroup.LayoutParams(0, 0))
+        host.setContent {
+            MiuixEvoTheme {
+                WindowDialog(
+                    show = handle.isShowing,
+                    insideMargin = DpSize(0.dp, 0.dp),
+                    // Both the platform Back callback and outside taps route here. Progress is
+                    // deliberately non-cancelable, just like the former setCancelable(false).
+                    onDismissRequest = { if (!progress) handle.dismiss() },
+                    onDismissFinished = { host.post { disposeHost() } },
+                ) {
+                    BackupDialogContent(
+                        handle, title, positiveLabel, negativeLabel, progress, items,
+                        onPositive, onItemSelected,
+                    )
+                }
+            }
+        }
+        return handle
+    }
+
+    @Composable
+    private fun BackupDialogContent(
+        handle: BackupDialogHandle,
+        title: String,
+        positiveLabel: String?,
+        negativeLabel: String?,
+        progress: Boolean,
+        items: List<String>,
+        onPositive: () -> Unit,
+        onItemSelected: (Int) -> Unit,
+    ) {
+        Column {
+            Text(
+                text = title,
+                modifier = Modifier.fillMaxWidth()
+                    .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 12.dp),
+                textAlign = TextAlign.Center,
+                fontSize = 17.sp,
+                lineHeight = 22.sp,
+                fontWeight = FontWeight.Medium,
+            )
+            Column(
+                modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
+                    .heightIn(max = 500.dp).verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (handle.message.isNotEmpty()) {
+                    Text(
+                        text = handle.message,
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    )
+                }
+                if (progress) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                items.forEachIndexed { index, name ->
+                    TextButton(
+                        text = name,
+                        modifier = Modifier.fillMaxWidth(),
+                        minHeight = 48.dp,
+                        onClick = {
+                            if (handle.isShowing) {
+                                handle.dismiss()
+                                onItemSelected(index)
+                            }
+                        },
+                    )
+                }
+            }
+            if (positiveLabel != null || negativeLabel != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    if (negativeLabel != null) {
+                        TextButton(
+                            text = negativeLabel,
+                            modifier = Modifier.weight(1f),
+                            minHeight = 48.dp,
+                            onClick = { handle.dismiss() },
+                        )
+                    }
+                    if (positiveLabel != null) {
+                        TextButton(
+                            text = positiveLabel,
+                            modifier = Modifier.weight(1f),
+                            minHeight = 48.dp,
+                            colors = ButtonDefaults.textButtonColorsPrimary(),
+                            onClick = {
+                                if (handle.isShowing) {
+                                    handle.dismiss()
+                                    onPositive()
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+        }
     }
 
     private fun setButtonsEnabled(enabled: Boolean) {

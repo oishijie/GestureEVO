@@ -1,30 +1,52 @@
 package io.github.lumiagg.gestureevo.settings.ui
 
-import android.view.View
-import android.widget.FrameLayout
-import android.widget.RadioButton
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.LifecycleCoroutineScope
-import androidx.recyclerview.widget.RecyclerView
-import com.drake.brv.BindingAdapter
-import com.drake.brv.utils.linear
-import com.drake.brv.utils.setup
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.lumiagg.gestureevo.R
 import io.github.lumiagg.gestureevo.gesture.config.FreeTriggerConfig
 import io.github.lumiagg.gestureevo.gesture.config.FreeTriggerDataManager
-import io.github.lumiagg.gestureevo.utils.DynamicColorUtils
-import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.basic.RadioButton
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-private data class FreeTriggerSelectOption(
+internal data class FreeTriggerSelectOption(
     val trigger: FreeTriggerConfig,
     val isMirror: Boolean
 ) {
     val tag: String get() = trigger.tag
 }
 
+internal fun freeTriggerSelectionOptions(triggers: List<FreeTriggerConfig>): List<FreeTriggerSelectOption> =
+    triggers.flatMap { trigger ->
+        buildList {
+            add(FreeTriggerSelectOption(trigger, false))
+            if (trigger.getState(FreeTriggerConfig.FLAG_MIRROR)) {
+                add(FreeTriggerSelectOption(trigger, true))
+            }
+        }
+    }
+
+@Suppress("UNUSED_PARAMETER")
 fun showFreeTriggerSelectBottomSheet(
     activity: AppCompatActivity,
     coroutineScope: LifecycleCoroutineScope,
@@ -34,86 +56,44 @@ fun showFreeTriggerSelectBottomSheet(
     currentSelectedMirror: Boolean = false,
     onSelect: (String, Boolean) -> Unit
 ) {
-    val themedContext = DynamicColorUtils.dynamicThemedContext(activity)
-    val bottomSheetDialog =
-        BottomSheetDialog(themedContext, R.style.ThemeOverlay_BottomSheetDialog_Scrollable)
-
-    bottomSheetDialog.setContentView(R.layout.action_items_tag_select_bottomsheet)
-    bottomSheetDialog.findViewById<TextView>(R.id.title)?.text = title
-    bottomSheetDialog.findViewById<TextView>(R.id.subtitle)?.text = subtitle
-
-    val recyclerView = bottomSheetDialog.findViewById<RecyclerView>(R.id.pieGroupsRecyclerView)
-    recyclerView?.linear()
-
-    coroutineScope.launch {
-        val triggers = FreeTriggerDataManager.readTriggers(activity.applicationContext)
-        if (triggers.isEmpty()) {
-            bottomSheetDialog.dismiss()
-            return@launch
+    showMiuixSheet(activity) { dismiss ->
+        var options by remember { mutableStateOf<List<FreeTriggerSelectOption>>(emptyList()) }
+        LaunchedEffect(Unit) {
+            val triggers = FreeTriggerDataManager.readTriggers(activity.applicationContext)
+            if (triggers.isEmpty()) dismiss() else options = freeTriggerSelectionOptions(triggers)
         }
-
-        val options = triggers.flatMap { trigger ->
-            buildList {
-                add(FreeTriggerSelectOption(trigger, false))
-                if (trigger.getState(FreeTriggerConfig.FLAG_MIRROR)) {
-                    add(FreeTriggerSelectOption(trigger, true))
+        Column(Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(title, modifier = Modifier.padding(horizontal = 24.dp), fontSize = 17.sp,
+                lineHeight = 22.sp, fontWeight = FontWeight.Medium)
+            Text(subtitle, modifier = Modifier.padding(horizontal = 24.dp), fontSize = 14.sp,
+                lineHeight = 20.sp, color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+            LazyColumn(Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 500.dp)) {
+                items(options, key = { "${it.tag}:${it.isMirror}" }) { option ->
+                    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                        .selectable(selected = option.tag == currentSelectedTag &&
+                            option.isMirror == currentSelectedMirror, role = Role.RadioButton,
+                            onClick = { onSelect(option.tag, option.isMirror); dismiss() })
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                        Text(triggerDisplayName(activity, option.trigger, option.isMirror),
+                            modifier = Modifier.weight(1f), fontSize = 16.sp, lineHeight = 22.sp)
+                        RadioButton(selected = option.tag == currentSelectedTag &&
+                            option.isMirror == currentSelectedMirror, onClick = null)
+                    }
                 }
             }
         }
-
-        recyclerView?.setup {
-            addType<FreeTriggerSelectOption>(R.layout.action_items_tags_list_item)
-
-            onBind {
-                val item = getModel<FreeTriggerSelectOption>()
-                findView<TextView>(R.id.pieGroupName).text = triggerDisplayName(
-                    activity,
-                    item.trigger,
-                    item.isMirror
-                )
-                findView<RadioButton>(R.id.radioButton).isChecked =
-                    item.tag == currentSelectedTag && item.isMirror == currentSelectedMirror
-            }
-
-            onClick(R.id.root) {
-                val item = getModel<FreeTriggerSelectOption>()
-                onSelect(item.tag, item.isMirror)
-                bottomSheetDialog.dismiss()
-            }
-        }
-
-        (recyclerView?.adapter as? BindingAdapter)?.models = options
     }
-
-    bottomSheetDialog.setOnShowListener { dialog ->
-        val bottomSheet = (dialog as BottomSheetDialog)
-            .findViewById<View>(com.google.android.material.R.id.design_bottom_sheet) as FrameLayout?
-
-        bottomSheet?.let { sheet ->
-            DynamicColorUtils.applyBottomSheetSurface(dialog)
-            BottomSheetBehavior.from(sheet).apply {
-                state = BottomSheetBehavior.STATE_EXPANDED
-                isDraggable = true
-                skipCollapsed = true
-                isFitToContents = true
-                isHideable = true
-            }
-            val windowHeight = activity.window.decorView.height
-            sheet.layoutParams.height = (windowHeight * 0.7).toInt()
-        }
-    }
-
-    bottomSheetDialog.show()
 }
 
 fun triggerDisplayName(
     activity: AppCompatActivity,
     trigger: FreeTriggerConfig,
     isMirror: Boolean
-): String {
-    return if (isMirror) {
-        activity.getString(R.string.action_view_trigger_mirror_name, trigger.name)
-    } else {
-        trigger.name
-    }
+): String = if (isMirror) {
+    activity.getString(R.string.action_view_trigger_mirror_name, trigger.name)
+} else {
+    trigger.name
 }

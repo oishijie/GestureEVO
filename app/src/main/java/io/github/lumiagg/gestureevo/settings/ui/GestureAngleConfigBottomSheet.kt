@@ -7,14 +7,32 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
-import android.widget.FrameLayout
-import android.widget.TextView
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.toColorInt
 import androidx.lifecycle.LifecycleCoroutineScope
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.button.MaterialButton
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import io.github.lumiagg.gestureevo.R
 import io.github.lumiagg.gestureevo.gesture.config.FreeTriggerConfig
 import io.github.lumiagg.gestureevo.gesture.ui.GestureType
@@ -61,8 +79,6 @@ class GestureAngleConfigBottomSheet(
     private val triggerConfig: FreeTriggerConfig,
     private val callback: GestureAngleConfigCallback
 ) {
-    private lateinit var bottomSheetDialog: BottomSheetDialog
-    private lateinit var dialView: GestureAngleDialView
     private val gestureConfigs = mutableListOf<GestureAngleConfig>()
 
     // Gesture color definitions
@@ -78,10 +94,84 @@ class GestureAngleConfigBottomSheet(
     fun show() {
         initGestureConfigs()
         restoreGestureAngle()
-        initBottomSheet()
-        setupBottomSheetBehavior()
-        setupDialView()
-        showDialog()
+        // A fresh, detached draft per opening; only Save notifies the caller.
+        val initialDraft = gestureConfigs.map { it.copy() }
+        showMiuixSheet(activity, dismissOnOutside = false) { dismiss ->
+            var draft by remember { mutableStateOf(initialDraft) }
+            val dialColor = MiuixTheme.colorScheme.primary.toArgb()
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.gesture_angle_config_title_text),
+                    modifier = Modifier.padding(top = 24.dp),
+                    fontSize = 22.sp,
+                    lineHeight = 28.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MiuixTheme.colorScheme.onSurface
+                )
+                Column(
+                    modifier = Modifier.weight(1f, fill = false)
+                        .heightIn(max = 500.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.gesture_angle_section_title),
+                        fontSize = 16.sp,
+                        lineHeight = 24.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MiuixTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.gesture_angle_section_desc),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary
+                    )
+                    // Only the interactive drawing stays a View, not the XML page.
+                    // The dial edits these draft objects in place and keeps its original
+                    // mirrored boundaries, 360-degree coverage and minimum sweep rules.
+                    AndroidView(
+                        modifier = Modifier.fillMaxWidth().height(340.dp),
+                        factory = { context ->
+                            GestureAngleDialView(context).apply {
+                                contentDescription = context.getString(
+                                    R.string.gesture_angle_section_content_desc
+                                )
+                            }
+                        },
+                        update = { view ->
+                            view.setGestureConfigs(draft)
+                            view.setDialColor(dialColor)
+                        }
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    TextButton(
+                        text = stringResource(R.string.gesture_angle_config_reset),
+                        modifier = Modifier.weight(1f).heightIn(min = 44.dp),
+                        onClick = {
+                            initGestureConfigs()
+                            draft = gestureConfigs.map { it.copy() }
+                        }
+                    )
+                    TextButton(
+                        text = stringResource(R.string.gesture_angle_config_save),
+                        modifier = Modifier.weight(1f).heightIn(min = 44.dp),
+                        colors = ButtonDefaults.textButtonColorsPrimary(),
+                        onClick = {
+                            callback.onAngleConfigChanged(draft.map { it.copy() })
+                            dismiss()
+                        }
+                    )
+                }
+            }
+        }
     }
 
     private fun initGestureConfigs() {
@@ -186,75 +276,6 @@ class GestureAngleConfigBottomSheet(
         }
     }
 
-    private fun initBottomSheet() {
-        val themedContext = DynamicColorUtils.dynamicThemedContext(activity)
-        bottomSheetDialog =
-            BottomSheetDialog(themedContext, R.style.ThemeOverlay_BottomSheetDialog_Scrollable)
-        bottomSheetDialog.setContentView(R.layout.bottom_sheet_gesture_angle_config)
-        bottomSheetDialog.setCanceledOnTouchOutside(false)
-
-        // Set title
-        bottomSheetDialog.findViewById<TextView>(R.id.title_text)?.apply {
-            text = activity.getString(R.string.gesture_angle_config_title_text)
-        }
-
-        // Set button click listeners
-        bottomSheetDialog.findViewById<MaterialButton>(R.id.btn_reset)?.setOnClickListener {
-            resetToDefault()
-        }
-
-        bottomSheetDialog.findViewById<MaterialButton>(R.id.btn_save)?.setOnClickListener {
-            saveConfiguration()
-        }
-    }
-
-    private fun setupBottomSheetBehavior() {
-        bottomSheetDialog.setOnShowListener { dialog ->
-            val bottomSheet =
-                (dialog as BottomSheetDialog).findViewById<View>(com.google.android.material.R.id.design_bottom_sheet) as FrameLayout?
-
-            bottomSheet?.let { sheet ->
-                DynamicColorUtils.applyBottomSheetSurface(dialog)
-                val windowHeight = activity.window.decorView.height
-                val behavior = BottomSheetBehavior.from(sheet)
-                behavior.apply {
-                    sheet.layoutParams.height = windowHeight
-                    state = BottomSheetBehavior.STATE_EXPANDED
-                    isDraggable = true
-                    skipCollapsed = true
-                    isFitToContents = true
-                    isHideable = true
-                }
-            }
-        }
-    }
-
-    private fun setupDialView() {
-        dialView = bottomSheetDialog.findViewById(R.id.angle_dial_view)!!
-        dialView.setGestureConfigs(gestureConfigs)
-        dialView.setOnAngleChangeListener { configs ->
-            gestureConfigs.clear()
-            gestureConfigs.addAll(configs)
-        }
-    }
-
-    private fun resetToDefault() {
-        initGestureConfigs()
-        dialView.setGestureConfigs(gestureConfigs)
-    }
-
-    private fun saveConfiguration() {
-        callback.onAngleConfigChanged(gestureConfigs.toList())
-        bottomSheetDialog.dismiss()
-    }
-
-    private fun showDialog() {
-        bottomSheetDialog.show()
-        bottomSheetDialog.window?.setLayout(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT
-        )
-    }
 }
 
 class GestureAngleDialView @JvmOverloads constructor(
@@ -323,6 +344,19 @@ class GestureAngleDialView @JvmOverloads constructor(
             color = colorPrimary
             style = Paint.Style.FILL
         }
+    }
+
+    // The Compose host supplies the current semantic primary color; XML users
+    // retain the original DynamicColorUtils fallback from initialization.
+    fun setDialColor(color: Int) {
+        circlePaint.color = color
+        dividerPaint.color = color
+        dividerPaint.alpha = 200
+        labelPaint.color = color
+        highlightPaint.color = color
+        highlightPaint.alpha = 40
+        handlePaint.color = color
+        invalidate()
     }
 
     fun setGestureConfigs(configs: List<GestureAngleConfig>) {

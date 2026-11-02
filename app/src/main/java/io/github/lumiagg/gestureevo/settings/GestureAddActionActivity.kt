@@ -1,30 +1,16 @@
 package io.github.lumiagg.gestureevo.settings
 
-import io.github.lumiagg.gestureevo.databinding.BottomSheetShortcutSourceSelectBinding
-
-import io.github.lumiagg.gestureevo.databinding.BottomSheetIconSelectBinding
-
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.util.Log
-import android.view.View
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.graphics.createBitmap
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.button.MaterialButton
 import io.github.lumiagg.gestureevo.R
-import io.github.lumiagg.gestureevo.databinding.ActivityGestureAddActionBinding
-import io.github.lumiagg.gestureevo.databinding.ActivityGestureAddActionConfigBinding
-import io.github.lumiagg.gestureevo.databinding.BottomSheetAccActionSelectBinding
-import io.github.lumiagg.gestureevo.databinding.BottomSheetClipboardActionSelectBinding
 import io.github.lumiagg.gestureevo.db.APPModel
 import io.github.lumiagg.gestureevo.gesture.ActionViewEvent
 import io.github.lumiagg.gestureevo.gesture.EventBusManager
@@ -60,9 +46,57 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import io.github.lumiagg.gestureevo.ui.compose.MiuixEvoTheme
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixCard
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixScreen
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.preference.SwitchPreference
+
 data class ConfigButtonsState(var enable: Boolean = false)
 class GestureAddActionActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityGestureAddActionBinding
+    // Stable identities are also used by asynchronous app/shortcut selection callbacks.
+    private class ActionEditorState(val link: GestureActionLink) {
+        var text by mutableStateOf("")
+        var selected by mutableStateOf(false)
+        var freeform by mutableStateOf(false)
+        var newWindow by mutableStateOf(false)
+        var dualOpen by mutableStateOf(false)
+        var timeout by mutableStateOf(false)
+        fun getActionLink() = link
+    }
+    private data class Choice(val title: Int, val onSelect: () -> Unit)
+    private data class ChoiceDialog(val title: Int, val choices: List<Choice>)
+    private var choiceDialog by mutableStateOf<ChoiceDialog?>(null)
+    private var iconImage by mutableStateOf<Any?>(null)
+    private var iconText by mutableStateOf<String?>(null)
+    private var saving by mutableStateOf(false)
     private var itemListTag = ""
     private var sourceActionView = ActionView.ActionViewType.MAIN
     private var editMode = false
@@ -70,98 +104,144 @@ class GestureAddActionActivity : AppCompatActivity() {
     private var actionItem = GestureActionItem()
     private val firstActionLink = GestureActionLink()
     private val secondActionLink = GestureActionLink()
-    private val firstButtonsState = ConfigButtonsState()
-    private val secondButtonsState = ConfigButtonsState()
+    private val firstConfig = ActionEditorState(firstActionLink)
+    private val secondConfig = ActionEditorState(secondActionLink)
     private val iconFileUtils = IconFileUtils(this)
-    private var lastSelectedConfigBinding: ActivityGestureAddActionConfigBinding? = null
+    private var lastSelectedConfig: ActionEditorState? = null
     private var selectTriggerActionMode = false
     private var expectItemTag: String? = null
     private lateinit var tempDndPermissionRequester: TempDndPermissionRequester
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityGestureAddActionBinding.inflate(layoutInflater)
-        setContentView(binding.root)
         tempDndPermissionRequester = TempDndPermissionRequester(this)
-        initView()
         initData()
+        // Fixed gestures always execute on timeout, including after picking or syncing a link.
         if (selectTriggerActionMode) {
-            initSelectTriggerActionView()
-        } else if (externalActionMode) {
-            initExternalActionView()
+            firstConfig.timeout = true
+            firstActionLink.isTimeout = true
+            if (firstConfig.text.isNotEmpty()) applyLink(firstConfig, false)
         }
-    }
-
-    private fun initView() {
-        binding.longAction.actionTitle.text = getString(R.string.gesture_add_action_long_press)
-        binding.shortAction.actionTimeout.text = getString(R.string.gesture_add_action_touch_execute)
-        binding.fab.setOnClickListener { saveAction(false) }
-        binding.fabPlaceholder.setOnClickListener {
-            if (editMode) {
-                saveAction(true)
-            } else {
-                batchSavePlaceHolder(5)
+        setContent {
+            MiuixEvoTheme {
+                EditorScreen()
+                choiceDialog?.let { ChoicesDialog(it) }
             }
         }
-        binding.actionIcon.setOnClickListener {
-            selectImage(it as RoundImageTextView)
-        }
-        binding.actionIcon.setImage(R.drawable.baseline_image_24)
-        binding.btnSyncDown.setOnClickListener {
-            syncLink(binding.shortAction, binding.longAction)
-        }
-        binding.btnSyncUp.setOnClickListener {
-            syncLink(binding.longAction, binding.shortAction)
-        }
-        setConfigButtons(binding.shortAction)
-        setConfigButtons(binding.longAction)
     }
 
-    private fun initSelectTriggerActionView() {
-        binding.longAction.root.visibility = View.INVISIBLE
-        binding.shortAction.actionTitle.visibility = View.GONE
-        binding.syncButtonsLayout.visibility = View.INVISIBLE
-        binding.fabPlaceholder.visibility = View.INVISIBLE
-        // Must add timeout parameter when fixed gesture selection is used
-        binding.shortAction.actionTimeout.isChecked = true
-        binding.shortAction.actionTimeout.isEnabled = false
-        binding.fab.setOnClickListener {
-            val resultIntent = Intent()
-            setResult(RESULT_OK, resultIntent)
-            saveAction(false)
-        }
-    }
-
-    private fun initExternalActionView() {
-        binding.actionIcon.visibility = View.GONE
-        binding.longAction.root.visibility = View.GONE
-        binding.syncButtonsLayout.visibility = View.GONE
-        binding.fabPlaceholder.visibility = View.GONE
-        binding.shortAction.actionTitle.text = getString(R.string.external_action_config_title)
-        binding.fab.text = getString(R.string.external_action_save_button)
-        binding.fab.setOnClickListener {
-            saveExternalAction()
-        }
-    }
-
-    private fun setConfigButtons(configBinding: ActivityGestureAddActionConfigBinding) {
-        configBinding.actionSelect.setOnClickListener {
-            showActionPicker(configBinding)
-        }
-
-        configBinding.actionExternButtons.setOnCheckedStateChangeListener { group, checkedIds ->
-            if (!configBinding.getButtonsState().enable) return@setOnCheckedStateChangeListener
-            val actionLink = configBinding.getActionLink()
-            actionLink.isFreeform = configBinding.actionFreeform.isChecked
-            actionLink.isNewWindow = configBinding.actionNewWindow.isChecked
-            actionLink.isTimeout = configBinding.actionTimeout.isChecked
-            if (configBinding.actionDualOpen.isChecked && actionLink.pkg != null) {
-                actionLink.userId =
-                    MultiUserAPP(applicationContext).getSerialNumberForUser(actionLink.pkg!!)
-            } else {
-                actionLink.userId = 0
+    @Composable
+    private fun EditorScreen() {
+        MiuixScreen(
+            title = stringResource(if (externalActionMode) R.string.external_action_config_title else R.string.gesture_add_action_config_select_event),
+            onBack = { finish() },
+            actions = {
+                TextButton(text = stringResource(if (externalActionMode) R.string.external_action_save_button else R.string.gesture_add_action_save),
+                    colors = ButtonDefaults.textButtonColorsPrimary(), enabled = !saving, onClick = { if (externalActionMode) saveExternalAction() else saveAction(false) })
+            },
+        ) {
+            if (!externalActionMode) item {
+                MiuixCard {
+                    Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // Only this local icon preview is a View; no XML is embedded.
+                        AndroidView(factory = { context -> RoundImageTextView(context).apply {
+                            contentDescription = getString(R.string.icon_select_title)
+                            setOnClickListener { selectImage() }
+                        } }, modifier = Modifier.size(60.dp), update = { view ->
+                            val image = iconImage
+                            val text = iconText
+                            when {
+                                text != null -> view.setText(text)
+                                image != null -> view.setImage(image)
+                                editMode -> gestureActionIcon(this@GestureAddActionActivity, view, actionItem)
+                                else -> view.setImage(R.drawable.baseline_image_24)
+                            }
+                        })
+                        TextButton(text = stringResource(R.string.icon_select_title), enabled = !saving, onClick = ::selectImage)
+                    }
+                }
             }
-            applyLink(configBinding, needSyncToLongAction = false)
+            item { ConfigCard(firstConfig, true) }
+            if (!externalActionMode && !selectTriggerActionMode) {
+                item {
+                    MiuixCard {
+                        Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                            TextButton(text = stringResource(R.string.gesture_add_action_sync_up), modifier = Modifier.weight(1f), enabled = !saving,
+                                onClick = { syncLink(secondConfig, firstConfig) })
+                            TextButton(text = stringResource(R.string.gesture_add_action_sync_down), modifier = Modifier.weight(1f), enabled = !saving,
+                                onClick = { syncLink(firstConfig, secondConfig) })
+                        }
+                    }
+                }
+                item { ConfigCard(secondConfig, false) }
+                item {
+                    MiuixCard {
+                        ArrowPreference(title = stringResource(R.string.gesture_add_action_transparent_icon), enabled = !saving,
+                            onClick = { if (editMode) saveAction(true) else batchSavePlaceHolder(5) })
+                    }
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun ConfigCard(config: ActionEditorState, first: Boolean) {
+        MiuixCard {
+            if (!selectTriggerActionMode) Text(
+                text = stringResource(if (externalActionMode) R.string.external_action_config_title else if (first) R.string.gesture_add_action_config_short_press else R.string.gesture_add_action_long_press),
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+                fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.Medium,
+            )
+            ArrowPreference(title = stringResource(R.string.gesture_add_action_config_select_event),
+                summary = if (config.selected) config.link.actionType.showName(this@GestureAddActionActivity) else null,
+                enabled = !saving, onClick = { showActionPicker(config) })
+            SwitchPreference(title = stringResource(R.string.gesture_add_action_config_freeform), checked = config.freeform, enabled = !saving,
+                onCheckedChange = { config.freeform = it; updateFlags(config) })
+            SwitchPreference(title = stringResource(R.string.gesture_add_action_config_new_window), checked = config.newWindow, enabled = !saving,
+                onCheckedChange = { config.newWindow = it; updateFlags(config) })
+            SwitchPreference(title = stringResource(R.string.gesture_add_action_config_dual_open), checked = config.dualOpen, enabled = !saving,
+                onCheckedChange = { config.dualOpen = it; updateFlags(config) })
+            SwitchPreference(title = stringResource(if (first) R.string.gesture_add_action_touch_execute else R.string.gesture_add_action_config_timeout_execute),
+                checked = config.timeout, enabled = !saving && !(first && selectTriggerActionMode),
+                onCheckedChange = { config.timeout = it; updateFlags(config) })
+            TextField(value = config.text, onValueChange = { config.text = it },
+                label = stringResource(R.string.gesture_add_action_config_link_hint),
+                modifier = Modifier.fillMaxWidth().padding(16.dp), enabled = !saving)
+        }
+    }
+
+    private fun updateFlags(config: ActionEditorState) {
+        val link = config.link
+        link.isFreeform = config.freeform
+        link.isNewWindow = config.newWindow
+        link.isTimeout = config.timeout || (config === firstConfig && selectTriggerActionMode)
+        link.userId = if (config.dualOpen && link.pkg != null) {
+            MultiUserAPP(applicationContext).getSerialNumberForUser(link.pkg!!)
+        } else 0
+        applyLink(config, false)
+    }
+
+    @Composable
+    private fun ChoicesDialog(model: ChoiceDialog) {
+        Dialog(onDismissRequest = { choiceDialog = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            MiuixCard(Modifier.padding(horizontal = 12.dp)) {
+                Text(stringResource(model.title), modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 12.dp),
+                    fontSize = 17.sp, lineHeight = 22.sp, fontWeight = FontWeight.Medium)
+                Column(Modifier.fillMaxWidth().heightIn(max = 500.dp).verticalScroll(rememberScrollState())) {
+                    model.choices.forEach { choice ->
+                        ArrowPreference(title = stringResource(choice.title), onClick = {
+                            choiceDialog = null
+                            choice.onSelect()
+                        })
+                    }
+                }
+                Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                    TextButton(text = stringResource(android.R.string.cancel), modifier = Modifier.weight(1f).heightIn(min = 44.dp),
+                        onClick = { choiceDialog = null })
+                }
+            }
         }
     }
 
@@ -169,9 +249,7 @@ class GestureAddActionActivity : AppCompatActivity() {
         externalActionMode = intent.getBooleanExtra(EXTRA_EXTERNAL_ACTION_MODE, false)
         if (externalActionMode) {
             intent.getStringExtra(EXTRA_EXTERNAL_ACTION_LINK)?.let {
-                fillActionConfig(binding.shortAction, it)
-            } ?: run {
-                binding.shortAction.getButtonsState().enable = true
+                fillActionConfig(firstConfig, it)
             }
             return
         }
@@ -187,69 +265,62 @@ class GestureAddActionActivity : AppCompatActivity() {
             GestureActionItem.toModel(intent.getStringExtra("item")!!)?.let {
                 actionItem = it
                 actionItem.firstStageLink?.let {
-                    fillActionConfig(binding.shortAction, actionItem.firstStageLink!!)
+                    fillActionConfig(firstConfig, actionItem.firstStageLink!!)
                 }
                 actionItem.secondStageLink?.let {
-                    fillActionConfig(binding.longAction, actionItem.secondStageLink!!)
+                    fillActionConfig(secondConfig, actionItem.secondStageLink!!)
                 }
             }
-        } else {
-            binding.shortAction.getButtonsState().enable = true
-            binding.longAction.getButtonsState().enable = true
         }
     }
 
     private fun fillActionConfig(
-        configBinding: ActivityGestureAddActionConfigBinding, link: String
+        configState: ActionEditorState, link: String
     ) {
-        val actionLink = configBinding.getActionLink()
+        val actionLink = configState.getActionLink()
         actionLink.parseLink(link)
-        configBinding.actionSelect.text = actionLink.actionType.showName(this)
-        configBinding.actionFreeform.isChecked = actionLink.isFreeform
-        configBinding.actionNewWindow.isChecked = actionLink.isNewWindow
-        configBinding.actionDualOpen.isChecked = actionLink.isDualOpen
-        configBinding.actionTimeout.isChecked = actionLink.isTimeout
-        configBinding.getButtonsState().enable = true
-        if (configBinding == binding.shortAction) {
-            gestureActionIcon(this, binding.actionIcon, actionItem)
-        }
-        applyLink(configBinding, needSyncToLongAction = false)
+        configState.selected = true
+        configState.freeform = actionLink.isFreeform
+        configState.newWindow = actionLink.isNewWindow
+        configState.dualOpen = actionLink.isDualOpen
+        configState.timeout = actionLink.isTimeout
+        applyLink(configState, needSyncToLongAction = false)
     }
 
     /**
      * 统一动作目录：手势、轮盘与外部动作入口共用同一个可搜索的分类面板。
      * 外部动作模式下隐藏「无动作 / 点击穿透 / 显示动作视图」，与旧弹窗过滤规则一致。
      */
-    private fun showActionPicker(configBinding: ActivityGestureAddActionConfigBinding) {
+    private fun showActionPicker(configState: ActionEditorState) {
         showActionSelectBottomSheet(
             activity = this,
-            current = configBinding.getActionLink(),
+            current = configState.getActionLink(),
             allowWheel = !externalActionMode,
             allowNone = !externalActionMode,
             allowClickThrough = !externalActionMode,
         ) { choice ->
             val type = choice.type
-            configBinding.actionSelect.text = type.showName(this)
-            selectAction(configBinding, type)
-            choice.parameters?.let { params ->
-                if (params.isNotEmpty()) {
-                    applyActionParameters(configBinding, params)
-                }
+            if (!choice.parameters.isNullOrEmpty()) {
+                configState.link.actionType = type
+                configState.link.queryList.clear()
+                applyActionParameters(configState, choice.parameters)
+            } else {
+                selectAction(configState, type)
             }
         }
     }
 
     /** 把目录里带预设参数的动作（如系统导航 accAction）写回链接。 */
     private fun applyActionParameters(
-        configBinding: ActivityGestureAddActionConfigBinding,
+        configState: ActionEditorState,
         parameters: Map<String, String>
     ) {
-        val link = configBinding.getActionLink()
+        val link = configState.getActionLink()
         parameters.forEach { (key, value) ->
             link.queryList.removeAll { it.first == key }
             link.queryList.add(key to value)
         }
-        applyLink(configBinding, needSyncToLongAction = false)
+        applyLink(configState)
     }
 
     private val selectImageLauncher = registerForActivityResult(IconEditorContract()) { path ->
@@ -260,7 +331,7 @@ class GestureAddActionActivity : AppCompatActivity() {
                 iconFileUtils.imgPath = path
                 actionItem.iconType = IconType.URI
                 actionItem.icon = path
-                binding.actionIcon.setImage(bitmap)
+                updateIconImage(bitmap)
             } else {
                 Toast.makeText(this@GestureAddActionActivity, R.string.icon_editor_load_failed, Toast.LENGTH_SHORT).show()
             }
@@ -291,59 +362,42 @@ class GestureAddActionActivity : AppCompatActivity() {
 
     private fun updateAndSaveUriImage(img: Drawable) {
         actionItem.iconType = IconType.URI
-        binding.actionIcon.setImage(img)
-        img.let { drawable ->
-            val bitmap =
-                createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
-            val canvas = android.graphics.Canvas(bitmap)
-            drawable.setBounds(0, 0, canvas.width, canvas.height)
-            drawable.draw(canvas)
-            iconFileUtils.setImgBitmap(bitmap)
-        }
+        updateIconImage(img)
+        // Let IconImageIO rasterize vectors/adaptive icons at a valid target size on save.
+        iconFileUtils.setImgDrawable(img)
     }
 
-    private fun selectImage(view: RoundImageTextView) {
-        val bottomSheet = BottomSheetDialog(
-            this, R.style.ThemeOverlay_BottomSheetDialog_Scrollable
-        )
-        val bottomSheetView = BottomSheetIconSelectBinding.inflate(layoutInflater).root
+    private fun updateIconImage(image: Any?) {
+        iconText = null
+        iconImage = image
+    }
 
-        bottomSheetView.findViewById<View>(R.id.select_gallery)
-            .setOnClickListener {
-                bottomSheet.dismiss()
-                selectGalleryIcon()
-            }
+    private fun updateIconText(text: String) {
+        iconImage = null
+        iconText = text
+    }
 
-        bottomSheetView.findViewById<View>(R.id.select_app_icon)
-            .setOnClickListener {
-                bottomSheet.dismiss()
+    private fun selectImage() {
+        choiceDialog = ChoiceDialog(R.string.icon_select_title, listOf(
+            Choice(R.string.icon_select_gallery, ::selectGalleryIcon),
+            Choice(R.string.icon_select_app_icon) {
                 DefaultSelectAPPBottomSheet(this, lifecycleScope, object : SelectAPPCallBack {
                     override fun selectCompleted(model: APPModel) {
-                        IconHelper.getIcon(applicationContext, model.pkgName)?.let { drawable ->
-                            updateAndSaveUriImage(drawable)
-                        }
+                        IconHelper.getIcon(applicationContext, model.pkgName)?.let(::updateAndSaveUriImage)
                     }
                 }).show()
-            }
-
-        bottomSheetView.findViewById<View>(R.id.select_text_icon)
-            .setOnClickListener {
-                bottomSheet.dismiss()
-                showEditTextBottomSheet(
-                    activity = this,
-                    coroutineScope = lifecycleScope,
+            },
+            Choice(R.string.icon_select_text_icon) {
+                showEditTextBottomSheet(activity = this, coroutineScope = lifecycleScope,
                     title = getString(R.string.gesture_add_action_text_icon_title),
                     hint = getString(R.string.gesture_add_action_text_icon_hint),
                     onConfirm = { inputText ->
                         actionItem.name = inputText.trim()
                         actionItem.iconType = IconType.TEXT
-                        binding.actionIcon.setText(actionItem.name ?: "")
-                    }
-                )
-            }
-
-        bottomSheet.setContentView(bottomSheetView)
-        bottomSheet.show()
+                        updateIconText(actionItem.name ?: "")
+                    })
+            },
+        ))
     }
 
     private val shortcutPickerLauncher = registerForActivityResult(
@@ -359,15 +413,15 @@ class GestureAddActionActivity : AppCompatActivity() {
 
                 val shortcutUri = shortcutIntent?.toUri(Intent.URI_INTENT_SCHEME)
 
-                lastSelectedConfigBinding?.let { configBinding ->
+                lastSelectedConfig?.let { configState ->
                     shortcutUri?.let { uri ->
-                        val actionLink = configBinding.getActionLink()
+                        val actionLink = configState.getActionLink()
                         actionLink.addParams("uri", uri)
-                        applyLink(configBinding)
+                        applyLink(configState)
                         shortcutIcon?.let { icon ->
                             actionItem.iconType = IconType.URI
                             iconFileUtils.setImgBitmap(icon)
-                            binding.actionIcon.setImage(icon)
+                            updateIconImage(icon)
                         }
                     }
                 }
@@ -376,46 +430,33 @@ class GestureAddActionActivity : AppCompatActivity() {
     }
 
     private fun selectAccAction(callback: (Int, Drawable?) -> Unit) {
-        val bottomSheet = BottomSheetDialog(
-            this, R.style.ThemeOverlay_BottomSheetDialog_Scrollable
-        )
-        val binding = BottomSheetAccActionSelectBinding.inflate(layoutInflater)
-
-        binding.root.touchables.forEach { view ->
-            val actionId = (view.tag as? String)?.toIntOrNull() ?: return@forEach
-            view.setOnClickListener {
-                callback(actionId, null)
-                bottomSheet.dismiss()
-            }
-        }
-
-        bottomSheet.setContentView(binding.root)
-        bottomSheet.show()
+        choiceDialog = ChoiceDialog(R.string.acc_action_select_title, listOf(
+            R.string.acc_action_select_back to 1,
+            R.string.acc_action_select_recents to 3,
+            R.string.acc_action_select_quick_settings to 5,
+            R.string.acc_action_select_notifications to 4,
+            R.string.acc_action_select_home to 2,
+            R.string.acc_action_select_screenshot to 9,
+            R.string.acc_action_select_lock_screen to 8,
+            R.string.acc_action_select_power_dialog to 6,
+        ).map { (title, id) -> Choice(title) { callback(id, null) } })
     }
 
     private fun selectClipboardAction(callback: (String, Drawable?) -> Unit) {
-        val bottomSheet = BottomSheetDialog(
-            this, R.style.ThemeOverlay_BottomSheetDialog_Scrollable
-        )
-        val binding = BottomSheetClipboardActionSelectBinding.inflate(layoutInflater)
-
-        binding.root.touchables.forEach { view ->
-            val actionId = view.tag as? String ?: return@forEach
-            view.setOnClickListener {
-                callback(actionId, null)
-                bottomSheet.dismiss()
-            }
-        }
-
-        bottomSheet.setContentView(binding.root)
-        bottomSheet.show()
+        choiceDialog = ChoiceDialog(R.string.clipboard_action_select_title, listOf(
+            R.string.clipboard_action_select_pin to "pin",
+            R.string.clipboard_action_select_search to "search",
+            R.string.clipboard_action_select_translate to "translate",
+            R.string.clipboard_action_select_share_inspire to "inspire",
+            R.string.clipboard_action_select_save_image to "saveImage",
+        ).map { (title, id) -> Choice(title) { callback(id, null) } })
     }
 
     private fun selectAction(
-        configBinding: ActivityGestureAddActionConfigBinding, type: GestureActionType
+        configState: ActionEditorState, type: GestureActionType
     ) {
-        lastSelectedConfigBinding = configBinding
-        val actionLink = configBinding.getActionLink()
+        lastSelectedConfig = configState
+        val actionLink = configState.getActionLink()
         actionLink.actionType = type
         val oldQueryList: ArrayList<Pair<String, String>> = ArrayList()
         oldQueryList.addAll(actionLink.queryList)
@@ -426,10 +467,10 @@ class GestureAddActionActivity : AppCompatActivity() {
                 DefaultSelectAPPBottomSheet(this, lifecycleScope, object : SelectAPPCallBack {
                     override fun selectCompleted(model: APPModel) {
                         actionLink.addParams("pkg", model.pkgName)
-                        applyLink(configBinding)
-                        if (configBinding == binding.shortAction && actionItem.iconType == IconType.OTHER) {
+                        applyLink(configState)
+                        if (configState == firstConfig && actionItem.iconType == IconType.OTHER) {
                             actionItem.iconType = IconType.OTHER
-                            binding.actionIcon.setImage(
+                            updateIconImage(
                                 IconHelper.getIcon(applicationContext, model.pkgName)
                             )
                         }
@@ -449,9 +490,9 @@ class GestureAddActionActivity : AppCompatActivity() {
                         actionLink.addParams("pkg", model.packageName)
                         actionLink.addParams("activityName", model.activityName)
                         actionLink.addParams("isExported", model.isExported.toString())
-                        applyLink(configBinding)
+                        applyLink(configState)
                         actionItem.iconType = IconType.OTHER
-                        binding.actionIcon.setImage(
+                        updateIconImage(
                             IconHelper.getIcon(applicationContext, model.packageName)
                         )
                     }
@@ -468,7 +509,7 @@ class GestureAddActionActivity : AppCompatActivity() {
                     onConfirm = { inputText ->
                         if (inputText.isNotEmpty()) {
                             actionLink.addParams("uri", inputText)
-                            applyLink(configBinding)
+                            applyLink(configState)
                         }
                     }
                 )
@@ -484,22 +525,22 @@ class GestureAddActionActivity : AppCompatActivity() {
                     onConfirm = { inputText ->
                         if (inputText.isNotEmpty()) {
                             actionLink.addParams("shell", inputText)
-                            applyLink(configBinding)
+                            applyLink(configState)
                         }
                     }
                 )
             }
 
             GestureActionType.TEMP_DND -> {
-                selectTempDndAction(configBinding, actionLink, oldQueryList)
+                selectTempDndAction(configState, actionLink, oldQueryList)
             }
 
             GestureActionType.PAUSE_GESTURE -> {
-                showPauseGestureSecondsInput(configBinding, actionLink, oldQueryList)
+                showPauseGestureSecondsInput(configState, actionLink, oldQueryList)
             }
 
             GestureActionType.OTHER_SHORTCUT -> {
-                selectOtherShortcut(configBinding)
+                selectOtherShortcut(configState)
             }
 
             GestureActionType.SHOW_ACTION_VIEW -> {
@@ -509,35 +550,35 @@ class GestureAddActionActivity : AppCompatActivity() {
                     currentSelectedTag = itemListTag,
                     onSelect = { selectedTag ->
                         actionLink.addParams("actionItemsTag", selectedTag)
-                        applyLink(configBinding)
+                        applyLink(configState)
                     }
                 )
             }
 
             GestureActionType.ACC_ACTION -> {
                 selectAccAction { actionId, icon ->
-                    val actionLink = configBinding.getActionLink()
+                    val actionLink = configState.getActionLink()
                     actionLink.addParams("accAction", actionId.toString())
-                    applyLink(configBinding)
+                    applyLink(configState)
                 }
             }
 
             GestureActionType.CLIPBOARD_ACTION -> {
                 selectClipboardAction { actionId, icon ->
-                    val actionLink = configBinding.getActionLink()
+                    val actionLink = configState.getActionLink()
                     actionLink.addParams("clipAction", actionId)
-                    applyLink(configBinding)
+                    applyLink(configState)
                 }
             }
 
             else -> {
-                applyLink(configBinding)
+                applyLink(configState)
             }
         }
     }
 
     private fun selectTempDndAction(
-        configBinding: ActivityGestureAddActionConfigBinding,
+        configState: ActionEditorState,
         actionLink: GestureActionLink,
         oldQueryList: ArrayList<Pair<String, String>>
     ) {
@@ -558,7 +599,7 @@ class GestureAddActionActivity : AppCompatActivity() {
                         ).show()
                     } else {
                         actionLink.addParams("minutes", minutes.toString())
-                        applyLink(configBinding)
+                        applyLink(configState)
                     }
                 }
             )
@@ -570,7 +611,7 @@ class GestureAddActionActivity : AppCompatActivity() {
     }
 
     private fun showPauseGestureSecondsInput(
-        configBinding: ActivityGestureAddActionConfigBinding,
+        configState: ActionEditorState,
         actionLink: GestureActionLink,
         oldQueryList: ArrayList<Pair<String, String>>
     ) {
@@ -591,7 +632,7 @@ class GestureAddActionActivity : AppCompatActivity() {
                         ).show()
                     } else {
                         actionLink.addParams("seconds", seconds.toString())
-                        applyLink(configBinding)
+                        applyLink(configState)
                     }
                 }
             )
@@ -605,90 +646,80 @@ class GestureAddActionActivity : AppCompatActivity() {
         }
     }
 
-    private fun selectOtherShortcut(configBinding: ActivityGestureAddActionConfigBinding) {
-        val bottomSheet = BottomSheetDialog(
-            this, R.style.ThemeOverlay_BottomSheetDialog_Scrollable
-        )
-        val bottomSheetView = BottomSheetShortcutSourceSelectBinding.inflate(layoutInflater).root
-
-        bottomSheetView.findViewById<View>(R.id.selectLocalShortcut)
-            .setOnClickListener {
-                bottomSheet.dismiss()
+    private fun selectOtherShortcut(configState: ActionEditorState) {
+        choiceDialog = ChoiceDialog(R.string.shortcut_source_select_title, listOf(
+            Choice(R.string.shortcut_source_select_local) {
+                // Bind the result to the editor which actually launched the external picker.
                 ShortcutSelectAPPBottomSheet(this, lifecycleScope, object : SelectAPPCallBack {
                     override fun selectCompleted(model: APPModel) {
-                        val shortcutIntent = Intent("android.intent.action.CREATE_SHORTCUT")
-                        shortcutIntent.setPackage(model.pkgName)
-                        val activities = packageManager.queryIntentActivities(shortcutIntent, 0)
-                        if (activities.isNotEmpty()) {
+                        val shortcutIntent = Intent("android.intent.action.CREATE_SHORTCUT").setPackage(model.pkgName)
+                        if (packageManager.queryIntentActivities(shortcutIntent, 0).isNotEmpty()) {
+                            lastSelectedConfig = configState
                             shortcutPickerLauncher.launch(shortcutIntent)
                         } else {
-                            Toast.makeText(
-                                this@GestureAddActionActivity,
-                                getString(R.string.gesture_add_action_shortcut_create_failed),
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            Toast.makeText(this@GestureAddActionActivity, R.string.gesture_add_action_shortcut_create_failed, Toast.LENGTH_SHORT).show()
                         }
                     }
                 }).show()
-            }
-
-        bottomSheetView.findViewById<View>(R.id.selectOnlineShortcut)
-            .setOnClickListener {
-                bottomSheet.dismiss()
+            },
+            Choice(R.string.shortcut_source_select_online) {
                 LocalUserShortcutSheet(this, lifecycleScope, object : SelectShortcutCallback {
                     override fun selectCompleted(model: ShortcutModel) {
-                        val actionLink = configBinding.getActionLink()
+                        val actionLink = configState.getActionLink()
                         actionLink.addParams("uri", model.scheme)
                         actionLink.addParams("pkg", model.packageName)
-                        applyLink(configBinding)
+                        applyLink(configState)
                     }
                 }).show()
-            }
-
-        bottomSheet.setContentView(bottomSheetView)
-        bottomSheet.show()
+            },
+        ))
     }
 
     private fun applyLink(
-        configBinding: ActivityGestureAddActionConfigBinding, needSyncToLongAction: Boolean = true
+        configState: ActionEditorState, needSyncToLongAction: Boolean = true
     ) {
-        val actionLink = configBinding.getActionLink()
-        configBinding.actionLink.setText(actionLink.buildLink())
+        val actionLink = configState.getActionLink()
+        if (configState === firstConfig && selectTriggerActionMode) {
+            actionLink.isTimeout = true
+            configState.timeout = true
+        }
+        configState.selected = true
+        configState.text = actionLink.buildLink()
 
         if (
             needSyncToLongAction &&
             !externalActionMode &&
-            configBinding == binding.shortAction &&
-            binding.longAction.actionLink.text.isNullOrEmpty()
+            configState == firstConfig &&
+            secondConfig.text.isEmpty()
         ) {
-            fillActionConfig(binding.longAction, firstActionLink.buildLink())
+            fillActionConfig(secondConfig, firstActionLink.buildLink())
         }
     }
 
     private fun syncLink(
-        sourceConfig: ActivityGestureAddActionConfigBinding,
-        targetConfig: ActivityGestureAddActionConfigBinding
+        sourceConfig: ActionEditorState,
+        targetConfig: ActionEditorState
     ) {
-        targetConfig.getButtonsState().enable = false
-        fillActionConfig(targetConfig, sourceConfig.actionLink.text.toString())
+        fillActionConfig(targetConfig, sourceConfig.text)
     }
 
 
-    private fun batchSavePlaceHolder(total: Int) = lifecycleScope.launch(Dispatchers.IO) {
-        for (i in 1..total) {
-            val item = GestureActionItem()
-            item.iconType = IconType.INVISIBLE
-            item.tag = buildTag()
-            GestureActionDataManager.addActionItem(
-                applicationContext, itemListTag, item
-            )
+    private fun batchSavePlaceHolder(total: Int) {
+        if (saving) return
+        saving = true
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                repeat(total) {
+                    val item = GestureActionItem().apply { iconType = IconType.INVISIBLE; tag = buildTag() }
+                    GestureActionDataManager.addActionItem(applicationContext, itemListTag, item)
+                }
+            }
+            finish()
         }
-
-        finish()
     }
 
     private fun saveExternalAction() {
-        val link = binding.shortAction.actionLink.text?.toString().orEmpty()
+        val link = firstConfig.text
         if (link.isEmpty()) {
             Toast.makeText(
                 this,
@@ -706,38 +737,28 @@ class GestureAddActionActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun saveAction(isPlaceHolder: Boolean) = lifecycleScope.launch(Dispatchers.IO) {
-        actionItem.firstStageLink = binding.shortAction.actionLink.text.toString()
-        actionItem.secondStageLink = binding.longAction.actionLink.text.toString()
-        if (iconFileUtils.saveIcon()) {
-            actionItem.icon = iconFileUtils.imgPath
+    private fun saveAction(isPlaceHolder: Boolean) {
+        if (saving) return
+        saving = true
+        actionItem.firstStageLink = if (selectTriggerActionMode) {
+            GestureActionLink().parseLink(firstConfig.text).apply { isTimeout = true }.buildLink()
+        } else firstConfig.text
+        actionItem.secondStageLink = secondConfig.text
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                if (iconFileUtils.saveIcon()) actionItem.icon = iconFileUtils.imgPath
+                if (isPlaceHolder) actionItem.iconType = IconType.INVISIBLE
+                Log.d(TAG, "saveAction: tag $itemListTag")
+                if (editMode) {
+                    GestureActionDataManager.updateActionItem(applicationContext, itemListTag, actionItem)
+                } else {
+                    actionItem.tag = expectItemTag ?: buildTag()
+                    GestureActionDataManager.addActionItem(applicationContext, itemListTag, actionItem)
+                }
+            }
+            if (selectTriggerActionMode) setResult(RESULT_OK, Intent())
+            finish()
         }
-
-        if (isPlaceHolder) actionItem.iconType = IconType.INVISIBLE
-
-        Log.d(TAG, "saveAction: tag $itemListTag")
-
-        if (editMode) {
-            GestureActionDataManager.updateActionItem(
-                applicationContext, itemListTag, actionItem
-            )
-        } else {
-            Log.d(TAG, "saveAction: expectItemTag:$expectItemTag")
-            actionItem.tag = expectItemTag ?: buildTag()
-            GestureActionDataManager.addActionItem(
-                applicationContext, itemListTag, actionItem
-            )
-        }
-
-        finish()
-    }
-
-    fun ActivityGestureAddActionConfigBinding.getActionLink(): GestureActionLink {
-        return if (this == binding.shortAction) firstActionLink else secondActionLink
-    }
-
-    fun ActivityGestureAddActionConfigBinding.getButtonsState(): ConfigButtonsState {
-        return if (this == binding.shortAction) firstButtonsState else secondButtonsState
     }
 
     override fun finish() {

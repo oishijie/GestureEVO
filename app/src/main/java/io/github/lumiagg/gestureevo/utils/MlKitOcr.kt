@@ -167,12 +167,20 @@ object MlKitOcr {
     }
 
     private fun createEngine(): OcrEngine? {
-        return OcrEngine.create(EvoApplication.application, AcceleratorType.CPU)
-            .getOrElse { error ->
-                AppLogger.event(LogModule.OCR, "engine_initialization_failed", LogLevel.ERROR, error = error)
-                Log.e(TAG, "OCR engine init failed", error)
-                null
-            }
+        return try {
+            OcrEngine.create(EvoApplication.application, AcceleratorType.CPU)
+                .getOrElse { error ->
+                    AppLogger.event(LogModule.OCR, "engine_initialization_failed", LogLevel.ERROR, error = error)
+                    Log.e(TAG, "OCR engine init failed", error)
+                    null
+                }
+        } catch (error: LinkageError) {
+            // Native loading occurs in OcrEngine's class initializer, before create()
+            // can return a Result. Missing/incompatible JNI must not kill the service.
+            AppLogger.event(LogModule.OCR, "engine_native_load_failed", LogLevel.ERROR, error = error)
+            Log.e(TAG, "OCR native library unavailable", error)
+            null
+        }
     }
 
     private fun processWithEngine(

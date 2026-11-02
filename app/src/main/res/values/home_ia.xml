@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+ <string name="ia_tab_overview">总览</string><string name="ia_tab_control">操控</string><string name="ia_tab_content">内容</string><string name="ia_tab_management">管理</string>
+ <string name="ia_overview_status">运行状态</string><string name="ia_overview_config">当前配置</string><string name="ia_overview_usage">使用概况</string><string name="ia_running">服务运行中</string><string name="ia_attention">需要配置</string><string name="ia_config_summary">当前小窗与外观配置</string><string name="ia_usage_summary">本地使用统计与搜索引擎</string>
+ <string name="ia_accessibility">无障碍</string><string name="ia_background">背景稳定性</string><string name="ia_not_connected">未接入检查</string>
+ <string name="ia_trigger_mapping">触发与映射</string><string name="ia_wheel_layout">轮盘与布局</string><string name="ia_pointer_keyboard">指针与键盘</string><string name="ia_window_behavior">窗口行为</string>
+ <string name="ia_recognition_extract">识别与提取</string><string name="ia_search_config">搜索配置</string><string name="ia_pin_quick_send">Pin池与快捷发送</string><string name="ia_share_output">分享与输出</string>
+ <string name="ia_interface_navigation">界面与导航</string><string name="ia_app_config">应用配置</string><string name="ia_external_auth">外部调用与授权</string><string name="ia_data_maintenance">数据与维护</string><string name="ia_advanced_system">高级与系统</string><string name="ia_not_implemented">暂未接入，不提供虚假功能</string>
+</resources>

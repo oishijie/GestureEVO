@@ -14,10 +14,33 @@ import android.view.View
 import android.view.ViewPropertyAnimator
 import android.view.ViewConfiguration
 import android.view.animation.LinearInterpolator
-import androidx.constraintlayout.utils.widget.ImageFilterView
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.content.ContextCompat
-import androidx.core.graphics.ColorUtils
+import android.widget.FrameLayout
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Recomposer
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.AndroidUiDispatcher
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import io.github.lumiagg.gestureevo.ui.compose.MiuixEvoTheme
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.core.graphics.toColorInt
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
@@ -35,6 +58,7 @@ import io.github.lumiagg.gestureevo.utils.readKey
 import io.github.lumiagg.gestureevo.utils.settingsStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -997,9 +1021,113 @@ class MainActionView : ActionView {
 
     }
 
+    /** A content-only island; overlay roots intentionally remain ordinary Android Views. */
+    private inner class WheelContentHost(
+        private val content: @Composable () -> Unit
+    ) : FrameLayout(context) {
+        private val composeView = ComposeView(context).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
+        }
+        private var compositionScope: CoroutineScope? = null
+        private var recomposer: Recomposer? = null
+        private var owners: WheelContentOwners? = null
+
+        init {
+            addView(composeView, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            ))
+        }
+
+        override fun onAttachedToWindow() {
+            // Accessibility overlays have no Activity owner or window recomposer. Keep both
+            // scoped to this tiny host instead of changing the window/root View tree.
+            val localOwners = WheelContentOwners()
+            owners = localOwners
+            composeView.setViewTreeLifecycleOwner(localOwners)
+            composeView.setViewTreeSavedStateRegistryOwner(localOwners)
+            localOwners.registry.currentState = Lifecycle.State.RESUMED
+            val scope = CoroutineScope(AndroidUiDispatcher.Main)
+            compositionScope = scope
+            val localRecomposer = Recomposer(scope.coroutineContext)
+            recomposer = localRecomposer
+            composeView.setParentCompositionContext(localRecomposer)
+            scope.launch { localRecomposer.runRecomposeAndApplyChanges() }
+            composeView.setContent { MiuixEvoTheme { content() } }
+            super.onAttachedToWindow()
+        }
+
+        override fun onDetachedFromWindow() {
+            composeView.disposeComposition()
+            recomposer?.cancel()
+            compositionScope?.cancel()
+            owners?.registry?.currentState = Lifecycle.State.DESTROYED
+            // Leave the cancelled parent context installed until the next attach: clearing
+            // it while still in detach dispatch could request a root window recomposer.
+            composeView.setViewTreeLifecycleOwner(null)
+            composeView.setViewTreeSavedStateRegistryOwner(null)
+            recomposer = null
+            compositionScope = null
+            owners = null
+            super.onDetachedFromWindow()
+        }
+    }
+
+    private class WheelContentOwners : LifecycleOwner, SavedStateRegistryOwner {
+        val registry = LifecycleRegistry(this)
+        private val savedStateController = SavedStateRegistryController.create(this)
+        override val lifecycle: Lifecycle get() = registry
+        override val savedStateRegistry: SavedStateRegistry
+            get() = savedStateController.savedStateRegistry
+
+        init {
+            savedStateController.performAttach()
+            savedStateController.performRestore(null)
+            registry.currentState = Lifecycle.State.CREATED
+        }
+    }
+
     inner class ConfigPromptView {
+        // Preserve the XML constraints and their exact 80dp / 50dp / 20dp geometry.
+        // Only replace the two image contents; drag hit testing still uses native bounds.
         private val configPrompt = GestureActionConfigPromptViewBinding.inflate(LayoutInflater.from(context)).root
-        private val centerPrompt = configPrompt.findViewById<ImageFilterView>(R.id.centerPrompt)
+        private val centerPrompt = replacePromptContent(R.id.centerPrompt) {
+            Box(
+                Modifier.fillMaxSize().background(MiuixTheme.colorScheme.secondaryContainer, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painterResource(R.drawable.baseline_unfold_more_24),
+                    contentDescription = null,
+                    tint = MiuixTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        }
+        private val checkPrompt = replacePromptContent(R.id.checkPrompt) {
+            Box(
+                Modifier.fillMaxSize().background(MiuixTheme.colorScheme.primary, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painterResource(R.drawable.baseline_check_24),
+                    contentDescription = null,
+                    tint = MiuixTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+
+        private fun replacePromptContent(id: Int, content: @Composable () -> Unit): View {
+            val previous = configPrompt.findViewById<View>(id)
+            val index = configPrompt.indexOfChild(previous)
+            val params = previous.layoutParams
+            configPrompt.removeView(previous)
+            return WheelContentHost(content).also { host ->
+                host.id = id
+                configPrompt.addView(host, index, params)
+            }
+        }
 
         init {
             val layoutParams = LayoutParams(
@@ -1010,7 +1138,8 @@ class MainActionView : ActionView {
             layoutParams.startToStart = LayoutParams.PARENT_ID
             layoutParams.endToEnd = LayoutParams.PARENT_ID
 
-            configPrompt.findViewById<ImageFilterView>(R.id.checkPrompt).setOnClickListener {
+            checkPrompt.contentDescription = context.getString(R.string.gesture_type_batch_done)
+            checkPrompt.setOnClickListener {
                 configPrompt.visibility = GONE
                 this@MainActionView.hide(true)
                 workMode = WorkMode.ACTIVE
@@ -1023,8 +1152,6 @@ class MainActionView : ActionView {
 
         fun showMovePrompt() {
             configPrompt.isEnabled = true
-            centerPrompt.setBackgroundColor(ContextCompat.getColor(context, R.color.white))
-            centerPrompt.setImageResource(R.drawable.baseline_unfold_more_24)
             configPrompt.elevation = 30F
             relayout()
             if (configPrompt.visibility != VISIBLE) {
@@ -1082,6 +1209,18 @@ class MainActionView : ActionView {
 
     inner class SelectedIconManager {
         val selectedIconView = RoundImageTextView(context)
+        // Keep the existing renderer (including text fitting, backplates, image tint and
+        // padding). Compose owns only this 100dp content island, never the wheel layout.
+        private val selectedIconHost = WheelContentHost {
+            AndroidView(
+                factory = {
+                    // The renderer outlives a composition across overlay detach/reattach.
+                    (selectedIconView.parent as? android.view.ViewGroup)?.removeView(selectedIconView)
+                    selectedIconView
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+        }
         var selectedIconAnimator: ViewPropertyAnimator? = null
         var currentSelectedItem: ModelItem? = null
         var animRunning = false
@@ -1089,25 +1228,29 @@ class MainActionView : ActionView {
         fun initSelectedHintIcon() {
             selectedIconView.apply {
                 alpha = 0f
-                layoutParams = LayoutParams(
-                    100f.dp2px.toInt(), 100f.dp2px.toInt()
-                ).apply {
-                    startToStart = LayoutParams.PARENT_ID
-                    endToEnd = LayoutParams.PARENT_ID
-                }
+                layoutParams = android.view.ViewGroup.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                )
                 applyGlobalImageRoundPercent = false
                 setCornerRadius(config.iconCornerRadius)
                 setImageRoundPercent(config.iconImageRoundPercent)
                 setTransparentBackground(true)
             }
-            addView(selectedIconView)
+            selectedIconHost.layoutParams = LayoutParams(
+                100f.dp2px.toInt(), 100f.dp2px.toInt()
+            ).apply {
+                startToStart = LayoutParams.PARENT_ID
+                endToEnd = LayoutParams.PARENT_ID
+            }
+            addView(selectedIconHost)
         }
 
         fun relayoutSelectedIcon(downY: Float = height.toFloat(), enable: Boolean = true) {
             if (downY > height / 2) {
-                selectedIconView.y = height / 3f
+                selectedIconHost.y = height / 3f
             } else {
-                selectedIconView.y = 2 * height / 3f
+                selectedIconHost.y = 2 * height / 3f
             }
             selectedIconView.alpha = 0f
             selectedIconView.isEnabled = enable

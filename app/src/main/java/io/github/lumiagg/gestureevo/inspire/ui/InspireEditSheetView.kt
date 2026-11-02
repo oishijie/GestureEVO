@@ -1,71 +1,43 @@
 package io.github.lumiagg.gestureevo.inspire.ui
 
-import android.content.Context
-import android.text.InputType
-import android.util.AttributeSet
-import android.view.LayoutInflater
-import android.view.WindowManager
-import android.view.inputmethod.InputMethodManager
-import android.widget.FrameLayout
-import android.widget.LinearLayout
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.flow.first
 import io.github.lumiagg.gestureevo.R
-import io.github.lumiagg.gestureevo.databinding.InspireEditSheetViewBinding
-import io.github.lumiagg.gestureevo.utils.DynamicColorUtils
+import io.github.lumiagg.gestureevo.settings.ui.showMiuixSheet
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-class InspireEditSheetView @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-) : LinearLayout(context, attrs) {
-
-    private val binding =
-        InspireEditSheetViewBinding.inflate(LayoutInflater.from(context), this, true)
-
-    init {
-        orientation = VERTICAL
-    }
-
-    fun bind(
-        title: String,
-        hint: String,
-        scopeText: String,
-        defaultText: String,
-        onCancel: () -> Unit,
-        onConfirm: (String) -> Unit,
-    ) = with(binding) {
-        this.title.text = title
-        textInputLayout.hint = hint
-        scopeValue.text = scopeText
-        inputField.apply {
-            inputType =
-                InputType.TYPE_CLASS_TEXT or
-                    InputType.TYPE_TEXT_FLAG_MULTI_LINE or
-                    InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-            minLines = 5
-            maxLines = 10
-            isSingleLine = false
-            setText(defaultText)
-            setSelection(text?.length ?: 0)
-        }
-        btnCancel.setOnClickListener { onCancel() }
-        btnConfirm.setOnClickListener {
-            onConfirm(inputField.text?.toString().orEmpty())
-        }
-    }
-
-    fun focusEditorAndShowKeyboard() {
-        binding.inputField.post {
-            binding.inputField.requestFocus()
-            binding.inputField.setSelection(binding.inputField.text?.length ?: 0)
-            val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-            imm?.showSoftInput(binding.inputField, InputMethodManager.SHOW_IMPLICIT)
-        }
-    }
-}
-
+/**
+ * Compose/Miuix text editor shared by Inspire content and image editor.
+ * The public imperative entry point is retained so both legacy callers preserve their callbacks.
+ */
 fun showInspireEditBottomSheet(
-    context: Context,
+    context: android.content.Context,
     title: String,
     hint: String,
     scopeText: String,
@@ -73,50 +45,117 @@ fun showInspireEditBottomSheet(
     disableDragToDismiss: Boolean = true,
     onConfirm: (String) -> Unit,
 ) {
-    val themedContext = DynamicColorUtils.dynamicThemedContext(context)
-    val dialog =
-        BottomSheetDialog(themedContext, R.style.ThemeOverlay_BottomSheetDialog_Scrollable)
-    dialog.window?.setSoftInputMode(
-        WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE or
-            WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
+    var ownerContext = context
+    val visited = java.util.Collections.newSetFromMap(
+        java.util.IdentityHashMap<android.content.Context, Boolean>(),
     )
-    dialog.setCanceledOnTouchOutside(!disableDragToDismiss)
-
-    val contentView = InspireEditSheetView(themedContext)
-    contentView.bind(
-        title = title,
-        hint = hint,
-        scopeText = scopeText,
-        defaultText = defaultText,
-        onCancel = { dialog.dismiss() },
-        onConfirm = {
-            onConfirm(it)
-            dialog.dismiss()
-        }
-    )
-    dialog.setContentView(contentView)
-
-    dialog.setOnShowListener { shownDialog ->
-        val bottomSheet = (shownDialog as BottomSheetDialog)
-            .findViewById<FrameLayout>(com.google.android.material.R.id.design_bottom_sheet)
-
-        bottomSheet?.let { sheet ->
-            DynamicColorUtils.applyBottomSheetSurface(shownDialog)
-            val behavior = BottomSheetBehavior.from(sheet)
-            behavior.apply {
-                state = BottomSheetBehavior.STATE_EXPANDED
-                isDraggable = !disableDragToDismiss
-                skipCollapsed = true
-                isFitToContents = true
-                isHideable = !disableDragToDismiss
-            }
-            val windowHeight = sheet.context.resources.displayMetrics.heightPixels
-            sheet.layoutParams.height = (windowHeight * 0.9f).toInt()
-            sheet.requestLayout()
-        }
-
-        contentView.focusEditorAndShowKeyboard()
+    while (ownerContext !is android.app.Activity && ownerContext is android.content.ContextWrapper) {
+        if (!visited.add(ownerContext)) return
+        ownerContext = ownerContext.baseContext
     }
+    val activity = ownerContext as? android.app.Activity ?: return
+    showMiuixSheet(activity, dismissOnOutside = !disableDragToDismiss) { dismiss ->
+        InspireEditContent(
+            title = title,
+            hint = hint,
+            scopeText = scopeText,
+            defaultText = defaultText,
+            onCancel = dismiss,
+            onConfirm = { value ->
+                onConfirm(value)
+                dismiss()
+            },
+        )
+    }
+}
 
-    dialog.show()
+@Composable
+private fun InspireEditContent(
+    title: String,
+    hint: String,
+    scopeText: String,
+    defaultText: String,
+    onCancel: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var value by androidx.compose.runtime.saveable.rememberSaveable(
+        stateSaver = androidx.compose.ui.text.input.TextFieldValue.Saver,
+    ) {
+        mutableStateOf(androidx.compose.ui.text.input.TextFieldValue(
+            defaultText, selection = androidx.compose.ui.text.TextRange(defaultText.length),
+        ))
+    }
+    var submitted by remember { mutableStateOf(false) }
+    val windowInfo = androidx.compose.ui.platform.LocalWindowInfo.current
+    val focusRequester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(Unit) {
+        androidx.compose.runtime.snapshotFlow { windowInfo.isWindowFocused }.first { it }
+        androidx.compose.runtime.withFrameNanos { }
+        focusRequester.requestFocus()
+        keyboard?.show()
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = title,
+            modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 24.dp),
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Medium,
+            color = MiuixTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = scopeText,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            fontSize = 14.sp,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+        )
+        TextField(
+            value = value,
+            onValueChange = { value = it },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 140.dp, max = 300.dp)
+                .verticalScroll(rememberScrollState()).focusRequester(focusRequester)
+                .padding(horizontal = 24.dp),
+            label = hint,
+            minLines = 5,
+            maxLines = 10,
+            singleLine = false,
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                imeAction = ImeAction.Default,
+                capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences,
+            ),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 4.dp, bottom = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            TextButton(
+                text = stringResource(R.string.edit_bottomsheet_cancel),
+                modifier = Modifier.weight(1f),
+                minHeight = 44.dp,
+                onClick = {
+                    if (!submitted) {
+                        submitted = true
+                        keyboard?.hide()
+                        onCancel()
+                    }
+                },
+            )
+            TextButton(
+                text = stringResource(R.string.edit_bottomsheet_confirm),
+                modifier = Modifier.weight(1f),
+                minHeight = 44.dp,
+                colors = ButtonDefaults.textButtonColorsPrimary(),
+                onClick = {
+                    if (!submitted) {
+                        submitted = true
+                        keyboard?.hide()
+                        onConfirm(value.text)
+                    }
+                },
+            )
+        }
+    }
 }

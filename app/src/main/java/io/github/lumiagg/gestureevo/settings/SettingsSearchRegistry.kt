@@ -40,7 +40,7 @@ object SettingsSearchRegistry {
         entry(
             id = "root_inspire",
             titleResId = R.string.inspire_settings_title,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = HomeActivity::class.java,
             targetPreferenceKey = "root_inspire",
             keywords = listOf("功能", "屏幕内容", "inspire")
@@ -48,7 +48,7 @@ object SettingsSearchRegistry {
         entry(
             id = "root_search",
             titleResId = R.string.search_engine_settings_title,
-            pageTitleResId = R.string.home_title_search,
+            pageTitleResId = R.string.home_ia_management,
             targetActivity = HomeActivity::class.java,
             targetPreferenceKey = "root_search",
             keywords = listOf("搜索", "引擎", "search")
@@ -498,7 +498,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_ocr",
             titleResId = R.string.inspire_settings_ocr_priority,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.screenContentSwitchCard,
             keywords = listOf("ocr", "取词", "识别")
@@ -506,7 +506,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_double_check",
             titleResId = R.string.inspire_settings_double_check,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.screenContentSwitchCard,
             keywords = listOf("二次确认", "确认")
@@ -514,7 +514,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_selection_vibrate",
             titleResId = R.string.inspire_settings_selection_vibrate,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.screenContentSwitchCard,
             keywords = listOf("震动", "振动", "框选", "进入框选", "vibrate")
@@ -522,7 +522,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_edge_back",
             titleResId = R.string.inspire_settings_edge_back,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.screenContentSwitchCard,
             keywords = listOf("返回", "边缘", "滑动", "悬浮窗", "back", "edge", "swipe")
@@ -530,7 +530,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_delay_remove",
             titleResId = R.string.inspire_settings_delay_remove_image,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.screenContentSwitchCard,
             keywords = listOf("延迟删除", "移除图片")
@@ -538,7 +538,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_show_engine",
             titleResId = R.string.inspire_settings_show_engine,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.screenContentSwitchCard,
             keywords = listOf("显示引擎", "搜索引擎")
@@ -546,7 +546,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_strong_copy",
             titleResId = R.string.inspire_settings_strong_copy,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.screenContentSwitchCard,
             keywords = listOf("强复制", "自动复制", "剪切板", "clipboard", "copy")
@@ -554,7 +554,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_share_behavior",
             titleResId = R.string.inspire_settings_default_share_behavior_title,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.defaultShareBehaviorCard,
             keywords = listOf("默认分享行为", "share behavior")
@@ -562,7 +562,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_external_drop",
             titleResId = R.string.inspire_settings_external_drop,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.defaultShareBehaviorCard,
             keywords = listOf("外部拖放", "拖拽", "接收", "悬浮窗", "drop", "drag")
@@ -570,7 +570,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_external_drop_engines",
             titleResId = R.string.inspire_settings_external_drop_engines,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.defaultShareBehaviorCard,
             keywords = listOf("外部拖放", "搜索引擎", "图片搜索", "drop", "search engine")
@@ -578,7 +578,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_translation_app",
             titleResId = R.string.inspire_settings_translation_app_title,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.appSelectionCard,
             keywords = listOf("翻译应用", "translation")
@@ -586,7 +586,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_search_app",
             titleResId = R.string.inspire_settings_search_app_title,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.appSelectionCard,
             keywords = listOf("搜索方式", "搜索应用", "search method")
@@ -594,7 +594,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_image_app",
             titleResId = R.string.inspire_settings_image_app_title,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.appSelectionCard,
             keywords = listOf("图片应用", "图像编辑")
@@ -602,7 +602,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_share_image_app",
             titleResId = R.string.inspire_settings_default_share_image_app_title,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.appSelectionCard,
             keywords = listOf("默认分享图片", "share image")
@@ -610,7 +610,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_link_open",
             titleResId = R.string.inspire_settings_default_link_open_title,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.appSelectionCard,
             keywords = listOf("默认链接打开", "link open", "浏览器")
@@ -618,7 +618,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_pointer_trail",
             titleResId = R.string.inspire_settings_show_pointer_trail,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.PointerCard,
             keywords = listOf("指针轨迹", "pointer trail")
@@ -626,7 +626,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_pointer_touch_area",
             titleResId = R.string.inspire_settings_always_show_pointer_touch_area,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.PointerCard,
             keywords = listOf("触摸区域", "指针触摸区域", "touch area", "pointer touch")
@@ -634,7 +634,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_pointer_touch_area_offset",
             titleResId = R.string.inspire_settings_pointer_touch_area_offset,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.PointerCard,
             summaryResId = R.string.inspire_settings_pointer_touch_area_offset_desc,
@@ -643,7 +643,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_pointer_drag",
             titleResId = R.string.inspire_settings_pointer_drag_mode,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.PointerCard,
             keywords = listOf("拖拽模式", "pointer drag")
@@ -651,7 +651,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_pin_pool_mode",
             titleResId = R.string.inspire_settings_pin_pool_mode_title,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.pinPoolCard,
             summaryResId = R.string.inspire_settings_pin_pool_mode_desc,
@@ -660,7 +660,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_pin_pool_local_rule_extraction",
             titleResId = R.string.inspire_settings_pin_pool_local_rule_extraction_title,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.pinPoolCard,
             summaryResId = R.string.inspire_settings_pin_pool_local_rule_extraction_desc,
@@ -669,7 +669,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_pin_pool_save_screen_content",
             titleResId = R.string.inspire_settings_pin_pool_save_screen_content_title,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.pinPoolCard,
             summaryResId = R.string.inspire_settings_pin_pool_save_screen_content_desc,
@@ -687,7 +687,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_pin_pool_auto_delete",
             titleResId = R.string.inspire_settings_pin_pool_auto_delete_title,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.pinPoolCard,
             summaryResId = R.string.inspire_settings_pin_pool_auto_delete_desc,
@@ -696,7 +696,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_notification_icon",
             titleResId = R.string.inspire_settings_notification_icon,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.notificationCard,
             keywords = listOf("通知图标", "notification icon")
@@ -704,7 +704,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_notification_whitelist",
             titleResId = R.string.inspire_settings_notification_whitelist,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.notificationCard,
             keywords = listOf("通知白名单", "whitelist")
@@ -712,7 +712,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_notification_blacklist",
             titleResId = R.string.inspire_settings_notification_blacklist,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.notificationCard,
             keywords = listOf("通知黑名单", "blacklist")
@@ -720,7 +720,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_notification_display_time",
             titleResId = R.string.inspire_settings_notification_display_time,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.notificationCard,
             summaryResId = R.string.inspire_settings_notification_display_time_summary,
@@ -729,7 +729,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_notification_permission",
             titleResId = R.string.inspire_settings_notification_permission,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.notificationCard,
             keywords = listOf("通知权限", "permission")
@@ -737,7 +737,7 @@ object SettingsSearchRegistry {
         entry(
             id = "inspire_keyboard",
             titleResId = R.string.inspire_settings_keyboard_type_title,
-            pageTitleResId = R.string.home_title_screen,
+            pageTitleResId = R.string.home_ia_content,
             targetActivity = InspireSettingsActivity::class.java,
             targetViewId = R.id.keyboardTypeCard,
             keywords = listOf("键盘", "keyboard")

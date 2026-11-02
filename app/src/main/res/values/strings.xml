@@ -315,6 +315,9 @@
     <string name="search_engine_settings_empty_title">暂无搜索引擎</string>
     <string name="search_engine_settings_empty_description">点击右下角按钮添加</string>
     <string name="search_engine_settings_add_engine">添加搜索引擎</string>
+    <string name="search_engine_action_set_default">设为默认</string>
+    <string name="search_engine_action_hide">隐藏</string>
+    <string name="search_engine_action_delete">删除</string>
     <string name="clipboard_action_select_title">选择剪切板功能</string>
     <string name="clipboard_action_select_pin">Pin剪切板(图片或者文本)</string>
     <string name="clipboard_action_select_search">搜索剪切板内容</string>

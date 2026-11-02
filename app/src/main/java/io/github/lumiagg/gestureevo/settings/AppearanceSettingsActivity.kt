@@ -1,5 +1,6 @@
 package io.github.lumiagg.gestureevo.settings
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
@@ -176,6 +177,12 @@ private val blurItems = listOf(
 private fun AppearanceScreen(activity: AppCompatActivity, onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val navigationPreferences = remember(context) {
+        context.getSharedPreferences("home_navigation", Context.MODE_PRIVATE)
+    }
+    var floatingBottomBar by remember(navigationPreferences) {
+        mutableStateOf(navigationPreferences.getBoolean("floating_bottom_bar", true))
+    }
 
     var themeMode by remember { mutableIntStateOf(ThemeManager.themeMode) }
     var dynamicColor by remember { mutableStateOf(ThemeManager.dynamicColorEnabled) }
@@ -380,6 +387,15 @@ private fun AppearanceScreen(activity: AppCompatActivity, onBack: () -> Unit) {
         // ---------------- 界面外观
         item {
             MiuixCard {
+                SwitchPreference(
+                    title = stringResource(R.string.floating_bottom_bar_title),
+                    summary = stringResource(R.string.floating_bottom_bar_summary),
+                    checked = floatingBottomBar,
+                    onCheckedChange = { checked ->
+                        navigationPreferences.edit().putBoolean("floating_bottom_bar", checked).apply()
+                        floatingBottomBar = checked
+                    },
+                )
                 OverlayDropdownPreference(
                     title = stringResource(R.string.appearance_settings_pointer_shape),
                     items = pointerShapeLabels,

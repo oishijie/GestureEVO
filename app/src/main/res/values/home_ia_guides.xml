@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_ia_overview">总览</string>
+    <string name="home_ia_control">操控</string>
+    <string name="home_ia_content">内容</string>
+    <string name="home_ia_management">管理</string>
+
+    <string name="guide_title_ia_overview">总览功能引导</string>
+    <string name="guide_title_ia_control">操控功能引导</string>
+    <string name="guide_title_ia_content">内容功能引导</string>
+    <string name="guide_title_ia_management">管理功能引导</string>
+
+    <string name="guide_ia_overview_welcome_title">认识首页</string>
+    <string name="guide_ia_overview_welcome_desc">从总览页快速了解 GestureEVO 的核心能力与常用入口。</string>
+    <string name="guide_ia_overview_service_title">先开启服务</string>
+    <string name="guide_ia_overview_service_desc">启用无障碍服务后，手势、屏幕内容与浮窗能力才能正常工作。</string>
+    <string name="guide_ia_overview_personalize_title">个性化体验</string>
+    <string name="guide_ia_overview_personalize_desc">在设置中调整主题、颜色、显示与行为，让首页和操作方式符合你的习惯。</string>
+
+    <string name="guide_ia_control_gesture_title">手势触发</string>
+    <string name="guide_ia_control_gesture_desc">设置触发方向、区域和识别方式，从屏幕边缘快速唤出操作。</string>
+    <string name="guide_ia_control_wheel_title">动作轮盘</string>
+    <string name="guide_ia_control_wheel_desc">整理常用动作、调整顺序与图标，让重要操作一步直达。</string>
+    <string name="guide_ia_control_window_title">悬浮小窗</string>
+    <string name="guide_ia_control_window_desc">把选中的内容放进小窗查看，按需调整大小、透明度与停留方式。</string>
+
+    <string name="guide_ia_content_recognition_title">屏幕识别</string>
+    <string name="guide_ia_content_recognition_desc">使用 OCR 识别屏幕文字，并通过确认和反馈设置提升取词体验。</string>
+    <string name="guide_ia_content_pin_title">Pin 池</string>
+    <string name="guide_ia_content_pin_desc">保存屏幕片段到 Pin 池，随时查看、分类与清理重要内容。</string>
+    <string name="guide_ia_content_share_title">分享与打开</string>
+    <string name="guide_ia_content_share_desc">为翻译、搜索、图片处理和分享选择合适的应用与默认行为。</string>
+
+    <string name="guide_ia_management_search_title">搜索管理</string>
+    <string name="guide_ia_management_search_desc">管理搜索引擎、结果布局、历史记录以及搜索快捷功能。</string>
+    <string name="guide_ia_management_backup_title">备份与恢复</string>
+    <string name="guide_ia_management_backup_desc">导出配置用于备份，换机或重装后再导入即可恢复使用习惯。</string>
+    <string name="guide_ia_management_maintenance_title">维护与稳定</string>
+    <string name="guide_ia_management_maintenance_desc">通过后台稳定性、高级设置和数据维护，保持应用长期可靠运行。</string>
+</resources>

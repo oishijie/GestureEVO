@@ -12,6 +12,24 @@ import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
 import android.widget.TextView
 import android.net.Uri
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import androidx.datastore.preferences.core.Preferences
@@ -27,7 +45,6 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.drake.brv.utils.models
 import com.drake.brv.utils.setup
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.github.lumiagg.gestureevo.R
 import io.github.lumiagg.gestureevo.databinding.ActivityQuickSearchBinding
 import io.github.lumiagg.gestureevo.databinding.SearchResultItemBinding
@@ -48,6 +65,7 @@ import io.github.lumiagg.gestureevo.settings.SearchEngineSettingsActivity.Compan
 import io.github.lumiagg.gestureevo.settings.SearchEngineSettingsActivity.Companion.KEY_SEARCH_HISTORY
 import io.github.lumiagg.gestureevo.settings.SearchEngineSettingsActivity.Companion.KEY_SEARCH_SETTINGS_SHORTCUTS
 import io.github.lumiagg.gestureevo.settings.SearchEngineSettingsActivity.Companion.KEY_SHOW_CLIPBOARD_CONTENT
+import io.github.lumiagg.gestureevo.settings.ui.showMiuixSheet
 import io.github.lumiagg.gestureevo.ui.HomeActivity
 import io.github.lumiagg.gestureevo.ui.ActionTextMenuItem
 import io.github.lumiagg.gestureevo.ui.ActionTextMenuPopup
@@ -79,6 +97,10 @@ import java.util.Locale
 import java.util.WeakHashMap
 import kotlin.math.abs
 import kotlin.math.ln1p
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 class SearchResultManager(
     private val activity: QuickSearchActivity,
@@ -1166,14 +1188,60 @@ class SearchResultManager(
     }
 
     private fun confirmClearAllHistory() {
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.quick_search_clear_all_history)
-            .setMessage(R.string.quick_search_clear_history_confirm_message)
-            .setPositiveButton(R.string.quick_search_clear_history_confirm_action) { _, _ ->
-                clearAllHistory()
+        showMiuixSheet(activity) { dismiss ->
+            var visible by remember { mutableStateOf(true) }
+            Column {
+                Text(
+                    text = stringResource(R.string.quick_search_clear_all_history),
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 12.dp),
+                    textAlign = TextAlign.Center,
+                    fontSize = 17.sp,
+                    lineHeight = 22.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
+                    text = stringResource(R.string.quick_search_clear_history_confirm_message),
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp)
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    TextButton(
+                        text = stringResource(android.R.string.cancel),
+                        modifier = Modifier.weight(1f),
+                        minHeight = 44.dp,
+                        onClick = {
+                            if (visible) {
+                                visible = false
+                                dismiss()
+                            }
+                        },
+                    )
+                    TextButton(
+                        text = stringResource(R.string.quick_search_clear_history_confirm_action),
+                        modifier = Modifier.weight(1f),
+                        minHeight = 44.dp,
+                        colors = ButtonDefaults.textButtonColorsPrimary(),
+                        onClick = {
+                            if (visible) {
+                                visible = false
+                                clearAllHistory()
+                                dismiss()
+                            }
+                        },
+                    )
+                }
             }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        }
     }
 
     private fun clearAllHistory() = lifecycleScope.launch(uiDispatcher) {

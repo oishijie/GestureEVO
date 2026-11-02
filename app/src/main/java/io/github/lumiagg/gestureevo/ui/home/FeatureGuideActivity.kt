@@ -141,6 +141,30 @@ class FeatureGuideActivity : AppCompatActivity() {
                 ),
             )
 
+            GUIDE_OVERVIEW -> listOf(
+                GuideStep(R.drawable.baseline_home_24, R.string.guide_ia_overview_welcome_title, R.string.guide_ia_overview_welcome_desc),
+                GuideStep(R.drawable.icon_service, R.string.guide_ia_overview_service_title, R.string.guide_ia_overview_service_desc),
+                GuideStep(R.drawable.baseline_auto_awesome_24, R.string.guide_ia_overview_personalize_title, R.string.guide_ia_overview_personalize_desc),
+            )
+
+            GUIDE_CONTROL -> listOf(
+                GuideStep(R.drawable.baseline_gesture_24, R.string.guide_ia_control_gesture_title, R.string.guide_ia_control_gesture_desc),
+                GuideStep(R.drawable.baseline_pie_chart_24, R.string.guide_ia_control_wheel_title, R.string.guide_ia_control_wheel_desc),
+                GuideStep(R.drawable.ic_little_window, R.string.guide_ia_control_window_title, R.string.guide_ia_control_window_desc),
+            )
+
+            GUIDE_CONTENT -> listOf(
+                GuideStep(R.drawable.baseline_qr_code_scanner_24, R.string.guide_ia_content_recognition_title, R.string.guide_ia_content_recognition_desc),
+                GuideStep(R.drawable.baseline_push_pin_24, R.string.guide_ia_content_pin_title, R.string.guide_ia_content_pin_desc),
+                GuideStep(R.drawable.ic_baseline_share_24, R.string.guide_ia_content_share_title, R.string.guide_ia_content_share_desc),
+            )
+
+            GUIDE_MANAGEMENT -> listOf(
+                GuideStep(R.drawable.baseline_search_24, R.string.guide_ia_management_search_title, R.string.guide_ia_management_search_desc),
+                GuideStep(R.drawable.baseline_save_24, R.string.guide_ia_management_backup_title, R.string.guide_ia_management_backup_desc),
+                GuideStep(R.drawable.baseline_miscellaneous_services_24, R.string.guide_ia_management_maintenance_title, R.string.guide_ia_management_maintenance_desc),
+            )
+
             else -> listOf(
                 GuideStep(
                     icon = R.drawable.baseline_qr_code_scanner_24,
@@ -210,6 +234,10 @@ class FeatureGuideActivity : AppCompatActivity() {
                     GUIDE_SETTINGS -> R.string.guide_title_settings
                     GUIDE_GESTURE -> R.string.guide_title_gesture
                     GUIDE_SEARCH -> R.string.guide_title_search
+                    GUIDE_OVERVIEW -> R.string.guide_title_ia_overview
+                    GUIDE_CONTROL -> R.string.guide_title_ia_control
+                    GUIDE_CONTENT -> R.string.guide_title_ia_content
+                    GUIDE_MANAGEMENT -> R.string.guide_title_ia_management
                     else -> R.string.guide_title_screen
                 }
             ),
@@ -297,6 +325,18 @@ class FeatureGuideActivity : AppCompatActivity() {
 
         /** 设置页引导。 */
         const val GUIDE_SETTINGS = "settings"
+
+        /** 新 IA 总览页引导。 */
+        const val GUIDE_OVERVIEW = "overview"
+
+        /** 新 IA 操控页引导。 */
+        const val GUIDE_CONTROL = "control"
+
+        /** 新 IA 内容页引导。 */
+        const val GUIDE_CONTENT = "content"
+
+        /** 新 IA 管理页引导。 */
+        const val GUIDE_MANAGEMENT = "management"
 
         private const val EXTRA_GUIDE_PAGE = "feature_guide_page"
         private const val KEY_STEP = "feature_guide_step"

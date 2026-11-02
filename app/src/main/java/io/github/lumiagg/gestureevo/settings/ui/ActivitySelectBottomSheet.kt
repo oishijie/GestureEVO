@@ -5,30 +5,42 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
-import android.text.Editable
-import android.text.TextWatcher
-import android.view.View
-import android.view.ViewGroup
-import android.widget.FrameLayout
-import android.widget.TextView
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.LifecycleCoroutineScope
-import androidx.recyclerview.widget.RecyclerView
-import com.drake.brv.BindingAdapter
-import com.drake.brv.utils.grid
-import com.drake.brv.utils.models
-import com.drake.brv.utils.setup
-import com.google.android.material.bottomsheet.BottomSheetBehavior
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.chip.Chip
-import com.google.android.material.progressindicator.LinearProgressIndicator
-import com.google.android.material.textfield.TextInputEditText
 import io.github.lumiagg.gestureevo.R
-import io.github.lumiagg.gestureevo.utils.DynamicColorUtils
+import io.github.lumiagg.gestureevo.ui.miuix.MiuixCard
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 data class ActivityModel(
     val packageName: String,
@@ -55,148 +67,101 @@ class ActivitySelectBottomSheet(
     private val selectActivityCallBack: SelectActivityCallBack,
     private val activityFilter: ActivityFilter? = null
 ) {
-    private lateinit var bottomSheetDialog: BottomSheetDialog
-    private lateinit var recyclerView: RecyclerView
-    private var fullActivityList: List<ActivityModel> = listOf()
-    private var searchJob: Job? = null
-    private var bindingAdapter: BindingAdapter? = null
-
+    @OptIn(ExperimentalFoundationApi::class)
     fun show() {
-        initBottomSheet()
-        setupBottomSheetBehavior()
-        setupRecyclerView()
-        setupSearch()
-        loadActivities()
-        showDialog()
-    }
-
-    private fun initBottomSheet() {
-        val themedContext = DynamicColorUtils.dynamicThemedContext(activity)
-        bottomSheetDialog =
-            BottomSheetDialog(themedContext, R.style.ThemeOverlay_BottomSheetDialog_Scrollable)
-        bottomSheetDialog.setContentView(R.layout.app_select_bottomsheet)
-        bottomSheetDialog.setCanceledOnTouchOutside(false)
-
-        bottomSheetDialog.findViewById<View>(R.id.filterChipGroup)?.visibility = View.GONE
-    }
-
-    private fun setupBottomSheetBehavior() {
-        bottomSheetDialog.setOnShowListener { dialog ->
-            val bottomSheet = (dialog as BottomSheetDialog)
-                .findViewById<View>(com.google.android.material.R.id.design_bottom_sheet) as FrameLayout?
-
-            bottomSheet?.let { sheet ->
-                DynamicColorUtils.applyBottomSheetSurface(dialog)
-                val windowHeight = activity.window.decorView.height
-                val behavior = BottomSheetBehavior.from(sheet)
-                behavior.apply {
-                    sheet.layoutParams.height = windowHeight
-                    state = BottomSheetBehavior.STATE_EXPANDED
-                    isDraggable = true
-                    skipCollapsed = true
-                    isFitToContents = true
-                    isHideable = true
-                }
-            }
-        }
-    }
-
-    private fun setupRecyclerView() {
-        recyclerView = bottomSheetDialog.findViewById(R.id.appList)!!
-        recyclerView.grid(spanCount = 1)
-        bindingAdapter = recyclerView.setup {
-            addType<ActivityModel>(R.layout.app_activity_select_list_item)
-            onBind {
-                val model = getModel<ActivityModel>()
-                findView<TextView>(R.id.activityLabel).text = model.label
-                findView<TextView>(R.id.activityName).text =
-                    activity.getString(R.string.app_activity_label, model.appLabel, model.activityName)
-                findView<Chip>(R.id.activityIsExport).apply {
-                    text = if (model.isExported) {
-                        activity.getString(R.string.activity_exported_true)
-                    } else {
-                        activity.getString(R.string.activity_exported_false)
+        showMiuixSheet(activity, dismissOnOutside = false) { dismiss ->
+            var fullActivityList by remember { mutableStateOf<List<ActivityModel>>(emptyList()) }
+            var visibleActivities by remember { mutableStateOf<List<ActivityModel>>(emptyList()) }
+            var search by remember { mutableStateOf("") }
+            var loading by remember { mutableStateOf(true) }
+            val haptic = LocalHapticFeedback.current
+            // Work is owned by the sheet; dismissing it cancels pending loading/search.
+            LaunchedEffect(Unit) {
+                try {
+                    fullActivityList = withContext(Dispatchers.IO) {
+                        val pm = activity.packageManager
+                        if (activityFilter != null) loadFilteredActivities(pm) else loadPackageActivities(pm)
                     }
-                    isEnabled = model.isExported
+                } catch (e: PackageManager.NameNotFoundException) {
+                    e.printStackTrace()
+                } finally {
+                    loading = false
                 }
             }
-            onClick(R.id.appItem) {
-                val model = getModel<ActivityModel>()
-                selectActivityCallBack.selectCompleted(model)
-                bottomSheetDialog.dismiss()
+            LaunchedEffect(search, fullActivityList) {
+                delay(300)
+                val query = search.trim().lowercase()
+                visibleActivities = withContext(Dispatchers.Default) {
+                    if (query.isEmpty()) fullActivityList else fullActivityList.filter { model ->
+                        model.label.lowercase().contains(query) ||
+                            model.appLabel.lowercase().contains(query) ||
+                            model.activityName.lowercase().contains(query)
+                    }
+                }
             }
-            onLongClick(R.id.activityIsExport) {
-                val model = getModel<ActivityModel>()
-                model.isExported = !model.isExported
-                // Notify current item refresh
-                notifyItemChanged(bindingAdapterPosition)
-            }
-
-        }
-    }
-
-    private fun setupSearch() {
-        bottomSheetDialog.findViewById<TextInputEditText>(R.id.searchInput)
-            ?.addTextChangedListener(object : TextWatcher {
-                override fun beforeTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    count: Int,
-                    after: Int
+            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+                TextField(
+                    value = search,
+                    onValueChange = { search = it },
+                    label = stringResource(R.string.app_select_name_hint),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 12.dp),
+                )
+                if (loading) androidx.compose.material3.LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(), color = MiuixTheme.colorScheme.primary,
+                )
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 500.dp),
+                    contentPadding = PaddingValues(vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                }
-
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-                override fun afterTextChanged(s: Editable?) {
-                    searchJob?.cancel()
-                    searchJob = coroutineScope.launch {
-                        delay(300)
-                        val searchText = s?.toString()?.trim()?.lowercase() ?: ""
-                        if (searchText.isEmpty()) {
-                            withContext(Dispatchers.Main) {
-                                recyclerView.models = fullActivityList
-                            }
-                            return@launch
-                        }
-                        withContext(Dispatchers.Default) {
-                            val filteredList = filterActivities(searchText)
-                            withContext(Dispatchers.Main) {
-                                recyclerView.models = filteredList
+                    items(visibleActivities, key = { it.activityName }) { model ->
+                        // Keep the original mutable model: callers consume the manually overridden
+                        // exported flag, not a copy reconstructed from PackageManager.
+                        var isExported by remember(model) { mutableStateOf(model.isExported) }
+                        MiuixCard {
+                            Column(
+                                Modifier.fillMaxWidth().combinedClickable(
+                                    onClick = {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        selectActivityCallBack.selectCompleted(model)
+                                        dismiss()
+                                    },
+                                ).padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(model.label, modifier = Modifier.weight(1f), fontSize = 16.sp,
+                                        lineHeight = 22.sp, fontWeight = FontWeight.Medium,
+                                        color = MiuixTheme.colorScheme.onSurface)
+                                    Text(
+                                        stringResource(if (isExported) R.string.activity_exported_true else R.string.activity_exported_false),
+                                        modifier = Modifier.heightIn(min = 44.dp)
+                                            .background(MiuixTheme.colorScheme.secondaryContainer, RoundedCornerShape(6.dp))
+                                            .combinedClickable(
+                                                onClick = {},
+                                                onLongClick = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    model.isExported = !model.isExported
+                                                    isExported = model.isExported
+                                                },
+                                            ).padding(horizontal = 8.dp, vertical = 12.dp),
+                                        fontSize = 12.sp, lineHeight = 16.sp,
+                                        color = if (isExported) MiuixTheme.colorScheme.primary
+                                            else MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                    )
+                                }
+                                Text(stringResource(R.string.app_activity_label, model.appLabel, model.activityName),
+                                    fontSize = 12.sp, lineHeight = 16.sp, fontFamily = FontFamily.Monospace,
+                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary)
                             }
                         }
                     }
                 }
-            })
-    }
-
-    private fun loadActivities() {
-        coroutineScope.launch(Dispatchers.IO) {
-            withContext(Dispatchers.Main) {
-                bottomSheetDialog.findViewById<LinearProgressIndicator>(R.id.loadingProgress)?.visibility =
-                    View.VISIBLE
-            }
-            val pm = activity.packageManager
-            try {
-                fullActivityList = if (activityFilter != null) {
-                    loadFilteredActivities(pm)
-                } else {
-                    loadPackageActivities(pm)
-                }
-
-                withContext(Dispatchers.Main) {
-                    recyclerView.models = fullActivityList
-                }
-            } catch (e: PackageManager.NameNotFoundException) {
-                e.printStackTrace()
-            } finally {
-                withContext(Dispatchers.Main) {
-                    bottomSheetDialog.findViewById<LinearProgressIndicator>(R.id.loadingProgress)?.visibility =
-                        View.INVISIBLE
-                }
             }
         }
     }
-
     private fun loadFilteredActivities(pm: PackageManager): List<ActivityModel> {
         val allowedActivities = activityFilter?.invoke(pm, packageName).orEmpty()
         if (allowedActivities.isEmpty()) return emptyList()
@@ -277,21 +242,6 @@ class ActivitySelectBottomSheet(
         )
     }
 
-    private fun filterActivities(searchText: String): List<ActivityModel> {
-        return fullActivityList.filter { activity ->
-            activity.label.lowercase().contains(searchText) ||
-                    activity.appLabel.lowercase().contains(searchText) ||
-                    activity.activityName.lowercase().contains(searchText)
-        }
-    }
-
-    private fun showDialog() {
-        bottomSheetDialog.show()
-        bottomSheetDialog.window?.setLayout(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT
-        )
-    }
 }
 
 // ============ Predefined Filters ============

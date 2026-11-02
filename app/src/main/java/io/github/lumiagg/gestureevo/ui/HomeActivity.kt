@@ -98,11 +98,12 @@ import io.github.lumiagg.gestureevo.settings.evoAccessibilityServiceIsEnable
 import io.github.lumiagg.gestureevo.settings.ui.AboutActivity
 import io.github.lumiagg.gestureevo.ui.compose.MiuixEvoTheme
 import io.github.lumiagg.gestureevo.ui.compose.RowSpec
+import io.github.lumiagg.gestureevo.ui.miuix.FloatingBottomBar
 import io.github.lumiagg.gestureevo.ui.home.FeatureGuideActivity
-import io.github.lumiagg.gestureevo.ui.home.FeatureGuideActivity.Companion.GUIDE_GESTURE
-import io.github.lumiagg.gestureevo.ui.home.FeatureGuideActivity.Companion.GUIDE_SCREEN
-import io.github.lumiagg.gestureevo.ui.home.FeatureGuideActivity.Companion.GUIDE_SEARCH
-import io.github.lumiagg.gestureevo.ui.home.FeatureGuideActivity.Companion.GUIDE_SETTINGS
+import io.github.lumiagg.gestureevo.ui.home.FeatureGuideActivity.Companion.GUIDE_OVERVIEW
+import io.github.lumiagg.gestureevo.ui.home.FeatureGuideActivity.Companion.GUIDE_CONTROL
+import io.github.lumiagg.gestureevo.ui.home.FeatureGuideActivity.Companion.GUIDE_CONTENT
+import io.github.lumiagg.gestureevo.ui.home.FeatureGuideActivity.Companion.GUIDE_MANAGEMENT
 import io.github.lumiagg.gestureevo.utils.Rom
 import io.github.lumiagg.gestureevo.utils.ThemeManager
 import io.github.lumiagg.gestureevo.utils.readKey
@@ -174,34 +175,40 @@ class HomeActivity : ComponentActivity() {
         /** 直达一级页面：值为 [TAB_GESTURE] 至 [TAB_SETTINGS]。 */
         const val EXTRA_TARGET_TAB = "home_target_tab"
 
-        const val TAB_GESTURE = 0
-        const val TAB_SCREEN = 1
-        const val TAB_SEARCH = 2
-        const val TAB_SETTINGS = 3
+        const val TAB_OVERVIEW = 0
+        const val TAB_CONTROL = 1
+        const val TAB_CONTENT = 2
+        const val TAB_MANAGEMENT = 3
 
-        /** 设置搜索锚点 → (tab, 分组内条目序号)。 */
+        // Legacy names remain source-compatible for deep links and callers.
+        const val TAB_GESTURE = TAB_CONTROL
+        const val TAB_SCREEN = TAB_CONTENT
+        const val TAB_SEARCH = TAB_CONTENT
+        const val TAB_SETTINGS = TAB_MANAGEMENT
+
+        /** 设置搜索锚点 → (tab, 真实卡片索引)。 */
         private val ANCHORS: Map<String, Pair<Int, Int>> = mapOf(
-            "preferenceSetupStatus" to (TAB_GESTURE to 0),
-            "preferenceAccessibility" to (TAB_GESTURE to 1),
-            "preferenceConfigTrigger" to (TAB_GESTURE to 1),
-            "preferenceActionView" to (TAB_GESTURE to 1),
-            "preferenceFreeform" to (TAB_GESTURE to 1),
-            "root_inspire" to (TAB_SCREEN to 0),
-            "menu_screen_recognition" to (TAB_SCREEN to 0),
-            "menu_screen_share" to (TAB_SCREEN to 0),
-            "menu_screen_pointer_keyboard" to (TAB_SCREEN to 0),
-            "menu_screen_notification" to (TAB_SCREEN to 0),
-            "root_search" to (TAB_SEARCH to 0),
-            "menu_search_engines" to (TAB_SEARCH to 0),
-            "menu_search_settings" to (TAB_SEARCH to 0),
-            "menu_search_import" to (TAB_SEARCH to 0),
-            "menu_search_export" to (TAB_SEARCH to 0),
-            "preferenceAppearanceEntry" to (TAB_SETTINGS to 0),
-            "preferenceSetupCheck" to (TAB_GESTURE to 0),
-            "preferenceBackgroundStability" to (TAB_GESTURE to 0),
-            "preferenceData" to (TAB_SETTINGS to 1),
-            "preferenceAdvanced" to (TAB_SETTINGS to 1),
-            "preferenceAbout" to (TAB_SETTINGS to 1),
+            "preferenceSetupStatus" to (TAB_OVERVIEW to 0),
+            "preferenceAccessibility" to (TAB_OVERVIEW to 0),
+            "preferenceSetupCheck" to (TAB_OVERVIEW to 0),
+            "preferenceBackgroundStability" to (TAB_OVERVIEW to 0),
+            "preferenceConfigTrigger" to (TAB_CONTROL to 0),
+            "preferenceActionView" to (TAB_CONTROL to 1),
+            "preferenceFreeform" to (TAB_CONTROL to 2),
+            "root_inspire" to (TAB_CONTENT to 0),
+            "menu_screen_recognition" to (TAB_CONTENT to 0),
+            "menu_screen_share" to (TAB_CONTENT to 2),
+            "menu_screen_pointer_keyboard" to (TAB_CONTENT to 3),
+            "menu_screen_notification" to (TAB_CONTENT to 3),
+            "root_search" to (TAB_CONTENT to 0),
+            "menu_search_engines" to (TAB_CONTENT to 1),
+            "menu_search_settings" to (TAB_CONTENT to 1),
+            "menu_search_import" to (TAB_CONTENT to 3),
+            "menu_search_export" to (TAB_CONTENT to 3),
+            "preferenceAppearanceEntry" to (TAB_MANAGEMENT to 0),
+            "preferenceData" to (TAB_MANAGEMENT to 2),
+            "preferenceAdvanced" to (TAB_MANAGEMENT to 1),
+            "preferenceAbout" to (TAB_MANAGEMENT to 3),
         )
 
         fun tabForAnchor(key: String): Int? = ANCHORS[key]?.first
@@ -217,14 +224,14 @@ private data class HomeStatus(
 )
 
 private val TAB_TITLES = intArrayOf(
-    R.string.home_title_gesture,
-    R.string.home_title_screen,
-    R.string.home_title_search,
-    R.string.home_title_settings,
+    R.string.ia_tab_overview,
+    R.string.ia_tab_control,
+    R.string.ia_tab_content,
+    R.string.ia_tab_management,
 )
 
 private val GUIDE_BY_TAB = arrayOf(
-    GUIDE_GESTURE, GUIDE_SCREEN, GUIDE_SEARCH, GUIDE_SETTINGS,
+    GUIDE_OVERVIEW, GUIDE_CONTROL, GUIDE_CONTENT, GUIDE_MANAGEMENT,
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -241,11 +248,16 @@ private fun HomeRoot(
     var currentTab by rememberSaveable { mutableIntStateOf(0) }
     var anchor by remember { mutableStateOf<String?>(null) }
     var showImportDialog by remember { mutableStateOf(false) }
+    val navigationPreferences = remember(context) { context.getSharedPreferences("home_navigation", Context.MODE_PRIVATE) }
+    val floatingBottomBar = remember(navigationPreferences, refreshKey) {
+        navigationPreferences.getBoolean("floating_bottom_bar", true)
+    }
     val listStates = remember { List(4) { LazyListState() } }
+    val safePendingTab = pendingTab?.coerceIn(HomeActivity.TAB_OVERVIEW, HomeActivity.TAB_MANAGEMENT)
     val scrollBehavior = MiuixScrollBehavior()
 
-    LaunchedEffect(pendingTab, pendingAnchor) {
-        pendingTab?.let {
+    LaunchedEffect(safePendingTab, pendingAnchor) {
+        safePendingTab?.let {
             currentTab = it
             onTabConsumed()
         }
@@ -311,23 +323,11 @@ private fun HomeRoot(
             )
         },
         bottomBar = {
-            val tabs = listOf(
-                Triple(R.string.home_tab_gesture, R.drawable.baseline_gesture_24, HomeActivity.TAB_GESTURE),
-                Triple(R.string.home_tab_screen, R.drawable.baseline_screenshot_24, HomeActivity.TAB_SCREEN),
-                Triple(R.string.home_tab_search, R.drawable.baseline_search_24, HomeActivity.TAB_SEARCH),
-                Triple(R.string.home_tab_settings, R.drawable.baseline_settings_24, HomeActivity.TAB_SETTINGS),
+            FloatingBottomBar(
+                selectedIndex = currentTab,
+                onItemSelected = { currentTab = it },
+                floating = floatingBottomBar,
             )
-            NavigationBar(color = MiuixTheme.colorScheme.surface) {
-                tabs.forEach { (labelRes, iconRes, index) ->
-                    NavigationBarItem(
-                        modifier = Modifier.weight(1f),
-                        selected = currentTab == index,
-                        onClick = { currentTab = index },
-                        icon = ImageVector.vectorResource(iconRes),
-                        label = stringResource(labelRes),
-                    )
-                }
-            }
         },
     ) { innerPadding ->
         Crossfade(
@@ -351,15 +351,10 @@ private fun HomeRoot(
                 overscrollEffect = null,
             ) {
                 when (tab) {
-                    HomeActivity.TAB_GESTURE -> GestureTabItems(status, context)
-                    HomeActivity.TAB_SCREEN -> ScreenTabItems(context)
-                    HomeActivity.TAB_SEARCH -> SearchTabItems(
-                        status.engineCount,
-                        context,
-                        scope,
-                        onImport = { showImportDialog = true },
-                    )
-                    else -> SettingsTabItems(context)
+                    HomeActivity.TAB_OVERVIEW -> OverviewTabItems(status, context)
+                    HomeActivity.TAB_CONTROL -> ControlTabItems(context)
+                    HomeActivity.TAB_CONTENT -> ContentTabItems(status.engineCount, context, scope) { showImportDialog = true }
+                    HomeActivity.TAB_MANAGEMENT -> ManagementTabItems(context)
                 }
             }
         }
@@ -406,7 +401,7 @@ private fun SectionCard(rows: List<RowSpec>) {
                     MiuixIcon(
                         imageVector = ImageVector.vectorResource(row.iconRes),
                         contentDescription = null,
-                        modifier = Modifier.padding(end = 6.dp),
+                        modifier = Modifier.padding(end = 6.dp).size(24.dp),
                         tint = MiuixTheme.colorScheme.onBackground,
                     )
                 },
@@ -440,8 +435,79 @@ private fun StatusCard(
     }
 }
 
-private fun anchorItemIndex(tab: Int, key: String): Int =
-    if (tab == HomeActivity.TAB_GESTURE && key != "preferenceSetupStatus") 1 else 0
+private fun anchorItemIndex(tab: Int, key: String): Int = when (key) {
+    "preferenceAccessibility", "preferenceBackgroundStability" -> 0
+    "preferenceData" -> 2
+    "preferenceAdvanced" -> 1
+    "preferenceAbout" -> 3
+    "preferenceActionView" -> 1
+    "preferenceFreeform" -> 2
+    "menu_screen_share" -> 2
+    "menu_screen_pointer_keyboard", "menu_screen_notification" -> 3
+    "menu_search_import", "menu_search_export" -> 3
+    else -> 0
+}
+
+private fun LazyListScope.OverviewTabItems(status: HomeStatus, context: Context) {
+    item {
+        SectionCard(listOf(
+            RowSpec(
+                iconRes = R.drawable.icon_service,
+                title = stringResource(R.string.ia_overview_status),
+                subtitle = stringResource(if (status.accessibility) R.string.home_badge_accessibility_on else R.string.home_badge_accessibility_off),
+            ) {
+                context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            },
+            RowSpec(R.drawable.baseline_miscellaneous_services_24, stringResource(R.string.ia_background), stringResource(R.string.ia_not_connected)) {
+                context.startActivity(Intent(context, BackgroundStabilityActivity::class.java))
+            },
+        ))
+    }
+    item {
+        SectionCard(listOf(
+            RowSpec(
+                iconRes = R.drawable.ic_little_window,
+                title = stringResource(R.string.ia_overview_config),
+                subtitle = stringResource(R.string.home_badge_freeform_mode, status.freeformMode),
+            ) {
+                context.startActivity(Intent(context, FreeFormSettingsActivity::class.java))
+            },
+        ))
+    }
+    item {
+        SectionCard(listOf(
+            RowSpec(
+                iconRes = R.drawable.baseline_pie_chart_24,
+                title = stringResource(R.string.ia_overview_usage),
+                subtitle = stringResource(R.string.data_stats_entry_summary),
+            ) {
+                context.startActivity(Intent(context, DataStatsActivity::class.java))
+            },
+        ))
+    }
+}
+private fun LazyListScope.ControlTabItems(context: Context) {
+    item { SectionCard(listOf(
+        RowSpec(R.drawable.baseline_gesture_24, stringResource(R.string.ia_trigger_mapping), stringResource(R.string.home_summary_gesture)) { context.startActivity(Intent(context, FreeTriggerSettingsActivity::class.java)) }
+    )) }
+    item { SectionCard(listOf(RowSpec(R.drawable.baseline_pie_chart_24, stringResource(R.string.ia_wheel_layout), stringResource(R.string.home_summary_action_view)) { context.startActivity(Intent(context, ActionViewSettingsActivity::class.java)) })) }
+    item { SectionCard(listOf(RowSpec(R.drawable.baseline_keyboard_24, stringResource(R.string.ia_pointer_keyboard), stringResource(R.string.home_menu_pointer_keyboard_summary)) { openInspire(context, intArrayOf(R.id.PointerCard, R.id.keyboardTypeCard)) })) }
+    item { SectionCard(listOf(RowSpec(R.drawable.ic_little_window, stringResource(R.string.ia_window_behavior), stringResource(R.string.home_badge_freeform_mode, "")) { context.startActivity(Intent(context, FreeFormSettingsActivity::class.java)) })) }
+}
+
+private fun LazyListScope.ContentTabItems(engineCount: Int, context: Context, scope: CoroutineScope, onImport: () -> Unit) {
+    item { SectionCard(listOf(RowSpec(R.drawable.baseline_qr_code_scanner_24, stringResource(R.string.ia_recognition_extract), stringResource(R.string.home_menu_recognition_title)) { openInspire(context, intArrayOf(R.id.screenContentSwitchCard)) })) }
+    item { SectionCard(listOf(RowSpec(R.drawable.baseline_search_24, stringResource(R.string.ia_search_config), stringResource(R.string.home_badge_engine_count, engineCount)) { context.startActivity(SettingsSearchNavigator.deepLinkIntent(context, SearchEngineSettingsActivity::class.java, R.id.engineListCard)) })) }
+    item { SectionCard(listOf(RowSpec(R.drawable.baseline_push_pin_24, stringResource(R.string.ia_pin_quick_send), stringResource(R.string.home_menu_pinpool_summary)) { openInspire(context, intArrayOf(R.id.pinPoolCard)) })) }
+    item { SectionCard(listOf(RowSpec(R.drawable.ic_baseline_share_24, stringResource(R.string.ia_share_output), stringResource(R.string.home_menu_share_summary)) { openInspire(context, intArrayOf(R.id.defaultShareBehaviorCard, R.id.appSelectionCard)) }, RowSpec(R.drawable.content_paste_go_20px, stringResource(R.string.search_engine_settings_import), stringResource(R.string.search_engine_settings_import_summary), onClick = onImport), RowSpec(R.drawable.ic_baseline_content_copy_24, stringResource(R.string.search_engine_settings_export), stringResource(R.string.search_engine_settings_export_summary)) { exportSearchEngines(context, scope) })) }
+}
+
+private fun LazyListScope.ManagementTabItems(context: Context) {
+    item { SectionCard(listOf(RowSpec(R.drawable.baseline_settings_24, stringResource(R.string.ia_interface_navigation), stringResource(R.string.home_summary_about)) { context.startActivity(Intent(context, AppearanceSettingsActivity::class.java)) })) }
+    item { SectionCard(listOf(RowSpec(R.drawable.baseline_miscellaneous_services_24, stringResource(R.string.ia_external_auth), stringResource(R.string.home_summary_advanced)) { context.startActivity(Intent(context, AdvancedSettingsActivity::class.java)) })) }
+    item { SectionCard(listOf(RowSpec(R.drawable.baseline_save_24, stringResource(R.string.ia_data_maintenance), stringResource(R.string.home_summary_data)) { context.startActivity(Intent(context, DataBackActivity::class.java)) })) }
+    item { SectionCard(listOf(RowSpec(R.drawable.baseline_info_24, stringResource(R.string.settings_about_title), stringResource(R.string.home_summary_about)) { context.startActivity(Intent(context, AboutActivity::class.java)) })) }
+}
 
 private fun LazyListScope.GestureTabItems(status: HomeStatus, context: Context) {
     item {
