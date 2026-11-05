@@ -1257,6 +1257,15 @@
     <string name="ui_demo_compose_summary">Same structure with dynamic color and gradient hero</string>
     <string name="demo_hero_label">Permissions &amp; background</string>
     <string name="demo_hero_pending">%1$d pending</string>
+    <string name="tile_pending">Pending</string>
+    <string name="tile_wheels">Wheels</string>
+    <string name="tile_triggers">Triggers</string>
+    <string name="tile_pins">Pin pool</string>
+    <string name="tile_engines">Engines</string>
+    <string name="tile_window">Window</string>
+    <string name="tile_on">On</string>
+    <string name="tile_off">Off</string>
+    <string name="tile_version">Version</string>
     <string name="demo_hero_done">All set</string>
     <string name="demo_hero_action">Review</string>
     <string name="demo_hero_accessibility_on">Accessibility service connected</string>
