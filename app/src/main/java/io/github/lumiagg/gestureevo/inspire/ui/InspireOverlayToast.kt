@@ -1,38 +1,55 @@
 package io.github.lumiagg.gestureevo.inspire.ui
 
-import androidx.core.view.isVisible
-
-import android.view.LayoutInflater
 import android.view.View
 import android.view.animation.DecelerateInterpolator
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import io.github.lumiagg.gestureevo.databinding.InspireOverlayToastBinding
-import io.github.lumiagg.gestureevo.utils.DynamicColorUtils
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.core.view.isVisible
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import io.github.lumiagg.gestureevo.R
+import io.github.lumiagg.gestureevo.ui.miuix.OverlayLifecycleOwner
+import io.github.lumiagg.gestureevo.ui.miuix.miuixOverlayView
 import io.github.lumiagg.gestureevo.utils.ScreenUtil
 import io.github.lumiagg.gestureevo.utils.dp2px
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
+/**
+ * 取词浮层内的提示卡：宿主是取词浮层的 ConstraintLayout，
+ * 通过 [miuixOverlayView] 桥接 Compose 生命周期，MiuixEvoTheme 自动跟随明暗与取色。
+ */
 internal class InspireOverlayToast(
     private val host: ConstraintLayout,
 ) {
-    private var binding: InspireOverlayToastBinding? = null
+    private var overlayView: View? = null
+    private var overlayOwner: OverlayLifecycleOwner? = null
+    private var message = mutableStateOf("")
+    private var maxWidthPx = mutableStateOf(0)
+    private var topInsetPx = mutableStateOf(0)
     private val hideRunnable = Runnable { hide() }
 
     fun show(text: CharSequence, durationMs: Long = DURATION_SHORT_MS) {
         val toast = ensureToast()
-        toast.message.text = text
-        applyTheme(toast)
-        layoutToast(toast)
-        toast.root.removeCallbacks(hideRunnable)
-        toast.root.bringToFront()
-        val alreadyVisible = toast.root.isVisible && toast.root.alpha >= 0.95f
+        message.value = text.toString()
+        layoutToast()
+        toast.removeCallbacks(hideRunnable)
+        toast.bringToFront()
+        val alreadyVisible = toast.isVisible && toast.alpha >= 0.95f
         if (!alreadyVisible) {
-            toast.root.animate().cancel()
-            toast.root.alpha = 0f
-            toast.root.translationY = -ENTER_OFFSET_DP.dp2px
-            toast.root.visibility = View.VISIBLE
-            toast.root.animate()
+            toast.animate().cancel()
+            toast.alpha = 0f
+            toast.translationY = -ENTER_OFFSET_DP.dp2px
+            toast.visibility = View.VISIBLE
+            toast.animate()
                 .alpha(1f)
                 .translationY(0f)
                 .setDuration(ANIM_MS)
@@ -40,49 +57,51 @@ internal class InspireOverlayToast(
                 .withEndAction(null)
                 .start()
         }
-        toast.root.announceForAccessibility(text)
-        toast.root.postDelayed(hideRunnable, durationMs)
+        toast.announceForAccessibility(text)
+        toast.postDelayed(hideRunnable, durationMs)
     }
 
     fun hide(immediate: Boolean = false) {
-        val toast = binding ?: return
-        toast.root.removeCallbacks(hideRunnable)
-        toast.root.animate().cancel()
-        if (immediate || toast.root.visibility != View.VISIBLE) {
-            toast.root.alpha = 0f
-            toast.root.translationY = 0f
-            toast.root.visibility = View.GONE
+        val toast = overlayView ?: return
+        toast.removeCallbacks(hideRunnable)
+        toast.animate().cancel()
+        if (immediate || toast.visibility != View.VISIBLE) {
+            toast.alpha = 0f
+            toast.translationY = 0f
+            toast.visibility = View.GONE
             return
         }
-        toast.root.animate()
+        toast.animate()
             .alpha(0f)
             .translationY(-ENTER_OFFSET_DP.dp2px)
             .setDuration(ANIM_MS)
             .setInterpolator(DecelerateInterpolator())
             .withEndAction {
-                toast.root.visibility = View.GONE
-                toast.root.translationY = 0f
+                toast.visibility = View.GONE
+                toast.translationY = 0f
             }
             .start()
     }
 
     fun refreshTheme() {
-        binding?.let(::applyTheme)
+        // MiuixEvoTheme 自动跟随明暗与动态取色。
     }
 
-    private fun ensureToast(): InspireOverlayToastBinding {
-        binding?.let { return it }
-        val inflated = InspireOverlayToastBinding.inflate(
-            LayoutInflater.from(host.context),
-            host,
-            false
-        )
-        inflated.root.isClickable = false
-        inflated.root.isLongClickable = false
-        inflated.root.isFocusable = false
-        inflated.root.isFocusableInTouchMode = false
+    private fun ensureToast(): View {
+        overlayView?.let { return it }
+        val (view, owner) = host.context.miuixOverlayView {
+            ToastCard(
+                message = message.value,
+                maxWidthPx = maxWidthPx.value,
+                topInsetPx = topInsetPx.value,
+            )
+        }
+        view.isClickable = false
+        view.isLongClickable = false
+        view.isFocusable = false
+        view.isFocusableInTouchMode = false
         host.addView(
-            inflated.root,
+            view,
             ConstraintLayout.LayoutParams(
                 ConstraintLayout.LayoutParams.WRAP_CONTENT,
                 ConstraintLayout.LayoutParams.WRAP_CONTENT,
@@ -94,43 +113,51 @@ internal class InspireOverlayToast(
                 horizontalBias = 0.5f
             }
         )
-        binding = inflated
-        return inflated
+        overlayOwner = owner
+        overlayView = view
+        return view
     }
 
-    private fun layoutToast(toast: InspireOverlayToastBinding) {
-        val params = toast.root.layoutParams as ConstraintLayout.LayoutParams
+    private fun layoutToast() {
+        val toast = overlayView ?: return
         val horizontal = HORIZONTAL_MARGIN_DP.dp2px.toInt()
         val hostWidth = host.width.takeIf { it > 0 } ?: host.resources.displayMetrics.widthPixels
         val maxWidth = (hostWidth - horizontal * 2).coerceAtLeast(0)
-        val horizontalPadding = toast.message.paddingStart + toast.message.paddingEnd
-        toast.message.maxWidth = (maxWidth - horizontalPadding).coerceAtLeast(0)
+        maxWidthPx.value = maxWidth
+        topInsetPx.value = TOP_MARGIN_DP.dp2px.toInt() + statusBarInset()
+        val params = toast.layoutParams as? ConstraintLayout.LayoutParams ?: return
         params.marginStart = horizontal
         params.marginEnd = horizontal
-        params.topMargin = TOP_MARGIN_DP.dp2px.toInt() + statusBarInset()
+        params.topMargin = topInsetPx.value
         params.bottomMargin = 0
         params.matchConstraintMaxWidth = maxWidth
-        toast.root.layoutParams = params
-    }
-
-    private fun applyTheme(toast: InspireOverlayToastBinding) {
-        val surface = DynamicColorUtils.surfaceContainerHighColor
-        val onSurface = DynamicColorUtils.onSurfaceColor
-        if (surface != 0) {
-            toast.root.setCardBackgroundColor(surface)
-        }
-        if (onSurface != 0) {
-            toast.message.setTextColor(onSurface)
-        }
+        toast.layoutParams = params
     }
 
     private fun statusBarInset(): Int {
-        val inset = ViewCompat.getRootWindowInsets(host)
-            ?.getInsets(WindowInsetsCompat.Type.statusBars())
+        val inset = androidx.core.view.ViewCompat.getRootWindowInsets(host)
+            ?.getInsets(androidx.core.view.WindowInsetsCompat.Type.statusBars())
             ?.top
             ?: 0
         if (inset > 0) return inset
         return ScreenUtil.getStatusBarHeight(host.context).coerceAtLeast(0)
+    }
+
+    @Composable
+    private fun ToastCard(message: String, maxWidthPx: Int, topInsetPx: Int) {
+        val density = LocalDensity.current
+        Card(
+            modifier = Modifier.padding(top = with(density) { topInsetPx.toDp() }),
+        ) {
+            MiuixText(
+                text = message,
+                fontSize = 14.sp,
+                color = MiuixTheme.colorScheme.onBackground,
+                modifier = Modifier
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                    .widthIn(max = with(density) { maxWidthPx.toDp() }),
+            )
+        }
     }
 
     private companion object {
