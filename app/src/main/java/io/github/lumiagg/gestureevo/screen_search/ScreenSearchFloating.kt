@@ -1,23 +1,49 @@
 package io.github.lumiagg.gestureevo.screen_search
 
 import android.content.Context
-import android.content.res.ColorStateList
 import android.graphics.Rect
-import android.view.ContextThemeWrapper
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityNodeInfo
-import android.view.inputmethod.EditorInfo
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import io.github.lumiagg.gestureevo.R
-import io.github.lumiagg.gestureevo.databinding.ScreenSearchFloatingViewBinding
-import io.github.lumiagg.gestureevo.databinding.ScreenSearchIndicatorViewBinding
 import io.github.lumiagg.gestureevo.floating.BaseFloatingWindow
 import io.github.lumiagg.gestureevo.gesture.GestureService
-import io.github.lumiagg.gestureevo.inspire.ManagedBitmap
+import io.github.lumiagg.gestureevo.ui.miuix.OverlayLifecycleOwner
+import io.github.lumiagg.gestureevo.ui.miuix.bindOverlayLifecycle
+import io.github.lumiagg.gestureevo.ui.miuix.miuixOverlayView
 import io.github.lumiagg.gestureevo.inspire.cropByRect
-import io.github.lumiagg.gestureevo.utils.DynamicColorUtils
 import io.github.lumiagg.gestureevo.utils.MlKitOcr
 import io.github.lumiagg.gestureevo.utils.ToastHelper
 import io.github.lumiagg.gestureevo.utils.dp2px
@@ -28,20 +54,32 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+enum class ScreenDirection { UP, DOWN }
+
 class ScreenSearchFloating(private val context: GestureService) :
     BaseFloatingWindow(context, context, "ScreenSearchFloating") {
-    private enum class ScrollDirection {
-        UP, DOWN
-    }
 
     private data class CaptureResult(
         val matches: List<Rect>,
         val failed: Boolean
     )
 
-    private val binding: ScreenSearchFloatingViewBinding by lazy {
-        val themeContext: Context = ContextThemeWrapper(context, R.style.Theme_GestureEVO)
-        ScreenSearchFloatingViewBinding.inflate(LayoutInflater.from(themeContext))
+    // Compose 状态
+    private var keyword by mutableStateOf("")
+    private var useAccessibility by mutableStateOf(true)
+    private var direction by mutableStateOf(ScreenDirection.DOWN)
+    private var searching by mutableStateOf(false)
+    private var indicatorSearching by mutableStateOf(false)
+
+    // 浮层视图
+    private var panelView: View? = null
+    private var panelOwner: OverlayLifecycleOwner? = null
+    private var indicatorView: View? = null
+    private var indicatorOwner: OverlayLifecycleOwner? = null
+
+    // 高亮层保持 View 实现（自绘匹配矩形）
+    private val highlightView: ScreenSearchHighlightView by lazy {
+        ScreenSearchHighlightView(context)
     }
 
     private val layoutParams: WindowManager.LayoutParams = WindowManager.LayoutParams()
@@ -51,17 +89,7 @@ class ScreenSearchFloating(private val context: GestureService) :
     private var indicatorAttached = false
     private var highlightAttached = false
 
-    private val indicatorBinding: ScreenSearchIndicatorViewBinding by lazy {
-        val themeContext: Context = ContextThemeWrapper(context, R.style.Theme_GestureEVO)
-        ScreenSearchIndicatorViewBinding.inflate(LayoutInflater.from(themeContext))
-    }
-
-    private val highlightView: ScreenSearchHighlightView by lazy {
-        ScreenSearchHighlightView(context)
-    }
-
     private var searchJob: Job? = null
-    private var scrollDirection: ScrollDirection = ScrollDirection.DOWN
     private val maxAttempts = 60
     private val maxCaptureFailures = 3
     private val preStartDelayMs = 250L
@@ -69,13 +97,12 @@ class ScreenSearchFloating(private val context: GestureService) :
     private val revealScanRatio = 0.65f
 
     init {
-        initFloatingWindow()
+        initPanelWindow()
         initIndicatorWindow()
         initHighlightWindow()
-        initView()
     }
 
-    private fun initFloatingWindow() {
+    private fun initPanelWindow() {
         layoutParams.configureAccessibilityOverlay(
             WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
@@ -90,6 +117,22 @@ class ScreenSearchFloating(private val context: GestureService) :
         layoutParams.softInputMode =
             WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE or
                     WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN
+        val (view, owner) = context.miuixOverlayView {
+            SearchPanel(
+                keyword = keyword,
+                onKeywordChange = { keyword = it },
+                useAccessibility = useAccessibility,
+                onAccessibilityChange = { useAccessibility = it; startSearch() },
+                direction = direction,
+                onDirectionChange = { direction = it; startSearch() },
+                searching = searching,
+                onClose = { hide() },
+                onSearch = { startSearch() },
+            )
+        }
+        view.bindOverlayLifecycle(owner)
+        panelView = view
+        panelOwner = owner
     }
 
     private fun initIndicatorWindow() {
@@ -105,11 +148,14 @@ class ScreenSearchFloating(private val context: GestureService) :
             x = 24,
             title = "GestureEVO:ScreenSearchFloating:Indicator",
         )
-        indicatorBinding.root.visibility = View.GONE
-        // Clicking indicator pauses search and restores control panel.
-        indicatorBinding.root.setOnClickListener {
-            stopSearchAndShowPanel()
+        indicatorView?.visibility = View.GONE
+        val (view, owner) = context.miuixOverlayView {
+            IndicatorContent(searching = indicatorSearching)
         }
+        view.bindOverlayLifecycle(owner)
+        view.setOnClickListener { stopSearchAndShowPanel() }
+        indicatorView = view
+        indicatorOwner = owner
     }
 
     private fun initHighlightWindow() {
@@ -124,54 +170,24 @@ class ScreenSearchFloating(private val context: GestureService) :
         highlightView.visibility = View.GONE
     }
 
-    private fun initView() {
-        binding.root.visibility = View.GONE
-        binding.btnClose.setOnClickListener { hide() }
-        binding.switchAccessibilityMode.isChecked = true
-
-        binding.directionGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
-            scrollDirection = if (checkedId == R.id.btn_direction_up) {
-                ScrollDirection.UP
-            } else {
-                ScrollDirection.DOWN
-            }
-            startSearch()
-            binding.btnDirectionDown.isChecked = false
-            binding.btnDirectionUp.isChecked = false
-        }
-
-        binding.keywordInput.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                startSearch()
-                true
-            } else {
-                false
-            }
-        }
-
-        applyThemeColors()
-        updateUiSearching(false)
-    }
-
     fun show() = context.postOnMain {
         ensureViewsAttached()
-        applyThemeColors()
-        binding.root.visibility = View.VISIBLE
+        val pv = panelView ?: return@postOnMain
+        pv.visibility = View.VISIBLE
         layoutParams.x = 0
-        updateViewLayoutSafely(binding.root, layoutParams)
-        updateUiSearching(false)
-        indicatorBinding.root.visibility = View.GONE
+        updateViewLayoutSafely(pv, layoutParams)
+        indicatorView?.visibility = View.GONE
         updateWindowFocus(true)
-        binding.keywordInput.setText("")
-        updateIndicatorSearching(false)
+        keyword = ""
+        indicatorSearching = false
     }
 
     fun hide() = context.postOnMain {
         stopSearch()
         highlightView.hideRects()
         highlightView.visibility = View.GONE
-        binding.root.visibility = View.GONE
-        indicatorBinding.root.visibility = View.GONE
+        panelView?.visibility = View.GONE
+        indicatorView?.visibility = View.GONE
         detachViewsIfNeeded()
     }
 
@@ -179,29 +195,30 @@ class ScreenSearchFloating(private val context: GestureService) :
         stopSearch()
         highlightView.hideRects()
         highlightView.visibility = View.GONE
-        binding.root.visibility = View.GONE
-        indicatorBinding.root.visibility = View.GONE
+        panelView?.visibility = View.GONE
+        indicatorView?.visibility = View.GONE
         detachViewsIfNeeded()
+        panelOwner?.pause(); panelOwner?.destroy()
+        indicatorOwner?.pause(); indicatorOwner?.destroy()
+    }
+
+    fun refreshTheme() {
+        // MiuixEvoTheme 自动跟随明暗与动态取色。
     }
 
     private fun startSearch() {
-        val keyword = binding.keywordInput.text?.toString()?.trim().orEmpty()
-        if (keyword.isEmpty()) {
+        val kw = keyword.trim()
+        if (kw.isEmpty()) {
             ToastHelper.showInUIThread(context, R.string.screen_search_empty_keyword)
             return
         }
-
-        // Hide control panel and show indicator when starting search.
         context.postOnMain {
-            binding.root.visibility = View.GONE
-            indicatorBinding.root.visibility = View.VISIBLE
+            panelView?.visibility = View.GONE
+            indicatorView?.visibility = View.VISIBLE
             updateWindowFocus(false)
         }
-
-        highlightView.hideRects()
-        updateUiSearching(true)
-        updateIndicatorSearching(true)
-
+        searching = true
+        indicatorSearching = true
         searchJob?.cancel()
         searchJob = context.launch {
             try {
@@ -211,43 +228,31 @@ class ScreenSearchFloating(private val context: GestureService) :
                 delay(preStartDelayMs)
                 while (currentStep < maxAttempts) {
                     currentStep++
-
-                    val result = if (binding.switchAccessibilityMode.isChecked) {
-                        captureAndMatchAccessibility(keyword, !forceFullScan)
+                    val result = if (useAccessibility) {
+                        captureAndMatchAccessibility(kw, !forceFullScan)
                     } else {
-                        captureAndMatch(keyword, !forceFullScan)
+                        captureAndMatch(kw, !forceFullScan)
                     }
-
                     if (result.failed) {
                         captureFailures++
                         forceFullScan = true
-                        if (captureFailures >= maxCaptureFailures) {
-                            break
-                        }
+                        if (captureFailures >= maxCaptureFailures) break
                         delay(scrollSettleDelayMs)
                         continue
                     }
                     captureFailures = 0
                     forceFullScan = false
-
                     if (result.matches.isNotEmpty()) {
-                        showFound(result.matches, keyword, currentStep)
+                        showFound(result.matches, kw, currentStep)
                         break
                     }
-
-                    val scrolled = performScroll(scrollDirection)
-                    if (!scrolled) {
-                        break
-                    }
-                }
-
-                if (currentStep >= maxAttempts) {
+                    if (!performScroll(direction)) break
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
-                updateUiSearching(false)
-                updateIndicatorSearching(false)
+                searching = false
+                indicatorSearching = false
             }
         }
     }
@@ -255,37 +260,69 @@ class ScreenSearchFloating(private val context: GestureService) :
     private fun stopSearch() {
         searchJob?.cancel()
         searchJob = null
-        updateUiSearching(false)
-        updateIndicatorSearching(false)
+        searching = false
+        indicatorSearching = false
     }
 
-    /**
-     * Stops search and displays the control panel.
-     * Called when the user clicks the floating indicator.
-     */
     private fun stopSearchAndShowPanel() {
         stopSearch()
-            context.postOnMain {
+        context.postOnMain {
             ensureViewsAttached()
-            binding.root.visibility = View.VISIBLE
-            indicatorBinding.root.visibility = View.GONE
+            panelView?.visibility = View.VISIBLE
+            indicatorView?.visibility = View.GONE
             updateWindowFocus(true)
         }
     }
 
-    private suspend fun captureAndMatchAccessibility(
-        keyword: String,
-        reducedScope: Boolean
-    ): CaptureResult = withContext(Dispatchers.Main) {
+    private fun updateWindowFocus(panelVisible: Boolean) {
+        val pv = panelView ?: return
+        val newFlags = if (panelVisible) {
+            layoutParams.flags and
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv() and
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
+        } else {
+            layoutParams.flags or
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+        }
+        if (newFlags != layoutParams.flags) {
+            layoutParams.flags = newFlags
+            updateViewLayoutSafely(pv, layoutParams)
+        }
+    }
+
+    private fun ensureViewsAttached() {
+        if (!panelAttached) {
+            panelView?.let { addViewSafely(it, layoutParams) { panelAttached = true } }
+            panelAttached = true
+        }
+        if (!indicatorAttached) {
+            indicatorView?.let { addViewSafely(it, indicatorLayoutParams) { indicatorAttached = true } }
+            indicatorAttached = true
+        }
+        if (!highlightAttached) {
+            addViewSafely(highlightView, highlightLayoutParams) { highlightAttached = true }
+            highlightAttached = true
+        }
+    }
+
+    private fun detachViewsIfNeeded() {
+        if (panelAttached) { panelView?.let { safeRemoveView(it) }; panelAttached = false }
+        if (indicatorAttached) { indicatorView?.let { safeRemoveView(it) }; indicatorAttached = false }
+        if (highlightAttached) { safeRemoveView(highlightView); highlightAttached = false }
+    }
+
+    // ---------------------------------------------------------------- 搜索逻辑（不变）
+
+    private suspend fun captureAndMatchAccessibility(keyword: String, reducedScope: Boolean): CaptureResult = withContext(Dispatchers.Main) {
         val root = context.rootInActiveWindow
             ?: return@withContext CaptureResult(matches = emptyList(), failed = true)
         val metrics = context.resources.displayMetrics
         val cropRect = if (reducedScope) {
-            buildRevealCropRect(metrics.widthPixels, metrics.heightPixels, scrollDirection)
+            buildRevealCropRect(metrics.widthPixels, metrics.heightPixels, direction)
         } else {
             Rect(0, 0, metrics.widthPixels, metrics.heightPixels)
         }
-
         val matches = mutableListOf<Rect>()
         val stack = ArrayDeque<AccessibilityNodeInfo>()
         stack.add(root)
@@ -306,20 +343,15 @@ class ScreenSearchFloating(private val context: GestureService) :
                     }
                     val childCount = node.childCount
                     for (i in 0 until childCount) {
-                        node.getChild(i)?.let { child ->
-                            stack.add(child)
-                        }
+                        node.getChild(i)?.let { child -> stack.add(child) }
                     }
                 } finally {
-                    if (node !== root) {
-                        node.recycle()
-                    }
+                    if (node !== root) { node.recycle() }
                 }
             }
         } finally {
             root.recycle()
         }
-
         CaptureResult(matches = matches, failed = false)
     }
 
@@ -330,15 +362,10 @@ class ScreenSearchFloating(private val context: GestureService) :
             e.printStackTrace()
             return CaptureResult(matches = emptyList(), failed = true)
         }
-
         return bitmapHandle.use { fullBitmapHandle ->
             val (ocrBitmapHandle, offsetX, offsetY) = if (reducedScope) {
                 val fullBitmap = fullBitmapHandle.requireBitmap()
-                val cropRect = buildRevealCropRect(
-                    fullBitmap.width,
-                    fullBitmap.height,
-                    scrollDirection
-                )
+                val cropRect = buildRevealCropRect(fullBitmap.width, fullBitmap.height, direction)
                 val cropped = fullBitmapHandle.cropByRect(cropRect)
                     ?: return CaptureResult(matches = emptyList(), failed = true)
                 Triple(cropped, cropRect.left, cropRect.top)
@@ -347,202 +374,127 @@ class ScreenSearchFloating(private val context: GestureService) :
                     ?: return CaptureResult(matches = emptyList(), failed = true)
                 Triple(retained, 0, 0)
             }
-
             val ocrResult = try {
-                ocrBitmapHandle.use { handle ->
-                    MlKitOcr.detect(handle.requireBitmap())
-                }
+                ocrBitmapHandle.use { handle -> MlKitOcr.detect(handle.requireBitmap()) }
             } catch (e: Exception) {
                 e.printStackTrace()
                 return CaptureResult(matches = emptyList(), failed = true)
             }
-
             val matched = ocrResult.filter { item ->
-                val text = item.content?.trim() ?: ""
-                if (!text.contains(keyword, ignoreCase = true)) {
-                    return@filter false
-                }
-                true
+                item.content?.trim()?.contains(keyword, ignoreCase = true) == true
             }
-
             val shifted = matched.map { item ->
                 val rect = item.bound
-                Rect(
-                    rect.left + offsetX,
-                    rect.top + offsetY,
-                    rect.right + offsetX,
-                    rect.bottom + offsetY
-                )
+                Rect(rect.left + offsetX, rect.top + offsetY, rect.right + offsetX, rect.bottom + offsetY)
             }
-
             CaptureResult(matches = shifted, failed = false)
         }
     }
 
-    private suspend fun performScroll(direction: ScrollDirection): Boolean {
+    private suspend fun performScroll(direction: ScreenDirection): Boolean {
         val metrics = context.resources.displayMetrics
-        val screenWidth = metrics.widthPixels.toFloat()
-        val screenHeight = metrics.heightPixels.toFloat()
-
-        // Swipe vertically along horizontal center of screen
-        val x = screenWidth * 0.5f
-
-        val startY: Float
-        val endY: Float
-        if (direction == ScrollDirection.DOWN) {
-            startY = screenHeight * 0.80f
-            endY = screenHeight * 0.20f
+        val x = metrics.widthPixels * 0.5f
+        val startY: Float; val endY: Float
+        if (direction == ScreenDirection.DOWN) {
+            startY = metrics.heightPixels * 0.80f; endY = metrics.heightPixels * 0.20f
         } else {
-            startY = screenHeight * 0.20f
-            endY = screenHeight * 0.80f
+            startY = metrics.heightPixels * 0.20f; endY = metrics.heightPixels * 0.80f
         }
-
-        // Use distinct swipe parameters to avoid being recognized as tap gestures
-        val swipeDuration = 200L
-        val holdDuration = 10L
-
-        // Execute swipe: do not pause at end position to minimize tap detection risk
-        val scrolled = context.performSwipeAsync(
-            x, startY, x, endY,
-            duration = swipeDuration,
-            holdDuration = holdDuration,
-            useDecelerationCurve = false
-        )
-
-        return scrolled
+        return context.performSwipeAsync(x, startY, x, endY, duration = 200L, holdDuration = 10L, useDecelerationCurve = false)
     }
 
-    private fun buildRevealCropRect(
-        width: Int,
-        height: Int,
-        direction: ScrollDirection
-    ): Rect {
-        val safeWidth = width.coerceAtLeast(1)
-        val safeHeight = height.coerceAtLeast(1)
-        val revealHeight =
-            (safeHeight * revealScanRatio).toInt().coerceIn(32, safeHeight)
-        val top = if (direction == ScrollDirection.DOWN) {
-            (safeHeight - revealHeight).coerceAtLeast(0)
-        } else {
-            0
-        }
+    private fun buildRevealCropRect(width: Int, height: Int, direction: ScreenDirection): Rect {
+        val safeWidth = width.coerceAtLeast(1); val safeHeight = height.coerceAtLeast(1)
+        val revealHeight = (safeHeight * revealScanRatio).toInt().coerceIn(32, safeHeight)
+        val top = if (direction == ScreenDirection.DOWN) (safeHeight - revealHeight).coerceAtLeast(0) else 0
         val bottom = (top + revealHeight).coerceAtMost(safeHeight)
         return Rect(0, top, safeWidth, bottom)
     }
 
     private suspend fun showFound(rects: List<Rect>, keyword: String, step: Int) {
-        rects.first()
         withContext(Dispatchers.Main) {
             highlightView.visibility = View.VISIBLE
             highlightView.showRects(rects)
         }
         ToastHelper.showInUIThread(context, R.string.screen_search_found_toast)
     }
+}
 
-    private fun updateWindowFocus(panelVisible: Boolean) {
-        val newFlags = if (panelVisible) {
-            layoutParams.flags and
-                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv() and
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SearchPanel(
+    keyword: String,
+    onKeywordChange: (String) -> Unit,
+    useAccessibility: Boolean,
+    onAccessibilityChange: (Boolean) -> Unit,
+    direction: ScreenDirection,
+    onDirectionChange: (ScreenDirection) -> Unit,
+    searching: Boolean,
+    onClose: () -> Unit,
+    onSearch: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.screen_search_title),
+                fontSize = 17.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(onClick = onClose) {
+                Icon(painterResource(R.drawable.baseline_arrow_back_24), contentDescription = null)
+            }
+        }
+        OutlinedTextField(
+            value = keyword,
+            onValueChange = onKeywordChange,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text(stringResource(R.string.screen_search_hint)) },
+            singleLine = true,
+            enabled = !searching,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(checked = useAccessibility, onCheckedChange = onAccessibilityChange, enabled = !searching)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.screen_search_accessibility_mode), fontSize = 14.sp)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = direction == ScreenDirection.UP,
+                onClick = { onDirectionChange(ScreenDirection.UP) },
+                label = { Text(stringResource(R.string.screen_search_direction_up)) },
+                enabled = !searching,
+            )
+            FilterChip(
+                selected = direction == ScreenDirection.DOWN,
+                onClick = { onDirectionChange(ScreenDirection.DOWN) },
+                label = { Text(stringResource(R.string.screen_search_direction_down)) },
+                enabled = !searching,
+            )
+        }
+        TextButton(onClick = onSearch, enabled = !searching) {
+            Text(stringResource(R.string.screen_search_hint))
+        }
+    }
+}
+
+@Composable
+private fun IndicatorContent(searching: Boolean) {
+    Column(
+        modifier = Modifier.size(48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        if (searching) {
+            CircularProgressIndicator(modifier = Modifier.size(28.dp))
         } else {
-            layoutParams.flags or
-                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-        }
-        if (newFlags != layoutParams.flags) {
-            layoutParams.flags = newFlags
-            updateViewLayoutSafely(binding.root, layoutParams)
+            Icon(
+                painter = painterResource(R.drawable.baseline_check_24),
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+            )
         }
     }
-
-    private fun updateUiSearching(searching: Boolean) = context.postOnMain {
-        // Stop button removed from panel; update remaining control states
-        binding.directionGroup.isEnabled = !searching
-        for (i in 0 until binding.directionGroup.childCount) {
-            binding.directionGroup.getChildAt(i).isEnabled = !searching
-        }
-        binding.keywordInput.isEnabled = !searching
-        binding.switchAccessibilityMode.isEnabled = !searching
-    }
-
-    private fun updateIndicatorSearching(searching: Boolean) = context.postOnMain {
-        indicatorBinding.indicatorSpinner.visibility = if (searching) {
-            View.VISIBLE
-        } else {
-            View.GONE
-        }
-        indicatorBinding.indicatorOk.visibility = if (searching) {
-            View.GONE
-        } else {
-            View.VISIBLE
-        }
-    }
-
-    fun refreshTheme() = applyThemeColors()
-
-    private fun applyThemeColors() {
-        val primary = DynamicColorUtils.primaryColor
-        val onSurfaceColor = DynamicColorUtils.onSurfaceColor
-        DynamicColorUtils.onSurfaceVariantColor
-        val surfaceHigh = DynamicColorUtils.surfaceContainerHighColor
-        val outlineColor = DynamicColorUtils.outlineColor
-
-        binding.panelCard.setCardBackgroundColor(surfaceHigh)
-        binding.panelCard.strokeColor = outlineColor
-        binding.titleText.setTextColor(onSurfaceColor)
-        binding.keywordInput.setTextColor(onSurfaceColor)
-        binding.keywordInput.setHintTextColor(primary)
-        binding.switchAccessibilityMode.setTextColor(onSurfaceColor)
-
-        val primaryTint = ColorStateList.valueOf(primary)
-        binding.btnClose.setTextColor(primary)
-        binding.btnClose.strokeColor = primaryTint
-        binding.btnDirectionUp.setTextColor(primary)
-        binding.btnDirectionUp.strokeColor = primaryTint
-        binding.btnDirectionDown.setTextColor(primary)
-        binding.btnDirectionDown.strokeColor = primaryTint
-
-        indicatorBinding.root.setCardBackgroundColor(surfaceHigh)
-        indicatorBinding.indicatorSpinner.indeterminateTintList = primaryTint
-        indicatorBinding.indicatorOk.imageTintList = primaryTint
-
-        highlightView.refreshColors()
-    }
-
-    private fun ensureViewsAttached() {
-        attachPanelIfNeeded()
-        attachIndicatorIfNeeded()
-        attachHighlightIfNeeded()
-    }
-
-    private fun attachPanelIfNeeded() {
-        if (panelAttached) return
-        addViewSafely(binding.root, layoutParams) { panelAttached = true }
-    }
-
-    private fun attachIndicatorIfNeeded() {
-        if (indicatorAttached) return
-        addViewSafely(indicatorBinding.root, indicatorLayoutParams) { indicatorAttached = true }
-    }
-
-    private fun attachHighlightIfNeeded() {
-        if (highlightAttached) return
-        addViewSafely(highlightView, highlightLayoutParams) { highlightAttached = true }
-    }
-
-    private fun detachViewsIfNeeded() {
-        if (panelAttached) {
-            safeRemoveView(binding.root)
-            panelAttached = false
-        }
-        if (indicatorAttached) {
-            safeRemoveView(indicatorBinding.root)
-            indicatorAttached = false
-        }
-        if (highlightAttached) {
-            safeRemoveView(highlightView)
-            highlightAttached = false
-        }
-    }
-
 }
