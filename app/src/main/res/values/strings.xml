@@ -1263,15 +1263,6 @@
     <string name="ui_demo_compose_summary">同结构，动态取色与渐变状态卡</string>
     <string name="demo_hero_label">权限与后台</string>
     <string name="demo_hero_pending">%1$d 项待处理</string>
-    <string name="tile_pending">待处理</string>
-    <string name="tile_wheels">轮盘</string>
-    <string name="tile_triggers">触发器</string>
-    <string name="tile_pins">Pin 池</string>
-    <string name="tile_engines">引擎</string>
-    <string name="tile_window">小窗</string>
-    <string name="tile_on">开</string>
-    <string name="tile_off">关</string>
-    <string name="tile_version">版本</string>
     <string name="demo_hero_done">全部就绪</string>
     <string name="demo_hero_action">去处理</string>
     <string name="demo_hero_accessibility_on">无障碍服务已连接</string>
