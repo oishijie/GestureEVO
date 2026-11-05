@@ -1,34 +1,48 @@
 package io.github.lumiagg.gestureevo.notification
 
-import io.github.lumiagg.gestureevo.databinding.NotificationItemViewBinding
-
-import android.animation.Animator
-import android.animation.ObjectAnimator
-import android.animation.ValueAnimator
-import android.annotation.SuppressLint
 import android.content.ComponentCallbacks
+import android.content.Context
 import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.util.Log
-import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
-import androidx.constraintlayout.utils.widget.ImageFilterView
-import androidx.core.view.isVisible
-import com.google.android.material.card.MaterialCardView
-
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import android.animation.ObjectAnimator
+import android.annotation.SuppressLint
 import io.github.lumiagg.gestureevo.R
-import io.github.lumiagg.gestureevo.databinding.NotificationFloatingViewBinding
 import io.github.lumiagg.gestureevo.floating.BaseFloatingWindow
 import io.github.lumiagg.gestureevo.gesture.GestureService
 import io.github.lumiagg.gestureevo.notification.NotificationService.Companion.produceNotificationEvent
 import io.github.lumiagg.gestureevo.notification.NotificationService.NotificationInfo
 import io.github.lumiagg.gestureevo.settings.InspireSettingsActivity.Companion.DEFAULT_NOTIFICATION_IMAGE_DISPLAY_SECONDS
 import io.github.lumiagg.gestureevo.settings.InspireSettingsActivity.Companion.KEY_NOTIFICATION_IMAGE_DISPLAY_SECONDS
+import io.github.lumiagg.gestureevo.ui.miuix.OverlayLifecycleOwner
+import io.github.lumiagg.gestureevo.ui.miuix.bindOverlayLifecycle
+import io.github.lumiagg.gestureevo.ui.miuix.miuixOverlayView
+import androidx.core.view.isVisible
 import io.github.lumiagg.gestureevo.utils.VibratorUtils
-import io.github.lumiagg.gestureevo.utils.DynamicColorUtils
 import io.github.lumiagg.gestureevo.utils.ScreenUtil
 import io.github.lumiagg.gestureevo.utils.dp2px
 import io.github.lumiagg.gestureevo.utils.icon.IconHelper
@@ -51,25 +65,19 @@ class NotificationFloating(
         private const val TAG = "NotificationFloating"
         const val KEY_NOTIFICATION_FLOATING_LOC_X = "notification_floating_loc_x"
         const val KEY_NOTIFICATION_FLOATING_LOC_Y = "notification_floating_loc_y"
+        private const val MAX_NOTIFICATIONS = 3
     }
 
-    private var binding: NotificationFloatingViewBinding = NotificationFloatingViewBinding.inflate(
-        LayoutInflater.from(context)
-    )
-    private val screenWidth: Int
-        get() = ScreenUtil.getScreenWidth(context)
+    // Compose 侧状态：图标条内容 + 钉住态（pinnedState 供 Compose 响应式）。
+    private val iconPackages = mutableStateListOf<String>()
+    private val iconDrawables = mutableMapOf<String, Drawable>()
+    private var isPinned = false
+    private var pinnedState by mutableStateOf(false)
 
-    private val screenHeight: Int
-        get() = ScreenUtil.getScreenHeight(context)
-
-
-    // View cache
-    private val viewCache = mutableMapOf<String, MaterialCardView>()
-    private var currentNotifications = listOf<NotificationInfo>()
-    private val MAX_NOTIFICATIONS = 3
+    private var stripHost: android.widget.FrameLayout? = null
+    private var overlayOwner: OverlayLifecycleOwner? = null
 
     private var notificationJob: Job? = null
-    private var isPinned = false
     private val layoutParams = WindowManager.LayoutParams()
     private var isAttached = false
     private var visibilityAnimator: ObjectAnimator? = null
@@ -93,11 +101,28 @@ class NotificationFloating(
             }
         }
 
+    private val screenWidth: Int get() = ScreenUtil.getScreenWidth(context)
+    private val screenHeight: Int get() = ScreenUtil.getScreenHeight(context)
+
     init {
         initAll()
     }
 
     private fun initAll() {
+        val frame = android.widget.FrameLayout(context)
+        val (composeView, owner) = context.miuixOverlayView {
+            NotificationStrip(iconPackages, iconDrawables, pinnedState)
+        }
+        composeView.bindOverlayLifecycle(owner)
+        frame.addView(
+            composeView,
+            android.widget.FrameLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+        stripHost = frame
+        overlayOwner = owner
         initFloatingWindow()
         initTouchListener()
         context.registerComponentCallbacks(componentCallbacks)
@@ -117,8 +142,8 @@ class NotificationFloating(
                 title = "GestureEVO:NotificationFloating",
             )
         }
-        binding.root.visibility = View.GONE
-        binding.root.alpha = 0f
+        stripHost?.visibility = View.GONE
+        stripHost?.alpha = 0f
         context.launch(Dispatchers.IO) {
             val savedX = context.settingsStore.readKey(KEY_NOTIFICATION_FLOATING_LOC_X, 0)
             val savedY =
@@ -129,38 +154,41 @@ class NotificationFloating(
                 isDockedToRight = savedX > currentScreenWidth / 2 || savedX > 0
                 dockedYRatio = (savedY.toFloat() / currentScreenHeight.coerceAtLeast(1)).coerceIn(0.05f, 0.95f)
 
-                val rootWidth = binding.root.width.takeIf { it > 0 }
-                    ?: binding.root.measuredWidth.takeIf { it > 0 }
-                    ?: 56.dp2px.toInt()
-                val rootHeight = binding.root.height.takeIf { it > 0 }
-                    ?: binding.root.measuredHeight.takeIf { it > 0 }
-                    ?: 56.dp2px.toInt()
+                val root = stripHost ?: return@postOnMain
+                val rootWidth = root.width.takeIf { it > 0 } ?: 56.dp2px.toInt()
+                val rootHeight = root.height.takeIf { it > 0 } ?: 56.dp2px.toInt()
 
                 layoutParams.x = if (isDockedToRight) (currentScreenWidth - rootWidth).coerceAtLeast(0) else 0
                 layoutParams.y = (dockedYRatio * currentScreenHeight - rootHeight / 2f).roundToInt()
                     .coerceIn(0, (currentScreenHeight - rootHeight).coerceAtLeast(0))
-                if (isAttached && binding.root.isAttachedToWindow) {
-                    updateViewLayoutSafely(binding.root, layoutParams)
+                if (isAttached && root.isAttachedToWindow) {
+                    updateViewLayoutSafely(root, layoutParams)
                 }
             }
         }
     }
 
-    private fun ensureAttached() {
-        if (binding.root.isAttachedToWindow) {
+    private fun rootWidthOf(root: View) =
+        root.width.takeIf { it > 0 } ?: 56.dp2px.toInt()
+
+    private fun rootHeightOf(root: View) =
+        root.height.takeIf { it > 0 } ?: 56.dp2px.toInt()
+
+    private fun ensureAttached(root: View) {
+        if (root.isAttachedToWindow) {
             isAttached = true
             return
         }
-        addViewSafely(binding.root, layoutParams) { isAttached = true }
-        isAttached = binding.root.isAttachedToWindow
+        addViewSafely(root, layoutParams) { isAttached = true }
+        isAttached = root.isAttachedToWindow
     }
 
-    private fun detachIfNeeded(cancelAnimator: Boolean = true) {
+    private fun detachIfNeeded(root: View, cancelAnimator: Boolean = true) {
         if (cancelAnimator) {
             visibilityAnimator?.cancel()
             visibilityAnimator = null
         }
-        detachViewSafely(binding.root) { isAttached = false }
+        detachViewSafely(root) { isAttached = false }
     }
 
     private val dragHandler = DragHandler()
@@ -168,7 +196,8 @@ class NotificationFloating(
 
     @SuppressLint("ClickableViewAccessibility")
     private fun initTouchListener() {
-        binding.root.setOnTouchListener { view, event ->
+        val root = stripHost ?: return
+        root.setOnTouchListener { view, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     dragHandler.onTouchDown(event, view)
@@ -197,7 +226,7 @@ class NotificationFloating(
                 else -> false
             }
         }
-        binding.root.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+        root.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
             if (dragHandler.isMoving) return@addOnLayoutChangeListener
             val width = right - left
             val height = bottom - top
@@ -212,24 +241,18 @@ class NotificationFloating(
                 if (layoutParams.x != targetX || layoutParams.y != targetY) {
                     layoutParams.x = targetX
                     layoutParams.y = targetY
-                    if (isAttached && binding.root.isAttachedToWindow) {
-                        updateViewLayoutSafely(binding.root, layoutParams)
+                    if (isAttached && root.isAttachedToWindow) {
+                        updateViewLayoutSafely(root, layoutParams)
                     }
                 }
             }
         }
     }
 
-    private fun createIconCardFromXml(pkg: String): MaterialCardView {
-        // Retrieve from cache if available
-        return viewCache.getOrPut(pkg) {
-            val inflater = LayoutInflater.from(DynamicColorUtils.dynamicThemedContext(context))
-            val view = NotificationItemViewBinding.inflate(inflater).root
-            view.findViewById<ImageFilterView>(R.id.icon)
-                ?.setImageDrawable(IconHelper.getIcon(context, pkg))
-            view
+    private fun iconDrawable(pkg: String): Drawable =
+        iconDrawables.getOrPut(pkg) {
+            IconHelper.getIcon(context, pkg) ?: android.graphics.drawable.ColorDrawable(Color.TRANSPARENT)
         }
-    }
 
     private fun handleClick(pkg: String) = context.launch {
         produceNotificationEvent(NotificationEvent(pkg, freeForm = true))
@@ -246,56 +269,38 @@ class NotificationFloating(
     }
 
     private fun updateViews(notificationInfoList: List<NotificationInfo>) {
-        // Evict stale cached views
-        val newPackages =
-            notificationInfoList.take(MAX_NOTIFICATIONS).map { it.packageName }.toSet()
-        viewCache.keys.toList().forEach { pkg ->
-            if (pkg !in newPackages) {
-                viewCache.remove(pkg)
-            }
-        }
-
-        // Update views
-        binding.root.removeAllViews()
-        notificationInfoList.take(MAX_NOTIFICATIONS).forEach { info ->
-            val icon = createIconCardFromXml(info.packageName)
-            // Ensure view has no existing parent before attaching
-            icon.parent?.let { (it as ViewGroup).removeView(icon) }
-            binding.root.addView(icon)
-        }
-        refreshTheme()
+        val newPackages = notificationInfoList.take(MAX_NOTIFICATIONS).map { it.packageName }
+        newPackages.forEach { iconDrawable(it) }
+        iconPackages.clear()
+        iconPackages.addAll(newPackages)
     }
 
     fun show(notificationInfoList: List<NotificationInfo>) = context.postOnMain {
         if (!enable) return@postOnMain
+        val root = stripHost ?: return@postOnMain
         val currentScreenWidth = screenWidth
         val currentScreenHeight = screenHeight
-        val rootWidth = binding.root.width.takeIf { it > 0 }
-            ?: binding.root.measuredWidth.takeIf { it > 0 }
-            ?: 56.dp2px.toInt()
-        val rootHeight = binding.root.height.takeIf { it > 0 }
-            ?: binding.root.measuredHeight.takeIf { it > 0 }
-            ?: 56.dp2px.toInt()
+        val rootWidth = rootWidthOf(root)
+        val rootHeight = rootHeightOf(root)
         layoutParams.x = if (isDockedToRight) (currentScreenWidth - rootWidth).coerceAtLeast(0) else 0
         layoutParams.y = (dockedYRatio * currentScreenHeight - rootHeight / 2f).roundToInt()
             .coerceIn(0, (currentScreenHeight - rootHeight).coerceAtLeast(0))
-        if (isAttached && binding.root.isAttachedToWindow) {
-            updateViewLayoutSafely(binding.root, layoutParams)
+        if (isAttached && root.isAttachedToWindow) {
+            updateViewLayoutSafely(root, layoutParams)
         }
-        ensureAttached()
+        ensureAttached(root)
         visibilityAnimator?.cancel()
 
         if (notificationInfoList != currentNotifications) {
             currentNotifications = notificationInfoList
             updateViews(notificationInfoList)
         }
-        refreshTheme()
         restartAutoHideTimer()
 
-        if (binding.root.visibility != View.VISIBLE) {
-            binding.root.alpha = 0f
-            binding.root.visibility = View.VISIBLE
-            visibilityAnimator = ObjectAnimator.ofFloat(binding.root, View.ALPHA, binding.root.alpha, 1f).apply {
+        if (root.visibility != View.VISIBLE) {
+            root.alpha = 0f
+            root.visibility = View.VISIBLE
+            visibilityAnimator = ObjectAnimator.ofFloat(root, View.ALPHA, root.alpha, 1f).apply {
                 duration = 200
                 start()
             }
@@ -306,46 +311,48 @@ class NotificationFloating(
         notificationJob?.cancel()
         notificationJob = null
         clearPinnedState()
-        if (!binding.root.isAttachedToWindow) {
+        val root = stripHost ?: return@postOnMain
+        if (!root.isAttachedToWindow) {
             cleanup()
-            detachIfNeeded()
+            detachIfNeeded(root)
             return@postOnMain
         }
         visibilityAnimator?.cancel()
-        if (binding.root.isVisible) {
-            val hideAnimator = ObjectAnimator.ofFloat(binding.root, View.ALPHA, binding.root.alpha, 0.0f)
+        if (root.isVisible) {
+            val hideAnimator = ObjectAnimator.ofFloat(root, View.ALPHA, root.alpha, 0.0f)
             visibilityAnimator = hideAnimator.apply {
                 duration = 200
-                addListener(object : Animator.AnimatorListener {
-                    override fun onAnimationStart(p0: Animator) {}
-                    override fun onAnimationEnd(p0: Animator) {
+                addListener(object : android.animation.Animator.AnimatorListener {
+                    override fun onAnimationStart(p0: android.animation.Animator) {}
+                    override fun onAnimationEnd(p0: android.animation.Animator) {
                         if (visibilityAnimator !== hideAnimator) return
                         visibilityAnimator = null
-                        binding.root.visibility = View.GONE
+                        root.visibility = View.GONE
                         cleanup()
-                        detachIfNeeded(cancelAnimator = false)
+                        detachIfNeeded(root, cancelAnimator = false)
                     }
 
-                    override fun onAnimationCancel(p0: Animator) {
+                    override fun onAnimationCancel(p0: android.animation.Animator) {
                         visibilityAnimator = null
-                        if (!isAttachRequested(binding.root)) {
+                        if (!isAttachRequested(root)) {
                             cleanup()
-                            detachIfNeeded(cancelAnimator = false)
+                            detachIfNeeded(root, cancelAnimator = false)
                         }
                     }
-                    override fun onAnimationRepeat(p0: Animator) {}
+                    override fun onAnimationRepeat(p0: android.animation.Animator) {}
                 })
                 start()
             }
         } else {
             cleanup()
-            detachIfNeeded()
+            detachIfNeeded(root)
         }
     }
 
     fun update(notificationInfoList: List<NotificationInfo>) = context.postOnMain {
         if (!enable) return@postOnMain
-        if (binding.root.isAttachedToWindow && binding.root.isVisible) {
+        val root = stripHost ?: return@postOnMain
+        if (root.isAttachedToWindow && root.isVisible) {
             if (notificationInfoList.isEmpty()) {
                 hide()
             } else if (notificationInfoList != currentNotifications) {
@@ -359,19 +366,12 @@ class NotificationFloating(
     }
 
     fun refreshTheme() {
-        val surface = DynamicColorUtils.surfaceContainerColor
-        val primary = DynamicColorUtils.primaryColor
-        viewCache.values.forEach { card ->
-            card.setCardBackgroundColor(surface)
-            card.strokeWidth = if (isPinned) 4.dp2px.toInt() else 0
-            card.strokeColor = if (isPinned) primary else Color.TRANSPARENT
-        }
+        // MiuixEvoTheme 自动跟随明暗与动态取色，无需手动刷色。
     }
 
     fun cleanup() {
-        viewCache.clear()
+        iconPackages.clear()
         currentNotifications = emptyList()
-        binding.root.removeAllViews()
     }
 
     fun destroy() = context.postOnMain {
@@ -381,10 +381,12 @@ class NotificationFloating(
         visibilityAnimator?.cancel()
         visibilityAnimator = null
         clearPinnedState()
-        binding.root.animate().cancel()
-        binding.root.visibility = View.GONE
+        stripHost?.animate()?.cancel()
+        stripHost?.visibility = View.GONE
         cleanup()
-        detachIfNeeded(cancelAnimator = false)
+        stripHost?.let { detachIfNeeded(it, cancelAnimator = false) }
+        overlayOwner?.pause()
+        overlayOwner?.destroy()
     }
 
     fun pinnedMode() {
@@ -393,32 +395,24 @@ class NotificationFloating(
         if (isPinned) return
         isPinned = true
         context.postOnMain {
-            refreshTheme()
-
             VibratorUtils.vibrator(context, true)
-
-            binding.root.animate()
-                .scaleX(1.1f)
-                .scaleY(1.1f)
-                .setDuration(150)
-                .withEndAction {
-                    binding.root.animate()
-                        .scaleX(1.0f)
-                        .scaleY(1.0f)
-                        .setDuration(150)
-                        .start()
+            stripHost?.animate()
+                ?.scaleX(1.1f)
+                ?.scaleY(1.1f)
+                ?.setDuration(150)
+                ?.withEndAction {
+                    stripHost?.animate()
+                        ?.scaleX(1.0f)
+                        ?.scaleY(1.0f)
+                        ?.setDuration(150)
+                        ?.start()
                 }
-                .start()
+                ?.start()
         }
     }
 
     fun clearPinnedState() {
         isPinned = false
-        viewCache.forEach { (_, card) ->
-            // Restore default stroke
-            card.strokeWidth = 0
-            card.strokeColor = Color.TRANSPARENT
-        }
     }
 
     fun onConfigurationChanged(newConfig: Configuration? = null) {
@@ -427,14 +421,11 @@ class NotificationFloating(
 
     fun repositionAfterOrientationChange() {
         context.postOnMain {
+            val root = stripHost ?: return@postOnMain
             val currentScreenWidth = screenWidth
             val currentScreenHeight = screenHeight
-            val rootWidth = binding.root.width.takeIf { it > 0 }
-                ?: binding.root.measuredWidth.takeIf { it > 0 }
-                ?: 56.dp2px.toInt()
-            val rootHeight = binding.root.height.takeIf { it > 0 }
-                ?: binding.root.measuredHeight.takeIf { it > 0 }
-                ?: 56.dp2px.toInt()
+            val rootWidth = rootWidthOf(root)
+            val rootHeight = rootHeightOf(root)
 
             val targetX = if (isDockedToRight) (currentScreenWidth - rootWidth).coerceAtLeast(0) else 0
             val targetY = (dockedYRatio * currentScreenHeight - rootHeight / 2f).roundToInt()
@@ -442,19 +433,16 @@ class NotificationFloating(
 
             layoutParams.x = targetX
             layoutParams.y = targetY
-            if (isAttached && binding.root.isAttachedToWindow) {
-                updateViewLayoutSafely(binding.root, layoutParams)
+            if (isAttached && root.isAttachedToWindow) {
+                updateViewLayoutSafely(root, layoutParams)
             }
         }
-        binding.root.postDelayed({
+        stripHost?.postDelayed({
+            val root = stripHost ?: return@postDelayed
             val currentScreenWidth = screenWidth
             val currentScreenHeight = screenHeight
-            val rootWidth = binding.root.width.takeIf { it > 0 }
-                ?: binding.root.measuredWidth.takeIf { it > 0 }
-                ?: 56.dp2px.toInt()
-            val rootHeight = binding.root.height.takeIf { it > 0 }
-                ?: binding.root.measuredHeight.takeIf { it > 0 }
-                ?: 56.dp2px.toInt()
+            val rootWidth = rootWidthOf(root)
+            val rootHeight = rootHeightOf(root)
 
             val targetX = if (isDockedToRight) (currentScreenWidth - rootWidth).coerceAtLeast(0) else 0
             val targetY = (dockedYRatio * currentScreenHeight - rootHeight / 2f).roundToInt()
@@ -462,8 +450,8 @@ class NotificationFloating(
 
             layoutParams.x = targetX
             layoutParams.y = targetY
-            if (isAttached && binding.root.isAttachedToWindow) {
-                updateViewLayoutSafely(binding.root, layoutParams)
+            if (isAttached && root.isAttachedToWindow) {
+                updateViewLayoutSafely(root, layoutParams)
             }
         }, 150L)
     }
@@ -485,6 +473,52 @@ class NotificationFloating(
         }
     }
 
+    private fun hitTestIcon(event: MotionEvent): String? {
+        // 图标卡等宽相邻排列（每张 55dp，根内边距 10dp），按 x 坐标求槽位。
+        val slot = 55.dp2px
+        val start = 10.dp2px
+        if (event.x < start) return null
+        val index = ((event.x - start) / slot).toInt()
+        if (index < 0 || index >= iconPackages.size) return null
+        return iconPackages.getOrNull(index)
+    }
+
+    private fun drawableToBitmap(drawable: Drawable, size: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, size, size)
+        drawable.draw(canvas)
+        return bitmap
+    }
+
+    @Composable
+    private fun NotificationStrip(
+        packages: List<String>,
+        drawables: Map<String, Drawable>,
+        pinned: Boolean,
+    ) {
+        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            packages.forEach { pkg ->
+                val drawable = drawables[pkg]
+                val bmp = remember(pkg) {
+                    drawable?.let { drawableToBitmap(it, 55.dp2px.toInt()) }
+                } ?: return
+                Image(
+                    bitmap = bmp.asImageBitmap(),
+                    contentDescription = pkg,
+                    modifier = Modifier
+                        .size(55.dp)
+                        .then(
+                            if (pinned) Modifier.border(
+                                4.dp,
+                                top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.primary,
+                                androidx.compose.foundation.shape.RoundedCornerShape(25.dp),
+                            ) else Modifier
+                        ),
+                )
+            }
+        }
+    }
 
     private inner class DragHandler {
         private var initialX = 0
@@ -582,11 +616,10 @@ class NotificationFloating(
             startTime = System.currentTimeMillis()
             startX = event.rawX
             startY = event.rawY
-            selectedPackage = findTouchedIcon(event)
+            selectedPackage = hitTestIcon(event)
         }
 
         fun onTouchMove(event: MotionEvent) {
-
         }
 
         fun onTouchUp(event: MotionEvent, view: View, dragHandler: DragHandler) {
@@ -606,26 +639,7 @@ class NotificationFloating(
                 }
             }
         }
-
-        private fun findTouchedIcon(event: MotionEvent): String? {
-            val touchX = event.x
-            val touchY = event.y
-
-            for (i in 0 until binding.root.childCount) {
-                val child = binding.root.getChildAt(i) as? MaterialCardView ?: continue
-                val icon = child.findViewById<ImageFilterView>(R.id.icon) ?: continue
-
-                val location = IntArray(2)
-                icon.getLocationInWindow(location)
-
-                if (touchX >= location[0] && touchX <= location[0] + icon.width &&
-                    touchY >= location[1] && touchY <= location[1] + icon.height
-                ) {
-                    return currentNotifications.getOrNull(i)?.packageName
-                }
-            }
-            return null
-        }
     }
 
+    private var currentNotifications: List<NotificationInfo> = emptyList()
 }
