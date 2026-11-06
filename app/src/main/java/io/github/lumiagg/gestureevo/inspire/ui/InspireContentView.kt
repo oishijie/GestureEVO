@@ -85,7 +85,12 @@ class InspireContentView : MaterialCardView {
             isImageTextSelectionProvider = { displayMode.isImageTextSelection },
         )
         displayModeController = InspireDisplayModeController(
-            binding = binding,
+            screenshotPreviewContainer = binding.screenshotPreviewContainer,
+            actionButtons = binding.actionButtons,
+            imageActionButtons = binding.imageActionButtons,
+            textActionButtons = binding.textActionButtons,
+            bigBangLayoutNestedScroll = binding.bigBangLayoutNestedScroll,
+            ocrImageTextOverlay = binding.ocrImageTextOverlay,
             hostView = this,
             previewHeightProvider = imagePreviewController::previewHeightForMode,
             onPreviewLayoutChanged = imagePreviewController::postUpdateOverlayImageBounds,
@@ -96,7 +101,8 @@ class InspireContentView : MaterialCardView {
         )
         imageTextSelectionPreviewController = ImageTextSelectionPreviewController(binding)
         modeSelectorController = ModeSelectorController(
-            binding = binding,
+            btnModeOcr = binding.btnModeOcr,
+            btnModeAccessibility = binding.btnModeAccessibility,
             canUseMode = ::canUseTokenMode,
             currentModeProvider = { tokenContentState.currentMode },
         )

@@ -3,43 +3,48 @@ package io.github.lumiagg.gestureevo.inspire.ui
 import android.view.View
 import android.view.View.GONE
 import android.view.View.VISIBLE
-import io.github.lumiagg.gestureevo.databinding.InspireContentViewBinding
 import io.github.lumiagg.gestureevo.inspire.InspireDisplayMode
 
+/** 取词浮层显示模式控制器——视图由宿主 [InspireContentView] 直接传入（不再依赖 ViewBinding）。 */
 internal class InspireDisplayModeController(
-    private val binding: InspireContentViewBinding,
+    private val screenshotPreviewContainer: View?,
+    private val actionButtons: View?,
+    private val imageActionButtons: View?,
+    private val textActionButtons: View?,
+    private val bigBangLayoutNestedScroll: View?,
+    private val ocrImageTextOverlay: View?,
     private val hostView: View,
     private val previewHeightProvider: (InspireDisplayMode) -> Int,
     private val onPreviewLayoutChanged: () -> Unit,
 ) {
-    fun apply(displayMode: InspireDisplayMode) = with(binding) {
+    fun apply(displayMode: InspireDisplayMode) {
         val isImageTextSelection = displayMode.isImageTextSelection
         screenshotPreviewContainer?.visibility = VISIBLE
-        actionButtons.visibility = VISIBLE
+        actionButtons?.visibility = VISIBLE
         imageActionButtons?.visibility = VISIBLE
         textActionButtons?.visibility = if (isImageTextSelection) GONE else VISIBLE
-        bigBangLayoutNestedScroll.visibility = if (isImageTextSelection) GONE else VISIBLE
-        applyHeight(bigBangLayoutNestedScroll, displayMode.bigBangHeight)
+        bigBangLayoutNestedScroll?.visibility = if (isImageTextSelection) GONE else VISIBLE
+        bigBangLayoutNestedScroll?.let { applyHeight(it, displayMode.bigBangHeight) }
         screenshotPreviewContainer?.let {
             applyHeight(it, previewHeightProvider(displayMode))
             it.requestLayout()
         }
-        bigBangLayoutNestedScroll.requestLayout()
+        bigBangLayoutNestedScroll?.requestLayout()
         refreshAfterMeasure(displayMode)
     }
 
-    fun hideAll() = with(binding) {
+    fun hideAll() {
         screenshotPreviewContainer?.visibility = GONE
-        actionButtons.visibility = GONE
+        actionButtons?.visibility = GONE
         imageActionButtons?.visibility = GONE
         textActionButtons?.visibility = GONE
-        bigBangLayoutNestedScroll.visibility = GONE
+        bigBangLayoutNestedScroll?.visibility = GONE
         ocrImageTextOverlay?.visibility = GONE
     }
 
     private fun refreshAfterMeasure(displayMode: InspireDisplayMode) {
         hostView.post {
-            binding.screenshotPreviewContainer?.let {
+            screenshotPreviewContainer?.let {
                 applyHeight(it, previewHeightProvider(displayMode))
                 it.requestLayout()
                 onPreviewLayoutChanged()
