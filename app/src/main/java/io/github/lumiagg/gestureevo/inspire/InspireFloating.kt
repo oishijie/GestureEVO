@@ -1,6 +1,5 @@
 package io.github.lumiagg.gestureevo.inspire
 
-import io.github.lumiagg.gestureevo.databinding.InspireViewBinding
 
 import android.content.Context
 import android.content.Intent
@@ -46,7 +45,7 @@ class InspireFloating(private val context: GestureService) :
     BaseFloatingWindow(context, context, "InspireFloating") {
     private val inspireView: InspireView by lazy {
         val themeContext: Context = ContextThemeWrapper(context, R.style.Theme_GestureEVO)
-        InspireViewBinding.inflate(LayoutInflater.from(themeContext)).root
+        LayoutInflater.from(themeContext).inflate(R.layout.inspire_view, null, false) as InspireView
     }
 
     private val layoutParams: WindowManager.LayoutParams = WindowManager.LayoutParams()

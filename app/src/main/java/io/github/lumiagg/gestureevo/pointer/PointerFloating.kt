@@ -1,10 +1,7 @@
 package io.github.lumiagg.gestureevo.pointer
 
-import io.github.lumiagg.gestureevo.databinding.PointerFloatingTouchViewBinding
 
-import io.github.lumiagg.gestureevo.databinding.GestureActionPointerViewBinding
 
-import io.github.lumiagg.gestureevo.databinding.PointerFloatingViewBinding
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -82,10 +79,10 @@ class PointerFloating(
     private val context: GestureService,
 ) : BaseFloatingWindow(context, context, "PointerFloating") {
     private val pointerFloatingView: ConstraintLayout by lazy {
-        PointerFloatingViewBinding.inflate(LayoutInflater.from(context)).root
+        LayoutInflater.from(context).inflate(R.layout.pointer_floating_view, null, false) as androidx.constraintlayout.widget.ConstraintLayout
     }
     private val touchView: MaterialCardView by lazy {
-        PointerFloatingTouchViewBinding.inflate(LayoutInflater.from(context)).root
+        LayoutInflater.from(context).inflate(R.layout.pointer_floating_touch_view, null, false) as com.google.android.material.card.MaterialCardView
     }
     private val pointerLayoutParams = WindowManager.LayoutParams()
     private val touchLayoutParams = WindowManager.LayoutParams()
@@ -417,7 +414,7 @@ class PointerFloating(
     }
 
     inner class PointerManger() {
-        private val view = GestureActionPointerViewBinding.inflate(LayoutInflater.from(context)).root
+        private val view = LayoutInflater.from(context).inflate(R.layout.gesture_action_pointer_view, null, false) as com.google.android.material.card.MaterialCardView
         private val pointerIcon: ImageFilterView = view.findViewById(R.id.pointer)
         private var pointerColor: Int = 0
         private var pointerShape: String = POINTER_SHAPE_DOT

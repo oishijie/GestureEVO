@@ -1,6 +1,5 @@
 package io.github.lumiagg.gestureevo.gesture
 
-import io.github.lumiagg.gestureevo.databinding.GestureActionViewBinding
 
 import android.accessibilityservice.AccessibilityService
 import android.animation.Animator
@@ -61,7 +60,7 @@ class GestureMainFloating(private val context: GestureService) :
     BaseFloatingWindow(context, context, TAG) {
 
     val actionView: MainActionView =
-        GestureActionViewBinding.inflate(LayoutInflater.from(context)).root
+        LayoutInflater.from(context).inflate(R.layout.gesture_action_view, null, false) as MainActionView
     val layoutParams: WindowManager.LayoutParams = WindowManager.LayoutParams()
     private var touchEnabled = true
     private var backgroundBlurActive = false
