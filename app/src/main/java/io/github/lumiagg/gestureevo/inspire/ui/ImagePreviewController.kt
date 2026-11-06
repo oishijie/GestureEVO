@@ -4,7 +4,6 @@ import android.graphics.RectF
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import io.github.lumiagg.gestureevo.databinding.InspireContentViewBinding
 import io.github.lumiagg.gestureevo.inspire.InspireDisplayMode
 import io.github.lumiagg.gestureevo.inspire.ManagedBitmap
 import io.github.lumiagg.gestureevo.inspire.ScreenContentNode
@@ -13,7 +12,11 @@ import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 internal class ImagePreviewController(
-    private val binding: InspireContentViewBinding,
+    private val screenshotPreview: ImageView,
+    private val screenshotPreviewContainer: View?,
+    private val ocrImageTextOverlay: io.github.lumiagg.gestureevo.inspire.ui.OcrImageTextOverlayView?,
+    private val imageActionButtons: View,
+    private val actionButtons: View,
     private val hostView: View,
     private val isImageTextSelectionProvider: () -> Boolean,
 ) {
@@ -42,11 +45,11 @@ internal class ImagePreviewController(
         previewImageWidth = image?.width ?: 0
         previewImageHeight = image?.height ?: 0
         lockedImageTextPreviewHeight = 0
-        binding.screenshotPreview.apply {
+        screenshotPreview.apply {
             setImageBitmap(image)
             alpha = 1f
         }
-        binding.screenshotPreviewContainer?.visibility = View.VISIBLE
+        screenshotPreviewContainer?.visibility = View.VISIBLE
         refreshOverlayHeightIfNeeded()
         postUpdateOverlayImageBounds()
     }
@@ -55,7 +58,7 @@ internal class ImagePreviewController(
         ocrImageWidth = imageWidth
         ocrImageHeight = imageHeight
         ocrImageTextNodes = nodes
-        binding.ocrImageTextOverlay?.apply {
+        ocrImageTextOverlay?.apply {
             alpha = 1f
             setImageTextNodes(imageWidth, imageHeight, nodes)
         }
@@ -73,7 +76,7 @@ internal class ImagePreviewController(
         ocrImageWidth = 0
         ocrImageHeight = 0
         lockedImageTextPreviewHeight = 0
-        binding.screenshotPreview.setImageBitmap(null)
+        screenshotPreview.setImageBitmap(null)
     }
 
     fun resetLockedImageTextPreviewHeight() {
@@ -90,7 +93,7 @@ internal class ImagePreviewController(
 
     fun refreshOverlayHeightIfNeeded() {
         if (!isImageTextSelectionProvider()) return
-        binding.screenshotPreviewContainer?.let {
+        screenshotPreviewContainer?.let {
             val params = it.layoutParams ?: return@let
             val height = getStableImageTextPreviewHeight()
             if (params.height != height) {
@@ -109,17 +112,17 @@ internal class ImagePreviewController(
     }
 
     fun postUpdateOverlayImageBounds() {
-        binding.screenshotPreview.post {
+        screenshotPreview.post {
             updateOverlayImageBounds()
-            binding.screenshotPreview.post { updateOverlayImageBounds() }
+            screenshotPreview.post { updateOverlayImageBounds() }
         }
     }
 
     fun updateOverlayImageBounds() {
-        val drawable = binding.screenshotPreview.drawable ?: return
+        val drawable = screenshotPreview.drawable ?: return
         val imageBounds = RectF(0f, 0f, drawable.intrinsicWidth.toFloat(), drawable.intrinsicHeight.toFloat())
-        binding.screenshotPreview.imageMatrix.mapRect(imageBounds)
-        binding.ocrImageTextOverlay?.setDisplayedImageBounds(imageBounds)
+        screenshotPreview.imageMatrix.mapRect(imageBounds)
+        ocrImageTextOverlay?.setDisplayedImageBounds(imageBounds)
     }
 
     fun releaseImageHandle() {
@@ -137,13 +140,13 @@ internal class ImagePreviewController(
     private fun calculateExpandedPreviewHeight(): Int {
         val imageWidth = previewImageWidth.takeIf { it > 0 }
             ?: ocrImageWidth.takeIf { it > 0 }
-            ?: binding.screenshotPreview.drawable?.intrinsicWidth?.takeIf { it > 0 }
+            ?: screenshotPreview.drawable?.intrinsicWidth?.takeIf { it > 0 }
             ?: return InspireContentLayoutMetrics.EXPANDED_PREVIEW_FALLBACK_HEIGHT_PX
         val imageHeight = previewImageHeight.takeIf { it > 0 }
             ?: ocrImageHeight.takeIf { it > 0 }
-            ?: binding.screenshotPreview.drawable?.intrinsicHeight?.takeIf { it > 0 }
+            ?: screenshotPreview.drawable?.intrinsicHeight?.takeIf { it > 0 }
             ?: return InspireContentLayoutMetrics.EXPANDED_PREVIEW_FALLBACK_HEIGHT_PX
-        val availableWidth = (binding.screenshotPreviewContainer?.width ?: 0).takeIf { it > 0 }
+        val availableWidth = (screenshotPreviewContainer?.width ?: 0).takeIf { it > 0 }
             ?: (hostView.width - hostView.paddingLeft - hostView.paddingRight).takeIf { it > 0 }
             ?: hostView.resources.displayMetrics.widthPixels
         val desiredHeight = (availableWidth * imageHeight / imageWidth.toFloat()).roundToInt()
@@ -156,13 +159,13 @@ internal class ImagePreviewController(
         val cardBottom = hostView.bottom.takeIf { it > 0 }
             ?: parentView?.height?.takeIf { it > 0 }
             ?: hostView.resources.displayMetrics.heightPixels
-        val previewMargins = (binding.screenshotPreviewContainer?.layoutParams as? ViewGroup.MarginLayoutParams)
+        val previewMargins = (screenshotPreviewContainer?.layoutParams as? ViewGroup.MarginLayoutParams)
             ?.let { it.topMargin + it.bottomMargin }
             ?: 0
         val actionButtonsHeight = if (isImageTextSelectionProvider()) {
-            binding.imageActionButtons.measuredOrEstimatedHeight(InspireContentLayoutMetrics.IMAGE_ACTION_BUTTONS_HEIGHT_PX)
+            imageActionButtons.measuredOrEstimatedHeight(InspireContentLayoutMetrics.IMAGE_ACTION_BUTTONS_HEIGHT_PX)
         } else {
-            binding.actionButtons.measuredOrEstimatedHeight(InspireContentLayoutMetrics.TOKEN_ACTION_BUTTONS_HEIGHT_PX)
+            actionButtons.measuredOrEstimatedHeight(InspireContentLayoutMetrics.TOKEN_ACTION_BUTTONS_HEIGHT_PX)
         }
         val nonPreviewHeight = actionButtonsHeight + previewMargins + hostView.paddingTop + hostView.paddingBottom
         val maxHeight = cardBottom - nonPreviewHeight - InspireContentLayoutMetrics.RESERVED_BOTTOM_GAP_PX

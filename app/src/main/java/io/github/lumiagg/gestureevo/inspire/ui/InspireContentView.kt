@@ -80,7 +80,11 @@ class InspireContentView : MaterialCardView {
     private fun initialize(attrs: AttributeSet?) {
         binding = InspireContentViewBinding.inflate(LayoutInflater.from(context), this, true)
         imagePreviewController = ImagePreviewController(
-            binding = binding,
+            screenshotPreview = binding.screenshotPreview,
+            screenshotPreviewContainer = binding.screenshotPreviewContainer,
+            ocrImageTextOverlay = binding.ocrImageTextOverlay,
+            imageActionButtons = binding.imageActionButtons,
+            actionButtons = binding.actionButtons,
             hostView = this,
             isImageTextSelectionProvider = { displayMode.isImageTextSelection },
         )
