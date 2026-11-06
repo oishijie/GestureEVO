@@ -7,19 +7,20 @@ import android.view.View.GONE
 import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
 import android.view.View.MeasureSpec
+import io.github.lumiagg.gestureevo.R
 import io.github.lumiagg.gestureevo.databinding.BigbangFunctionItemBinding
-import io.github.lumiagg.gestureevo.databinding.InspireContentViewBinding
 import io.github.lumiagg.gestureevo.inspire.InspireDisplayMode
 import io.github.lumiagg.gestureevo.utils.UrlDetector
 import io.github.lumiagg.gestureevo.utils.dp2px
 import kotlin.math.min
 
 internal class ImageTextSelectionActionBarController(
-    private val binding: InspireContentViewBinding,
+    private val imageSelectionActionBarContainer: android.view.ViewGroup?,
+    private val screenshotPreviewContainer: View?,
     private val actionProvider: () -> BigBangActionWrapper?,
 ) {
     private val actionBarBinding: BigbangFunctionItemBinding? =
-        binding.imageSelectionActionBarContainer?.let { container ->
+        imageSelectionActionBarContainer?.let { container ->
             BigbangFunctionItemBinding.inflate(
                 LayoutInflater.from(container.context),
                 container,
@@ -76,13 +77,13 @@ internal class ImageTextSelectionActionBarController(
     }
 
     private fun setVisibility(visibility: Int) {
-        binding.imageSelectionActionBarContainer?.visibility = visibility
+        imageSelectionActionBarContainer?.visibility = visibility
         actionBarBinding?.root?.visibility = visibility
     }
 
     private fun position(selectionBounds: RectF?, onPositioned: () -> Unit) {
-        val container = binding.imageSelectionActionBarContainer ?: return
-        val previewContainer = binding.screenshotPreviewContainer ?: return
+        val container = imageSelectionActionBarContainer ?: return
+        val previewContainer = screenshotPreviewContainer ?: return
         val bounds = selectionBounds ?: return
         val positionActionBar = {
             val margin = 8.dp2px

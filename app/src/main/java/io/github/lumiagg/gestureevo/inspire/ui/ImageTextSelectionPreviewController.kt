@@ -6,12 +6,13 @@ import android.view.View
 import android.view.View.GONE
 import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
-import io.github.lumiagg.gestureevo.databinding.InspireContentViewBinding
 import io.github.lumiagg.gestureevo.inspire.InspireDisplayMode
 import io.github.lumiagg.gestureevo.utils.dp2px
 
 internal class ImageTextSelectionPreviewController(
-    private val binding: InspireContentViewBinding,
+    private val imageSelectionTextPreviewContainer: View?,
+    private val imageSelectionTextPreview: android.widget.TextView?,
+    private val screenshotPreviewContainer: View?,
 ) {
     private var updateGeneration = 0L
     private var dockSide: DockSide? = null
@@ -22,8 +23,8 @@ internal class ImageTextSelectionPreviewController(
         isInteracting: Boolean,
         interactionAnchor: PointF?,
     ) {
-        val container = binding.imageSelectionTextPreviewContainer ?: return
-        val textView = binding.imageSelectionTextPreview ?: return
+        val container = imageSelectionTextPreviewContainer ?: return
+        val textView = imageSelectionTextPreview ?: return
         if (
             !displayMode.isImageTextSelection ||
             !isInteracting ||
@@ -64,12 +65,12 @@ internal class ImageTextSelectionPreviewController(
     fun hide() {
         updateGeneration++
         dockSide = null
-        binding.imageSelectionTextPreviewContainer?.visibility = GONE
+        imageSelectionTextPreviewContainer?.visibility = GONE
     }
 
     private fun updateDockSide(anchor: PointF) {
-        val container = binding.imageSelectionTextPreviewContainer ?: return
-        val previewContainer = binding.screenshotPreviewContainer ?: return
+        val container = imageSelectionTextPreviewContainer ?: return
+        val previewContainer = screenshotPreviewContainer ?: return
         if (container.width <= 0 || container.height <= 0) {
             dockSide = DockSide.TOP
             return
@@ -100,8 +101,8 @@ internal class ImageTextSelectionPreviewController(
     }
 
     private fun positionAtDock() {
-        val container = binding.imageSelectionTextPreviewContainer ?: return
-        val previewContainer = binding.screenshotPreviewContainer ?: return
+        val container = imageSelectionTextPreviewContainer ?: return
+        val previewContainer = screenshotPreviewContainer ?: return
         val margin = 8.dp2px
         val visibleBounds = previewContainer.visibleVerticalBounds()
         val maxX = (previewContainer.width - container.width - margin).coerceAtLeast(margin)

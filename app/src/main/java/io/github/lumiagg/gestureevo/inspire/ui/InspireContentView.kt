@@ -96,10 +96,15 @@ class InspireContentView : MaterialCardView {
             onPreviewLayoutChanged = imagePreviewController::postUpdateOverlayImageBounds,
         )
         imageTextActionBarController = ImageTextSelectionActionBarController(
-            binding = binding,
+            imageSelectionActionBarContainer = binding.imageSelectionActionBarContainer,
+            screenshotPreviewContainer = binding.screenshotPreviewContainer,
             actionProvider = { actionWrapper },
         )
-        imageTextSelectionPreviewController = ImageTextSelectionPreviewController(binding)
+        imageTextSelectionPreviewController = ImageTextSelectionPreviewController(
+            imageSelectionTextPreviewContainer = binding.imageSelectionTextPreviewContainer,
+            imageSelectionTextPreview = binding.imageSelectionTextPreview,
+            screenshotPreviewContainer = binding.screenshotPreviewContainer,
+        )
         modeSelectorController = ModeSelectorController(
             btnModeOcr = binding.btnModeOcr,
             btnModeAccessibility = binding.btnModeAccessibility,
