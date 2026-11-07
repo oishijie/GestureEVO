@@ -109,6 +109,23 @@ class NotificationFloating(
     }
 
     private fun initAll() {
+        // miuixOverlayView 内部创建 LifecycleOwner 必须在主线程。
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+            createOverlay()
+        } else {
+            val latch = java.util.concurrent.CountDownLatch(1)
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                createOverlay()
+                latch.countDown()
+            }
+            latch.await()
+        }
+        initFloatingWindow()
+        initTouchListener()
+        context.registerComponentCallbacks(componentCallbacks)
+    }
+
+    private fun createOverlay() {
         val frame = android.widget.FrameLayout(context)
         val (composeView, owner) = context.miuixOverlayView {
             NotificationStrip(iconPackages, iconDrawables, pinnedState)
