@@ -9,13 +9,16 @@ import android.text.TextPaint
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
+import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.card.MaterialCardView
 import io.github.lumiagg.gestureevo.R
-import io.github.lumiagg.gestureevo.databinding.SearchResultGridItemBinding
+
 import io.github.lumiagg.gestureevo.search.config.SearchResult
 import io.github.lumiagg.gestureevo.utils.DynamicColorUtils
 
@@ -110,34 +113,38 @@ internal class SearchResultGridLayout(
     @SuppressLint("InlinedApi")
     fun bind(itemView: View, result: SearchResult, position: Int) {
         if (result is SearchResult.PasteImageResult) return
-        val binding = SearchResultGridItemBinding.bind(itemView)
-        binding.icon.updateLayoutParams { width = iconSize; height = iconSize }
-        binding.resultTextGroup.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+        val icon = itemView.findViewById<ImageView>(R.id.icon)
+        val resultTextGroup = itemView.findViewById<View>(R.id.result_text_group)
+        val resultContainer = itemView.findViewById<MaterialCardView>(R.id.result_container)
+        val resultText = itemView.findViewById<TextView>(R.id.result_text)
+        val resultSubtitle = itemView.findViewById<TextView>(R.id.result_subtitle)
+        icon.updateLayoutParams { width = iconSize; height = iconSize }
+        resultTextGroup.updateLayoutParams<ViewGroup.MarginLayoutParams> {
             marginStart = iconGap
         }
-        binding.resultContainer.minimumHeight = size(R.dimen.search_grid_min_height)
-        binding.resultText.setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimension(
+        resultContainer.minimumHeight = size(R.dimen.search_grid_min_height)
+        resultText.setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimension(
             if (result is SearchResult.UrlResult) R.dimen.search_grid_url_text_size else R.dimen.search_grid_text_size
         ))
-        binding.resultText.breakStrategy = LineBreaker.BREAK_STRATEGY_SIMPLE
-        binding.resultText.maxLines = if (
+        resultText.breakStrategy = LineBreaker.BREAK_STRATEGY_SIMPLE
+        resultText.maxLines = if (
             result is SearchResult.ContactResult ||
             (result is SearchResult.PhoneResult &&
                 spanSizeLookup.getSpanSize(position) == 1)
         ) 1 else 2
-        binding.resultText.setTextColor(
+        resultText.setTextColor(
             if (result is SearchResult.ClearHistoryAction) {
                 DynamicColorUtils.onSurfaceVariantColor
             } else {
                 DynamicColorUtils.onSurfaceColor
             }
         )
-        binding.resultSubtitle.isVisible = result is SearchResult.ContactResult
+        resultSubtitle.isVisible = result is SearchResult.ContactResult
         if (result is SearchResult.ContactResult) {
-            binding.resultText.text = result.contact.name
-            binding.resultSubtitle.text = result.contact.phoneNumber
+            resultText.text = result.contact.name
+            resultSubtitle.text = result.contact.phoneNumber
         } else {
-            binding.resultSubtitle.text = null
+            resultSubtitle.text = null
         }
     }
 
