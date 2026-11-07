@@ -35,6 +35,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -92,6 +93,7 @@ import io.github.lumiagg.gestureevo.settings.DataStatsActivity
 import io.github.lumiagg.gestureevo.settings.FreeFormSettingsActivity
 import io.github.lumiagg.gestureevo.settings.FreeFormSettingsActivity.Companion.KEY_USE_MI_WINDOW
 import io.github.lumiagg.gestureevo.settings.FreeTriggerSettingsActivity
+import io.github.lumiagg.gestureevo.settings.GestureAddActionActivity
 import io.github.lumiagg.gestureevo.settings.InspireSettingsActivity
 import io.github.lumiagg.gestureevo.settings.SearchEngineSettingsActivity
 import io.github.lumiagg.gestureevo.settings.SettingsSearchActivity
@@ -258,6 +260,7 @@ private fun HomeRoot(
     var currentTab by rememberSaveable { mutableIntStateOf(0) }
     var anchor by remember { mutableStateOf<String?>(null) }
     var showImportDialog by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
     val navigationPreferences = remember(context) { context.getSharedPreferences("home_navigation", Context.MODE_PRIVATE) }
     val floatingBottomBar = remember(navigationPreferences, refreshKey) {
         navigationPreferences.getBoolean("floating_bottom_bar", true)
@@ -365,11 +368,28 @@ private fun HomeRoot(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 overscrollEffect = null,
             ) {
+                item {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text(context.getString(R.string.settings_search_hint), fontSize = 14.sp) },
+                        singleLine = true,
+                        shape = MaterialTheme.shapes.extraLarge,
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(painterResource(R.drawable.baseline_clear_24), contentDescription = null)
+                                }
+                            }
+                        },
+                    )
+                }
                 when (tab) {
-                    HomeActivity.TAB_OVERVIEW -> OverviewTabItems(status, context)
-                    HomeActivity.TAB_CONTROL -> ControlTabItems(status, context)
-                    HomeActivity.TAB_CONTENT -> ContentTabItems(status, context, scope) { showImportDialog = true }
-                    HomeActivity.TAB_MANAGEMENT -> ManagementTabItems(status, context)
+                    HomeActivity.TAB_OVERVIEW -> OverviewTabItems(status, context, searchQuery)
+                    HomeActivity.TAB_CONTROL -> ControlTabItems(status, context, searchQuery)
+                    HomeActivity.TAB_CONTENT -> ContentTabItems(status, context, scope, searchQuery) { showImportDialog = true }
+                    HomeActivity.TAB_MANAGEMENT -> ManagementTabItems(status, context, searchQuery)
                 }
             }
         }
@@ -379,10 +399,10 @@ private fun HomeRoot(
         var text by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { showImportDialog = false },
-            title = { Text(stringResource(R.string.search_engine_import_title)) },
+            title = { Text(context.getString(R.string.search_engine_import_title)) },
             text = {
                 Column {
-                    Text(stringResource(R.string.search_engine_import_message))
+                    Text(context.getString(R.string.search_engine_import_message))
                     OutlinedTextField(
                         value = text,
                         onValueChange = { text = it },
@@ -394,11 +414,11 @@ private fun HomeRoot(
                 TextButton(onClick = {
                     showImportDialog = false
                     importSearchEngines(context, text, scope)
-                }) { Text(stringResource(R.string.search_engine_import_action)) }
+                }) { Text(context.getString(R.string.search_engine_import_action)) }
             },
             dismissButton = {
                 TextButton(onClick = { showImportDialog = false }) {
-                    Text(stringResource(R.string.search_engine_cancel))
+                    Text(context.getString(R.string.search_engine_cancel))
                 }
             },
         )
@@ -440,65 +460,98 @@ private fun anchorItemIndex(tab: Int, key: String): Int = when (key) {
     else -> 0
 }
 
-private fun LazyListScope.OverviewTabItems(status: HomeStatus, context: Context) {
-    item {
-        SectionCard(listOf(
-            RowSpec(
-                iconRes = R.drawable.icon_service,
-                title = stringResource(R.string.ia_overview_status),
-                subtitle = stringResource(if (status.accessibility) R.string.home_badge_accessibility_on else R.string.home_badge_accessibility_off),
-            ) {
-                context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            },
-            RowSpec(R.drawable.baseline_miscellaneous_services_24, stringResource(R.string.ia_background), stringResource(R.string.ia_not_connected)) {
-                context.startActivity(Intent(context, BackgroundStabilityActivity::class.java))
-            },
-        ))
-    }
-    item {
-        SectionCard(listOf(
-            RowSpec(
-                iconRes = R.drawable.ic_little_window,
-                title = stringResource(R.string.ia_overview_config),
-                subtitle = stringResource(R.string.home_badge_freeform_mode, status.freeformMode),
-            ) {
-                context.startActivity(Intent(context, FreeFormSettingsActivity::class.java))
-            },
-        ))
-    }
-    item {
-        SectionCard(listOf(
-            RowSpec(
-                iconRes = R.drawable.baseline_pie_chart_24,
-                title = stringResource(R.string.ia_overview_usage),
-                subtitle = stringResource(R.string.data_stats_entry_summary),
-            ) {
-                context.startActivity(Intent(context, DataStatsActivity::class.java))
-            },
-        ))
-    }
-}
-private fun LazyListScope.ControlTabItems(status: HomeStatus, context: Context) {
-    item { SectionCard(listOf(
-        RowSpec(R.drawable.baseline_gesture_24, stringResource(R.string.ia_trigger_mapping), stringResource(R.string.home_summary_gesture)) { context.startActivity(Intent(context, FreeTriggerSettingsActivity::class.java)) }
-    )) }
-    item { SectionCard(listOf(RowSpec(R.drawable.baseline_pie_chart_24, stringResource(R.string.ia_wheel_layout), stringResource(R.string.home_summary_action_view)) { context.startActivity(Intent(context, ActionViewSettingsActivity::class.java)) })) }
-    item { SectionCard(listOf(RowSpec(R.drawable.baseline_keyboard_24, stringResource(R.string.ia_pointer_keyboard), stringResource(R.string.home_menu_pointer_keyboard_summary)) { openInspire(context, intArrayOf(R.id.PointerCard, R.id.keyboardTypeCard)) })) }
-    item { SectionCard(listOf(RowSpec(R.drawable.ic_little_window, stringResource(R.string.ia_window_behavior), stringResource(R.string.home_badge_freeform_mode, status.freeformMode)) { context.startActivity(Intent(context, FreeFormSettingsActivity::class.java)) })) }
+private fun filterRows(rows: List<RowSpec>, query: String): List<RowSpec> {
+    if (query.isBlank()) return rows
+    val q = query.trim()
+    return rows.filter { it.title.contains(q, true) || (it.subtitle?.contains(q, true) == true) }
 }
 
-private fun LazyListScope.ContentTabItems(status: HomeStatus, context: Context, scope: CoroutineScope, onImport: () -> Unit) {
-    item { SectionCard(listOf(RowSpec(R.drawable.baseline_qr_code_scanner_24, stringResource(R.string.ia_recognition_extract), stringResource(R.string.home_menu_recognition_title)) { openInspire(context, intArrayOf(R.id.screenContentSwitchCard)) })) }
-    item { SectionCard(listOf(RowSpec(R.drawable.baseline_search_24, stringResource(R.string.ia_search_config), stringResource(R.string.home_badge_engine_count, status.engineCount)) { context.startActivity(SettingsSearchNavigator.deepLinkIntent(context, SearchEngineSettingsActivity::class.java, R.id.engineListCard)) })) }
-    item { SectionCard(listOf(RowSpec(R.drawable.baseline_push_pin_24, stringResource(R.string.ia_pin_quick_send), stringResource(R.string.home_menu_pinpool_summary)) { openInspire(context, intArrayOf(R.id.pinPoolCard)) })) }
-    item { SectionCard(listOf(RowSpec(R.drawable.ic_baseline_share_24, stringResource(R.string.ia_share_output), stringResource(R.string.home_menu_share_summary)) { openInspire(context, intArrayOf(R.id.defaultShareBehaviorCard, R.id.appSelectionCard)) }, RowSpec(R.drawable.content_paste_go_20px, stringResource(R.string.search_engine_settings_import), stringResource(R.string.search_engine_settings_import_summary), onClick = onImport), RowSpec(R.drawable.ic_baseline_content_copy_24, stringResource(R.string.search_engine_settings_export), stringResource(R.string.search_engine_settings_export_summary)) { exportSearchEngines(context, scope) })) }
+private fun LazyListScope.emitCards(rows: List<RowSpec>) {
+    rows.forEach { row ->
+        item { SectionCard(listOf(row)) }
+    }
 }
 
-private fun LazyListScope.ManagementTabItems(status: HomeStatus, context: Context) {
-    item { SectionCard(listOf(RowSpec(R.drawable.baseline_settings_24, stringResource(R.string.ia_interface_navigation), stringResource(R.string.home_summary_about)) { context.startActivity(Intent(context, AppearanceSettingsActivity::class.java)) })) }
-    item { SectionCard(listOf(RowSpec(R.drawable.baseline_miscellaneous_services_24, stringResource(R.string.ia_external_auth), stringResource(R.string.home_summary_advanced)) { context.startActivity(Intent(context, AdvancedSettingsActivity::class.java)) })) }
-    item { SectionCard(listOf(RowSpec(R.drawable.baseline_save_24, stringResource(R.string.ia_data_maintenance), stringResource(R.string.home_summary_data)) { context.startActivity(Intent(context, DataBackActivity::class.java)) })) }
-    item { SectionCard(listOf(RowSpec(R.drawable.baseline_info_24, stringResource(R.string.settings_about_title), stringResource(R.string.home_summary_about)) { context.startActivity(Intent(context, AboutActivity::class.java)) })) }
+private fun LazyListScope.OverviewTabItems(status: HomeStatus, context: Context, searchQuery: String) {
+    val rows = filterRows(listOf(
+        RowSpec(R.drawable.icon_service, context.getString(R.string.home_status_service_title), context.getString(if (status.accessibility) R.string.home_badge_accessibility_on else R.string.home_badge_accessibility_off)) {
+            context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        },
+        RowSpec(R.drawable.baseline_miscellaneous_services_24, context.getString(R.string.ia_background), context.getString(R.string.ia_not_connected)) {
+            context.startActivity(Intent(context, BackgroundStabilityActivity::class.java))
+        },
+        RowSpec(R.drawable.ic_little_window, context.getString(R.string.ia_overview_config), context.getString(R.string.home_badge_freeform_mode, status.freeformMode)) {
+            context.startActivity(Intent(context, FreeFormSettingsActivity::class.java))
+        },
+        RowSpec(R.drawable.baseline_pie_chart_24, context.getString(R.string.ia_overview_usage), context.getString(R.string.data_stats_entry_summary)) {
+            context.startActivity(Intent(context, DataStatsActivity::class.java))
+        },
+        RowSpec(R.drawable.baseline_save_24, context.getString(R.string.data_backup_title), context.getString(R.string.home_summary_data)) {
+            context.startActivity(Intent(context, DataBackActivity::class.java))
+        },
+    ), searchQuery)
+    emitCards(rows)
+}
+
+private fun LazyListScope.ControlTabItems(status: HomeStatus, context: Context, searchQuery: String) {
+    val rows = filterRows(listOf(
+        RowSpec(R.drawable.baseline_gesture_24, context.getString(R.string.ia_trigger_mapping), context.getString(R.string.home_summary_gesture)) {
+            context.startActivity(Intent(context, FreeTriggerSettingsActivity::class.java))
+        },
+        RowSpec(R.drawable.baseline_pie_chart_24, context.getString(R.string.ia_wheel_layout), context.getString(R.string.home_summary_action_view)) {
+            context.startActivity(Intent(context, ActionViewSettingsActivity::class.java))
+        },
+        RowSpec(R.drawable.baseline_keyboard_24, context.getString(R.string.ia_pointer_keyboard), context.getString(R.string.home_menu_pointer_keyboard_summary)) {
+            openInspire(context, intArrayOf(R.id.PointerCard, R.id.keyboardTypeCard))
+        },
+        RowSpec(R.drawable.ic_little_window, context.getString(R.string.ia_window_behavior), context.getString(R.string.home_badge_freeform_mode, status.freeformMode)) {
+            context.startActivity(Intent(context, FreeFormSettingsActivity::class.java))
+        },
+        RowSpec(R.drawable.baseline_add_24, context.getString(R.string.external_action_editor_title), context.getString(R.string.home_summary_advanced)) {
+            context.startActivity(Intent(context, GestureAddActionActivity::class.java))
+        },
+    ), searchQuery)
+    emitCards(rows)
+}
+
+private fun LazyListScope.ContentTabItems(status: HomeStatus, context: Context, scope: CoroutineScope, searchQuery: String, onImport: () -> Unit) {
+    val rows = filterRows(listOf(
+        RowSpec(R.drawable.baseline_qr_code_scanner_24, context.getString(R.string.ia_recognition_extract), context.getString(R.string.home_menu_recognition_title)) {
+            openInspire(context, intArrayOf(R.id.screenContentSwitchCard))
+        },
+        RowSpec(R.drawable.baseline_search_24, context.getString(R.string.ia_search_config), context.getString(R.string.home_badge_engine_count, status.engineCount)) {
+            context.startActivity(SettingsSearchNavigator.deepLinkIntent(context, SearchEngineSettingsActivity::class.java, R.id.engineListCard))
+        },
+        RowSpec(R.drawable.baseline_push_pin_24, context.getString(R.string.ia_pin_quick_send), context.getString(R.string.home_menu_pinpool_summary)) {
+            openInspire(context, intArrayOf(R.id.pinPoolCard))
+        },
+        RowSpec(R.drawable.ic_baseline_share_24, context.getString(R.string.ia_share_output), context.getString(R.string.home_menu_share_summary)) {
+            openInspire(context, intArrayOf(R.id.defaultShareBehaviorCard, R.id.appSelectionCard))
+        },
+        RowSpec(R.drawable.content_paste_go_20px, context.getString(R.string.search_engine_settings_import), context.getString(R.string.search_engine_settings_import_summary), onClick = onImport),
+        RowSpec(R.drawable.ic_baseline_content_copy_24, context.getString(R.string.search_engine_settings_export), context.getString(R.string.search_engine_settings_export_summary)) {
+            exportSearchEngines(context, scope)
+        },
+    ), searchQuery)
+    emitCards(rows)
+}
+
+private fun LazyListScope.ManagementTabItems(status: HomeStatus, context: Context, searchQuery: String) {
+    val rows = filterRows(listOf(
+        RowSpec(R.drawable.baseline_auto_awesome_24, context.getString(R.string.home_status_theme_title), context.getString(R.string.home_summary_theme_entry, context.getString(if (ThemeManager.usesWallpaperColors) R.string.theme_summary_wallpaper else R.string.theme_summary_default))) {
+            context.startActivity(Intent(context, AppearanceSettingsActivity::class.java))
+        },
+        RowSpec(R.drawable.baseline_miscellaneous_services_24, context.getString(R.string.ia_external_auth), context.getString(R.string.home_summary_advanced)) {
+            context.startActivity(Intent(context, AdvancedSettingsActivity::class.java))
+        },
+        RowSpec(R.drawable.baseline_save_24, context.getString(R.string.ia_data_maintenance), context.getString(R.string.home_summary_data)) {
+            context.startActivity(Intent(context, DataBackActivity::class.java))
+        },
+        RowSpec(R.drawable.baseline_info_24, context.getString(R.string.settings_about_title), context.getString(R.string.home_summary_about)) {
+            context.startActivity(Intent(context, AboutActivity::class.java))
+        },
+    ), searchQuery)
+    emitCards(rows)
 }
 
 private fun openInspire(context: Context, cardIds: IntArray) {
