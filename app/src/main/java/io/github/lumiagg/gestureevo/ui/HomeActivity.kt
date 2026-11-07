@@ -334,26 +334,6 @@ private fun HomeRoot(
         topBar = {
             TopAppBar(
                 title = stringResource(TAB_TITLES[currentTab]),
-                actions = {
-                    IconButton(onClick = {
-                        context.startActivity(
-                            FeatureGuideActivity.intent(context, GUIDE_BY_TAB[currentTab])
-                        )
-                    }) {
-                        Icon(
-                            painter = painterResource(R.drawable.baseline_help_24),
-                            contentDescription = stringResource(R.string.home_guide_title),
-                        )
-                    }
-                    IconButton(onClick = {
-                        context.startActivity(Intent(context, SettingsSearchActivity::class.java))
-                    }) {
-                        Icon(
-                            painter = painterResource(R.drawable.baseline_search_24),
-                            contentDescription = stringResource(R.string.settings_search_hint),
-                        )
-                    }
-                },
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -446,73 +426,6 @@ private fun SectionCard(rows: List<RowSpec>) {
     }
 }
 
-@Composable
-private fun SearchBox(onClick: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onClick,
-        pressFeedbackType = PressFeedbackType.Tilt,
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            MiuixIcon(
-                painter = painterResource(R.drawable.baseline_search_24),
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-            )
-            Spacer(Modifier.width(10.dp))
-            MiuixText(
-                text = stringResource(R.string.settings_search_hint),
-                fontSize = 15.sp,
-                color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-            )
-        }
-    }
-}
-
-private data class TileSpec(
-    val iconRes: Int,
-    val value: String,
-    val label: String,
-    val onClick: (() -> Unit)? = null,
-)
-
-@Composable
-private fun Tiles(tiles: List<TileSpec>) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        tiles.chunked(2).forEach { rowTiles ->
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                rowTiles.forEach { tile ->
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        onClick = { tile.onClick?.invoke() },
-                        pressFeedbackType = PressFeedbackType.Tilt,
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            MiuixIcon(
-                                painter = painterResource(tile.iconRes),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = MiuixTheme.colorScheme.onBackground,
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            MiuixText(text = tile.value, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                            MiuixText(
-                                text = tile.label,
-                                fontSize = 12.sp,
-                                color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                            )
-                        }
-                    }
-                }
-                if (rowTiles.size == 1) Spacer(Modifier.weight(1f))
-            }
-        }
-    }
-}
 
 private fun anchorItemIndex(tab: Int, key: String): Int = when (key) {
     "preferenceAccessibility", "preferenceBackgroundStability" -> 0
@@ -527,12 +440,7 @@ private fun anchorItemIndex(tab: Int, key: String): Int = when (key) {
     else -> 0
 }
 
-private fun searchBoxClick(context: Context) {
-    context.startActivity(Intent(context, SettingsSearchActivity::class.java))
-}
-
 private fun LazyListScope.OverviewTabItems(status: HomeStatus, context: Context) {
-    item { SearchBox { searchBoxClick(context) } }
     item {
         SectionCard(listOf(
             RowSpec(
@@ -569,63 +477,28 @@ private fun LazyListScope.OverviewTabItems(status: HomeStatus, context: Context)
             },
         ))
     }
-    item {
-        Tiles(listOf(
-            TileSpec(R.drawable.icon_service, stringResource(if (status.accessibility) R.string.home_badge_accessibility_on else R.string.home_badge_accessibility_off), stringResource(R.string.home_status_service_title)),
-            TileSpec(R.drawable.icon_lock, status.pending.toString(), stringResource(R.string.tile_pending)),
-            TileSpec(R.drawable.baseline_pie_chart_24, status.wheelCount.toString(), stringResource(R.string.tile_wheels)),
-            TileSpec(R.drawable.ic_little_window, status.freeformMode, stringResource(R.string.tile_window)),
-        ))
-    }
 }
 private fun LazyListScope.ControlTabItems(status: HomeStatus, context: Context) {
-    item { SearchBox { searchBoxClick(context) } }
     item { SectionCard(listOf(
         RowSpec(R.drawable.baseline_gesture_24, stringResource(R.string.ia_trigger_mapping), stringResource(R.string.home_summary_gesture)) { context.startActivity(Intent(context, FreeTriggerSettingsActivity::class.java)) }
     )) }
     item { SectionCard(listOf(RowSpec(R.drawable.baseline_pie_chart_24, stringResource(R.string.ia_wheel_layout), stringResource(R.string.home_summary_action_view)) { context.startActivity(Intent(context, ActionViewSettingsActivity::class.java)) })) }
     item { SectionCard(listOf(RowSpec(R.drawable.baseline_keyboard_24, stringResource(R.string.ia_pointer_keyboard), stringResource(R.string.home_menu_pointer_keyboard_summary)) { openInspire(context, intArrayOf(R.id.PointerCard, R.id.keyboardTypeCard)) })) }
     item { SectionCard(listOf(RowSpec(R.drawable.ic_little_window, stringResource(R.string.ia_window_behavior), stringResource(R.string.home_badge_freeform_mode, status.freeformMode)) { context.startActivity(Intent(context, FreeFormSettingsActivity::class.java)) })) }
-    item {
-        Tiles(listOf(
-            TileSpec(R.drawable.baseline_pie_chart_24, status.wheelCount.toString(), stringResource(R.string.tile_wheels)),
-            TileSpec(R.drawable.baseline_control_point_24, status.triggerCount.toString(), stringResource(R.string.tile_triggers)),
-            TileSpec(R.drawable.ic_little_window, status.freeformMode, stringResource(R.string.tile_window)),
-            TileSpec(R.drawable.baseline_auto_awesome_24, stringResource(if (status.blurEnabled) R.string.tile_on else R.string.tile_off), stringResource(R.string.blur_master_title)),
-        ))
-    }
 }
 
 private fun LazyListScope.ContentTabItems(status: HomeStatus, context: Context, scope: CoroutineScope, onImport: () -> Unit) {
-    item { SearchBox { searchBoxClick(context) } }
     item { SectionCard(listOf(RowSpec(R.drawable.baseline_qr_code_scanner_24, stringResource(R.string.ia_recognition_extract), stringResource(R.string.home_menu_recognition_title)) { openInspire(context, intArrayOf(R.id.screenContentSwitchCard)) })) }
     item { SectionCard(listOf(RowSpec(R.drawable.baseline_search_24, stringResource(R.string.ia_search_config), stringResource(R.string.home_badge_engine_count, status.engineCount)) { context.startActivity(SettingsSearchNavigator.deepLinkIntent(context, SearchEngineSettingsActivity::class.java, R.id.engineListCard)) })) }
     item { SectionCard(listOf(RowSpec(R.drawable.baseline_push_pin_24, stringResource(R.string.ia_pin_quick_send), stringResource(R.string.home_menu_pinpool_summary)) { openInspire(context, intArrayOf(R.id.pinPoolCard)) })) }
     item { SectionCard(listOf(RowSpec(R.drawable.ic_baseline_share_24, stringResource(R.string.ia_share_output), stringResource(R.string.home_menu_share_summary)) { openInspire(context, intArrayOf(R.id.defaultShareBehaviorCard, R.id.appSelectionCard)) }, RowSpec(R.drawable.content_paste_go_20px, stringResource(R.string.search_engine_settings_import), stringResource(R.string.search_engine_settings_import_summary), onClick = onImport), RowSpec(R.drawable.ic_baseline_content_copy_24, stringResource(R.string.search_engine_settings_export), stringResource(R.string.search_engine_settings_export_summary)) { exportSearchEngines(context, scope) })) }
-    item {
-        Tiles(listOf(
-            TileSpec(R.drawable.baseline_search_24, status.engineCount.toString(), stringResource(R.string.tile_engines)),
-            TileSpec(R.drawable.baseline_push_pin_24, status.pinCount.toString(), stringResource(R.string.tile_pins)),
-            TileSpec(R.drawable.ic_rotate_right, stringResource(if (status.historyEnabled) R.string.tile_on else R.string.tile_off), stringResource(R.string.search_engine_settings_search_history)),
-            TileSpec(R.drawable.content_paste_go_20px, stringResource(if (status.clipboardEnabled) R.string.tile_on else R.string.tile_off), stringResource(R.string.search_engine_settings_show_clipboard_content)),
-        ))
-    }
 }
 
 private fun LazyListScope.ManagementTabItems(status: HomeStatus, context: Context) {
-    item { SearchBox { searchBoxClick(context) } }
     item { SectionCard(listOf(RowSpec(R.drawable.baseline_settings_24, stringResource(R.string.ia_interface_navigation), stringResource(R.string.home_summary_about)) { context.startActivity(Intent(context, AppearanceSettingsActivity::class.java)) })) }
     item { SectionCard(listOf(RowSpec(R.drawable.baseline_miscellaneous_services_24, stringResource(R.string.ia_external_auth), stringResource(R.string.home_summary_advanced)) { context.startActivity(Intent(context, AdvancedSettingsActivity::class.java)) })) }
     item { SectionCard(listOf(RowSpec(R.drawable.baseline_save_24, stringResource(R.string.ia_data_maintenance), stringResource(R.string.home_summary_data)) { context.startActivity(Intent(context, DataBackActivity::class.java)) })) }
     item { SectionCard(listOf(RowSpec(R.drawable.baseline_info_24, stringResource(R.string.settings_about_title), stringResource(R.string.home_summary_about)) { context.startActivity(Intent(context, AboutActivity::class.java)) })) }
-    item {
-        Tiles(listOf(
-            TileSpec(R.drawable.baseline_auto_awesome_24, stringResource(when (ThemeManager.themeMode) { ThemeManager.MODE_LIGHT -> R.string.theme_mode_light; ThemeManager.MODE_DARK -> R.string.theme_mode_dark; else -> R.string.theme_mode_system }), stringResource(R.string.appearance_status_label)),
-            TileSpec(R.drawable.baseline_circle_24, stringResource(if (ThemeManager.usesWallpaperColors) R.string.theme_summary_wallpaper else R.string.theme_summary_default), stringResource(R.string.dynamic_color_title)),
-            TileSpec(R.drawable.ic_baseline_g_translate_24, status.languageLabel, stringResource(R.string.appearance_settings_language_title)),
-            TileSpec(R.drawable.baseline_info_24, status.versionName, stringResource(R.string.tile_version)),
-        ))
-    }
 }
 
 private fun openInspire(context: Context, cardIds: IntArray) {
