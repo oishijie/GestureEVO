@@ -7,8 +7,8 @@ import android.view.View.GONE
 import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
 import android.view.View.MeasureSpec
+import android.widget.ImageView
 import io.github.lumiagg.gestureevo.R
-import io.github.lumiagg.gestureevo.databinding.BigbangFunctionItemBinding
 import io.github.lumiagg.gestureevo.inspire.InspireDisplayMode
 import io.github.lumiagg.gestureevo.utils.UrlDetector
 import io.github.lumiagg.gestureevo.utils.dp2px
@@ -19,17 +19,19 @@ internal class ImageTextSelectionActionBarController(
     private val screenshotPreviewContainer: View?,
     private val actionProvider: () -> BigBangActionWrapper?,
 ) {
-    private val actionBarBinding: BigbangFunctionItemBinding? =
-        imageSelectionActionBarContainer?.let { container ->
-            BigbangFunctionItemBinding.inflate(
-                LayoutInflater.from(container.context),
-                container,
-                true,
-            )
-        }
+    private var actionBarRoot: View? = null
+
+    // 子视图引用（inflate 后通过 findViewById 获取）
+    private var editIcon: ImageView? = null
+    private var shareIcon: ImageView? = null
+    private var pinIcon: ImageView? = null
+    private var transitionIcon: ImageView? = null
+    private var copySelectedIcon: ImageView? = null
+    private var openUrlIcon: ImageView? = null
+    private var sendToEVOIcon: ImageView? = null
 
     init {
-        actionBarBinding?.let { setupActions(it) }
+        imageSelectionActionBarContainer?.let { container -> setupActions(container) }
     }
 
     fun update(
@@ -38,9 +40,9 @@ internal class ImageTextSelectionActionBarController(
         selectionBounds: RectF?,
         isInteracting: Boolean = false,
     ) {
-        val actionBar = actionBarBinding ?: return
+        val actionBar = actionBarRoot ?: return
         val showActionBar = displayMode.isImageTextSelection && selectedText.isNotBlank() && !isInteracting
-        actionBar.openUrl.visibility = if (UrlDetector.hasUrl(selectedText)) VISIBLE else GONE
+        openUrlIcon?.visibility = if (UrlDetector.hasUrl(selectedText)) VISIBLE else GONE
         if (!showActionBar) {
             setVisibility(GONE)
             return
@@ -56,29 +58,45 @@ internal class ImageTextSelectionActionBarController(
         setVisibility(GONE)
     }
 
-    private fun setupActions(actionBar: BigbangFunctionItemBinding) = with(actionBar) {
+    private fun setupActions(container: android.view.ViewGroup) {
+        val root = LayoutInflater.from(container.context).inflate(
+            R.layout.bigbang_function_item, container, true
+        )
+        actionBarRoot = root
         root.elevation = 4f
         root.visibility = GONE
-        edit.visibility = GONE
-        share.setOnClickListener { actionProvider()?.handleShare() }
-        pin.setOnClickListener { actionProvider()?.handlePin() }
-        transition.setOnClickListener { actionProvider()?.handleTranslation() }
-        copySelected.setOnClickListener { actionProvider()?.handleCopy(false) }
-        copySelected.setOnLongClickListener {
-            actionProvider()?.handleCopy(true)
-            true
+        editIcon = root.findViewById<ImageView>(R.id.edit)?.apply { visibility = GONE }
+        shareIcon = root.findViewById<ImageView>(R.id.share)?.apply {
+            setOnClickListener { actionProvider()?.handleShare() }
         }
-        openUrl.setOnClickListener { actionProvider()?.handleBigBangUrlClick() }
-        sendToEVO.setOnClickListener { actionProvider()?.handleSendToEVO(false) }
-        sendToEVO.setOnLongClickListener {
-            actionProvider()?.handleSendToEVO(true)
-            true
+        pinIcon = root.findViewById<ImageView>(R.id.pin)?.apply {
+            setOnClickListener { actionProvider()?.handlePin() }
+        }
+        transitionIcon = root.findViewById<ImageView>(R.id.transition)?.apply {
+            setOnClickListener { actionProvider()?.handleTranslation() }
+        }
+        copySelectedIcon = root.findViewById<ImageView>(R.id.copySelected)?.apply {
+            setOnClickListener { actionProvider()?.handleCopy(false) }
+            setOnLongClickListener {
+                actionProvider()?.handleCopy(true)
+                true
+            }
+        }
+        openUrlIcon = root.findViewById<ImageView>(R.id.openUrl)?.apply {
+            setOnClickListener { actionProvider()?.handleBigBangUrlClick() }
+        }
+        sendToEVOIcon = root.findViewById<ImageView>(R.id.sendToEVO)?.apply {
+            setOnClickListener { actionProvider()?.handleSendToEVO(false) }
+            setOnLongClickListener {
+                actionProvider()?.handleSendToEVO(true)
+                true
+            }
         }
     }
 
     private fun setVisibility(visibility: Int) {
         imageSelectionActionBarContainer?.visibility = visibility
-        actionBarBinding?.root?.visibility = visibility
+        actionBarRoot?.visibility = visibility
     }
 
     private fun position(selectionBounds: RectF?, onPositioned: () -> Unit) {
