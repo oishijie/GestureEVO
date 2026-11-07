@@ -68,7 +68,7 @@ fun MiuixScreen(
         },
         contentWindowInsets = WindowInsets.systemBars
             .add(WindowInsets.displayCutout)
-            .only(WindowInsetsSides.Horizontal),
+            .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
     ) { innerPadding ->
         LazyColumn(
             state = listState,
